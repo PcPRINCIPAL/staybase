@@ -417,6 +417,79 @@ routes.get("/revenue", (_req, res) => {
   res.json(revenueData());
 });
 
+/* =========================== Adres-lookup =========================== */
+
+/**
+ * Adressuggesties via OpenStreetMap Nominatim (gratis, geen key nodig).
+ * De frontend debounce't; hier beperken we tot België en 5 resultaten.
+ */
+routes.get("/geocode", async (req, res) => {
+  const q = String(req.query.q || "").trim();
+  if (q.length < 3) {
+    res.json([]);
+    return;
+  }
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=be&addressdetails=1&limit=5&q=${encodeURIComponent(q)}`;
+    const r = await fetch(url, {
+      headers: {
+        "User-Agent": "Staybase-demo/0.1 (hello@oblivionlabs.ai)",
+        "Accept-Language": "nl-BE",
+      },
+    });
+    if (!r.ok) throw new Error(`nominatim ${r.status}`);
+    const data = (await r.json()) as {
+      name?: string;
+      display_name?: string;
+      address?: Record<string, string>;
+    }[];
+    const seen = new Set<string>();
+    const out = data.flatMap((d) => {
+      const a = d.address ?? {};
+      const street = [a.road, a.house_number].filter(Boolean).join(" ");
+      const city = a.village || a.town || a.city || a.municipality || "";
+      const line2 = [a.postcode, city].filter(Boolean).join(" ");
+      const label = street || d.name || d.display_name?.split(",")[0] || "";
+      const value = line2 ? `${label}, ${line2}` : label;
+      // Nominatim geeft vaak meerdere OSM-objecten voor hetzelfde adres terug.
+      if (!label || seen.has(value)) return [];
+      seen.add(value);
+      return [{ label, sub: line2, value }];
+    });
+    res.json(out);
+  } catch (err) {
+    console.warn("Geocoding mislukt:", err);
+    res.json([]); // stil falen — adres blijft vrij invulbaar
+  }
+});
+
+/* =========================== Onboarding-analytics =========================== */
+
+routes.post("/onboarding/track", (req, res) => {
+  const { sessionId, step, stepTitle, durationMs, completed } = req.body ?? {};
+  if (typeof sessionId !== "string" || typeof step !== "number" || typeof durationMs !== "number") {
+    res.status(400).json({ error: "sessionId, step en durationMs zijn verplicht" });
+    return;
+  }
+  db.prepare(
+    "INSERT INTO onboarding_events (session_id, step, step_title, duration_ms, completed) VALUES (?, ?, ?, ?, ?)"
+  ).run(sessionId, step, String(stepTitle ?? ""), Math.max(0, Math.round(durationMs)), completed ? 1 : 0);
+  res.status(201).json({ ok: true });
+});
+
+routes.get("/onboarding/stats", (_req, res) => {
+  const perStep = db.prepare(`
+    SELECT step, step_title AS stepTitle,
+           COUNT(*) AS visits,
+           ROUND(AVG(duration_ms)) AS avgMs,
+           ROUND(SUM(duration_ms) / 1000.0) AS totalSec
+    FROM onboarding_events GROUP BY step, step_title ORDER BY step
+  `).all();
+  const sessions = db.prepare("SELECT COUNT(DISTINCT session_id) AS n FROM onboarding_events").get() as { n: number };
+  const completed = db.prepare("SELECT COUNT(DISTINCT session_id) AS n FROM onboarding_events WHERE completed = 1").get() as { n: number };
+  res.json({ sessionsStarted: sessions.n, sessionsCompleted: completed.n, perStep });
+});
+
 /* =========================== Assistent & AI =========================== */
 
 routes.get("/ai-status", (_req, res) => {

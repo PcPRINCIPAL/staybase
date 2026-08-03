@@ -45,7 +45,7 @@ Alle flows lopen via de API en worden bewaard in SQLite:
 - **Prijzen** — voorstellen toepassen/afwijzen werkt door in kalender én prijsgrafiek.
 - **Schoonmaak** — marktplaats-beurt bevestigen; watervalsysteem als uitleg.
 - **Opbrengsten** — historiek (geseed) + lopende maand (live uit boekingen), per kanaal en per pand — alles telt kloppend op.
-- **Onboarding-wizard** — maakt echt een pand aan (status "onboarding") dat overal verschijnt.
+- **Onboarding-wizard** — maakt echt een pand aan (status "onboarding") dat overal verschijnt. Het adresveld checkt automatisch echte adressen (OpenStreetMap, gratis) met een dropdown; de tijd per stap wordt geregistreerd in `onboarding_events` voor de onboarding-analytics uit de analyse (`GET /api/onboarding/stats`).
 - **Login & sessies** — echte authenticatie (scrypt-hashing, httpOnly-cookie); de hele API zit erachter.
 - **Assistent** — beantwoordt ook vrij getypte vragen; regelgebaseerd, of via Claude als er een key is.
 
@@ -63,9 +63,17 @@ Guardrails blijven hard afgedwongen: vragen over kortingen of voorwaarden gaan
 nooit naar het model — die komen altijd eerst bij de eigenaar. `STAYBASE_AI_BASE_URL`
 is het koppelpunt voor de ORQ.AI-gateway uit de analyse.
 
+## Supabase
+
+Het Postgres-schema staat klaar in `supabase/migrations/0001_init.sql` — plakken en
+runnen in de Supabase SQL Editor. De projectconfig (`SUPABASE_URL`,
+`SUPABASE_PUBLISHABLE_KEY`) staat in `backend/.env`. Om de backend echt op
+Supabase te laten draaien is nog de **database-connectiestring** nodig
+(dashboard → Settings → Database) of de service-role key — dat is de volgende stap.
+
 ## Volgende stappen (roadmap)
 
-- Supabase (Postgres + auth) in plaats van lokale SQLite en de eigen sessielaag — schema en `requireAuth`-laag zijn erop voorzien
+- Backend omschakelen naar Supabase Postgres (schema staat klaar, connectiestring nodig) en Supabase Auth i.p.v. de eigen sessielaag
 - ORQ.AI-gateway ertussen via `STAYBASE_AI_BASE_URL` (code blijft ongewijzigd)
 - Guesty-koppeling (POC) voor echte boekingen en distributie
 - Deploy: frontend op Vercel, backend op Railway (accounts + secrets nodig)

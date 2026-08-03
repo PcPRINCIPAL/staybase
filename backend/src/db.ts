@@ -131,6 +131,18 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     expires_at TEXT NOT NULL
   );
+
+  -- Tijd per onboarding-stap, voor de onboarding-analytics uit de analyse
+  -- (waar lopen eigenaars vast, hoeveel minuten per stap → CRM/nurturing).
+  CREATE TABLE IF NOT EXISTS onboarding_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,          -- één uuid per geopende wizard
+    step INTEGER NOT NULL,
+    step_title TEXT NOT NULL,
+    duration_ms INTEGER NOT NULL,
+    completed INTEGER NOT NULL DEFAULT 0,  -- 1 op de slotstap van een afgeronde wizard
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `);
 
 const hasData = db.prepare("SELECT COUNT(*) AS n FROM properties").get() as { n: number };

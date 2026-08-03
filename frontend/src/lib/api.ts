@@ -125,6 +125,33 @@ export const useCreateProperty = () =>
 export const askAssistant = (question: string) =>
   api<AssistantReply>("/assistant", { method: "POST", body: JSON.stringify({ question }) });
 
+/* ---------- adres & onboarding ---------- */
+
+export interface AddressSuggestion {
+  label: string;
+  sub: string;
+  value: string;
+}
+
+export const geocodeAddress = (q: string) =>
+  api<AddressSuggestion[]>(`/geocode?q=${encodeURIComponent(q)}`);
+
+export function trackOnboarding(payload: {
+  sessionId: string;
+  step: number;
+  stepTitle: string;
+  durationMs: number;
+  completed?: boolean;
+}): void {
+  // Fire-and-forget: analytics mag de wizard nooit vertragen of breken.
+  fetch("/api/onboarding/track", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    keepalive: true,
+  }).catch(() => {});
+}
+
 export const useAiStatus = () =>
   useQuery({ queryKey: ["ai-status"], queryFn: () => api<{ llm: boolean }>("/ai-status"), staleTime: 60_000 });
 

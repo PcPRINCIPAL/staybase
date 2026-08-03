@@ -2,9 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Icon, Logo } from "../components/Icon";
 import { useToast } from "../components/Toast";
-import { useCreateProperty } from "../lib/api";
+import { geocodeAddress, trackOnboarding, useCreateProperty, type AddressSuggestion } from "../lib/api";
 
 const STEP_COUNT = 8;
+const STEP_TITLES = [
+  "Welkom", "Pandgegevens", "Foto's", "Attesten", "Schoonmaak", "Kanalen", "Stem-intake", "Overzicht",
+];
 const MIC_QS = [
   "“Hoe zou je je pand omschrijven aan een goeie vriend?”",
   "“Wat maakt de buurt zo leuk voor gasten?”",
@@ -40,6 +43,12 @@ export function Wizard({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState(0);
   const [type, setType] = useState("Huis");
   const [address, setAddress] = useState("Sparrendreef 24, 8300 Knokke-Heist");
+  const [addrSuggestions, setAddrSuggestions] = useState<AddressSuggestion[]>([]);
+  const [addrOpen, setAddrOpen] = useState(false);
+  const [addrChecking, setAddrChecking] = useState(false);
+  const [addrVerified, setAddrVerified] = useState(false);
+  const addrTimer = useRef<ReturnType<typeof setTimeout>>();
+  const addrSeq = useRef(0);
   const [bedrooms, setBedrooms] = useState(3);
   const [bathrooms, setBathrooms] = useState(2);
   const [maxGuests, setMaxGuests] = useState(8);
@@ -61,6 +70,60 @@ export function Wizard({ onClose }: { onClose: () => void }) {
     return () => { document.body.style.overflow = ""; };
   }, []);
 
+  /* --- tijdsregistratie per stap (onboarding-analytics) --- */
+  const track = useRef({ sessionId: crypto.randomUUID(), enteredAt: Date.now(), step: 0 });
+  const logStep = (completed = false) => {
+    const now = Date.now();
+    trackOnboarding({
+      sessionId: track.current.sessionId,
+      step: track.current.step,
+      stepTitle: STEP_TITLES[track.current.step] ?? String(track.current.step),
+      durationMs: now - track.current.enteredAt,
+      completed,
+    });
+    track.current.enteredAt = now;
+  };
+  const goToStep = (s: number) => {
+    logStep();
+    track.current.step = s;
+    setStep(s);
+  };
+  const closeWizard = () => {
+    logStep();
+    onClose();
+  };
+
+  /* --- adres-autocomplete --- */
+  const onAddressChange = (value: string) => {
+    setAddress(value);
+    setAddrVerified(false);
+    clearTimeout(addrTimer.current);
+    if (value.trim().length < 3) {
+      setAddrOpen(false);
+      setAddrChecking(false);
+      return;
+    }
+    setAddrChecking(true);
+    addrTimer.current = setTimeout(async () => {
+      const seq = ++addrSeq.current;
+      try {
+        const results = await geocodeAddress(value.trim());
+        if (seq !== addrSeq.current) return; // verouderd antwoord
+        setAddrSuggestions(results);
+        setAddrOpen(results.length > 0);
+      } catch {
+        setAddrOpen(false);
+      } finally {
+        if (seq === addrSeq.current) setAddrChecking(false);
+      }
+    }, 400);
+  };
+  const pickAddress = (s: AddressSuggestion) => {
+    setAddress(s.value);
+    setAddrOpen(false);
+    setAddrVerified(true);
+  };
+
   const startMic = () => {
     if (micState !== "idle") return;
     setMicState("live");
@@ -80,6 +143,7 @@ export function Wizard({ onClose }: { onClose: () => void }) {
   const street = address.split(",")[0].trim() || "Je pand";
 
   const finish = () => {
+    logStep(true);
     create.mutate(
       [{
         address, type, bedrooms, bathrooms, maxGuests,
@@ -107,7 +171,7 @@ export function Wizard({ onClose }: { onClose: () => void }) {
 
   const onNext = () => {
     if (step === STEP_COUNT - 1) finish();
-    else setStep((s) => s + 1);
+    else goToStep(step + 1);
   };
 
   return (
@@ -122,7 +186,7 @@ export function Wizard({ onClose }: { onClose: () => void }) {
             <i key={i} className={i <= step ? "done" : ""} />
           ))}
         </div>
-        <button className="icon-btn" onClick={onClose} aria-label="Sluiten"><Icon name="x" /></button>
+        <button className="icon-btn" onClick={closeWizard} aria-label="Sluiten"><Icon name="x" /></button>
       </div>
 
       <div className="wiz-body">
@@ -155,9 +219,28 @@ export function Wizard({ onClose }: { onClose: () => void }) {
                 </button>
               ))}
             </div>
-            <div className="fld">
+            <div className="fld addr-wrap">
               <label htmlFor="wAddr">Adres</label>
-              <input type="text" id="wAddr" value={address} onChange={(e) => setAddress(e.target.value)} />
+              <input
+                type="text"
+                id="wAddr"
+                value={address}
+                autoComplete="off"
+                onChange={(e) => onAddressChange(e.target.value)}
+                onBlur={() => setTimeout(() => setAddrOpen(false), 150)}
+              />
+              {addrChecking && <span className="addr-status">Zoeken…</span>}
+              {addrVerified && !addrChecking && <span className="addr-status ok">✓ gevonden</span>}
+              {addrOpen && (
+                <div className="addr-drop">
+                  {addrSuggestions.map((s, i) => (
+                    <button key={i} type="button" onMouseDown={(e) => { e.preventDefault(); pickAddress(s); }}>
+                      📍 {s.label}
+                      <span className="sub">{s.sub}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="steppers">
               {[
@@ -352,7 +435,7 @@ export function Wizard({ onClose }: { onClose: () => void }) {
 
       <div className="wiz-foot">
         <div className="wiz-foot-in">
-          <button className="btn ghost" style={{ visibility: step === 0 ? "hidden" : "visible" }} onClick={() => setStep((s) => Math.max(0, s - 1))}>
+          <button className="btn ghost" style={{ visibility: step === 0 ? "hidden" : "visible" }} onClick={() => goToStep(Math.max(0, step - 1))}>
             Terug
           </button>
           <button className="btn coral" onClick={onNext} disabled={create.isPending}>{nextLabel}</button>
