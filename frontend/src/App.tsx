@@ -7,13 +7,19 @@ import { InboxPage } from "./pages/InboxPage";
 import { PricesPage } from "./pages/PricesPage";
 import { CleaningPage } from "./pages/CleaningPage";
 import { RevenuePage } from "./pages/RevenuePage";
+import { Login } from "./pages/Login";
 import { Wizard } from "./features/Wizard";
 import { Assistant } from "./features/Assistant";
 import { UICtx } from "./ui";
+import { useAuth } from "./auth";
 
 export default function App() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const ui = useMemo(() => ({ openWizard: () => setWizardOpen(true) }), []);
+  const { user, loading } = useAuth();
+
+  if (loading) return <div className="loading" style={{ paddingTop: 120 }}>Staybase laden…</div>;
+  if (!user) return <Login />;
 
   return (
     <UICtx.Provider value={ui}>

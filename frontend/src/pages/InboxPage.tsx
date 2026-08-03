@@ -1,6 +1,9 @@
 import { useState } from "react";
 import type { Conversation } from "@shared/types";
-import { useApproveConversation, useConversations, useOverview, useReplyConversation } from "../lib/api";
+import {
+  useAiStatus, useApproveConversation, useConversations, useOverview,
+  useRegenerateDraft, useReplyConversation,
+} from "../lib/api";
 import { CHANNEL_META } from "../lib/format";
 import { Icon } from "../components/Icon";
 import { useToast } from "../components/Toast";
@@ -19,6 +22,8 @@ export function InboxPage() {
   const [showReply, setShowReply] = useState(false);
   const approve = useApproveConversation();
   const reply = useReplyConversation();
+  const regenerate = useRegenerateDraft();
+  const { data: aiStatus } = useAiStatus();
   const toast = useToast();
 
   if (isLoading || !convos) return <div className="loading">Inbox laden…</div>;
@@ -122,6 +127,20 @@ export function InboxPage() {
                 <button className="btn ghost sm" onClick={() => { setShowReply(true); setReplyText(active.draft ?? ""); }}>
                   ✎ Aanpassen
                 </button>
+                {aiStatus?.llm && (
+                  <button
+                    className="btn ghost sm"
+                    disabled={regenerate.isPending}
+                    onClick={() =>
+                      regenerate.mutate([active.id], {
+                        onSuccess: () => toast("Nieuw voorstel geschreven ✨"),
+                        onError: () => toast("Herschrijven mislukte — probeer opnieuw"),
+                      })
+                    }
+                  >
+                    {regenerate.isPending ? "Schrijven…" : "↻ Herschrijf met AI"}
+                  </button>
+                )}
               </div>
             </div>
           )}

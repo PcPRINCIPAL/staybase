@@ -116,12 +116,37 @@ db.exec(`
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    email TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS auth_sessions (
+    token TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    expires_at TEXT NOT NULL
+  );
 `);
 
 const hasData = db.prepare("SELECT COUNT(*) AS n FROM properties").get() as { n: number };
 if (hasData.n === 0) {
   seed(db);
   console.log("Database geseed met demodata.");
+}
+
+// Aparte check zodat bestaande databases de demogebruiker ook krijgen.
+const hasUsers = db.prepare("SELECT COUNT(*) AS n FROM users").get() as { n: number };
+if (hasUsers.n === 0) {
+  // Lazy import om een kringimport (auth → db → auth) te vermijden.
+  const { hashPassword } = require("./auth") as typeof import("./auth");
+  db.prepare("INSERT INTO users (id, email, name, password_hash) VALUES (?, ?, ?, ?)")
+    .run("u-julie", "julie@staybase.be", "Julie", hashPassword("staybase2026"));
+  console.log("Demogebruiker aangemaakt: julie@staybase.be / staybase2026");
 }
 
 export function getSetting(key: string, fallback: string): string {

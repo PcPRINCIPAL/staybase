@@ -1,0 +1,25 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
+/**
+ * Minimalistische .env-loader (geen dependency nodig): leest backend/.env als
+ * die bestaat en vult process.env aan zonder bestaande waarden te overschrijven.
+ */
+export function loadEnv(): void {
+  const file = path.join(__dirname, "..", ".env");
+  let raw: string;
+  try {
+    raw = readFileSync(file, "utf8");
+  } catch {
+    return; // geen .env — prima, dan draait de app zonder AI-key
+  }
+  for (const line of raw.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const idx = trimmed.indexOf("=");
+    if (idx === -1) continue;
+    const key = trimmed.slice(0, idx).trim();
+    const value = trimmed.slice(idx + 1).trim().replace(/^["']|["']$/g, "");
+    if (!(key in process.env)) process.env[key] = value;
+  }
+}

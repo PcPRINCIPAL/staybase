@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { askAssistant } from "../lib/api";
+import { askAssistant, useAiStatus } from "../lib/api";
 import { Icon } from "../components/Icon";
 
 interface ChatMsg {
@@ -20,8 +20,10 @@ export function Assistant() {
     { id: 0, from: "bot", html: "Dag Julie! Vraag me gerust iets over je panden, je boekingen of je opbrengsten. 😊" },
   ]);
   const [typing, setTyping] = useState(false);
+  const [input, setInput] = useState("");
   const idRef = useRef(1);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const { data: aiStatus } = useAiStatus();
 
   const scroll = () => {
     requestAnimationFrame(() => {
@@ -51,6 +53,9 @@ export function Assistant() {
         <div className="assist">
           <div className="assist-head">
             <span style={{ fontSize: 18 }}>✨</span> Vraag het aan Staybase
+            <span className={`chip ${aiStatus?.llm ? "good" : "gray"}`} style={{ fontSize: 10.5 }}>
+              {aiStatus?.llm ? "live AI" : "demo"}
+            </span>
             <button className="icon-btn" style={{ marginLeft: "auto", width: 30, height: 30 }} onClick={() => setOpen(false)} aria-label="Sluiten">
               <Icon name="x" />
             </button>
@@ -69,6 +74,27 @@ export function Assistant() {
             {CHIPS.map((c) => (
               <button key={c} onClick={() => ask(c)} disabled={typing}>{c}</button>
             ))}
+          </div>
+          <div className="assist-input">
+            <input
+              type="text"
+              value={input}
+              placeholder="Typ je eigen vraag…"
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && input.trim() && !typing) {
+                  ask(input.trim());
+                  setInput("");
+                }
+              }}
+            />
+            <button
+              className="btn primary sm"
+              disabled={typing || !input.trim()}
+              onClick={() => { ask(input.trim()); setInput(""); }}
+            >
+              Vraag
+            </button>
           </div>
         </div>
       )}

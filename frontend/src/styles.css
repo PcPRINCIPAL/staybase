@@ -266,7 +266,7 @@ table.mini td:last-child{text-align:right; font-weight:700; white-space:nowrap}
 .opt .rec{position:absolute; top:-9px; right:12px}
 .fld{margin-top:20px}
 .fld label{font-size:13px; font-weight:700; display:block; margin-bottom:7px}
-.fld input[type=text], .fld input[type=email]{width:100%; padding:13px 16px; border:1.5px solid var(--line); border-radius:var(--r-sm); font-size:15px; background:var(--card)}
+.fld input[type=text], .fld input[type=email], .fld input[type=password]{width:100%; padding:13px 16px; border:1.5px solid var(--line); border-radius:var(--r-sm); font-size:15px; background:var(--card)}
 .fld input:focus{border-color:var(--ink); outline:none}
 .steppers{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:20px}
 .stepper{border:1.5px solid var(--line); border-radius:var(--r-md); background:var(--card); padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:8px}
@@ -325,6 +325,26 @@ table.mini td:last-child{text-align:right; font-weight:700; white-space:nowrap}
 
 .foot{max-width:1160px; margin:0 auto; padding:0 24px 40px; color:var(--faint); font-size:12.5px; text-align:center}
 .loading{padding:60px 0; text-align:center; color:var(--faint); font-size:14px}
+
+/* ===== Login ===== */
+.login-wrap{min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px}
+.login-card{width:min(420px, 100%); padding:36px 32px 28px}
+.login-hint{font-size:12.5px; color:var(--muted); text-align:center; margin-top:16px; background:var(--soft); border-radius:999px; padding:7px 14px}
+
+/* ===== Avatar-menu ===== */
+.avatar-wrap{position:relative}
+.avatar{cursor:pointer; border:none}
+.avatar-menu{position:absolute; top:44px; right:0; background:var(--card); border:1px solid var(--line); border-radius:var(--r-sm); box-shadow:var(--shadow-lift); padding:8px; min-width:200px; z-index:70}
+.avatar-menu .who{padding:8px 10px; font-size:13px; border-bottom:1px solid var(--line); margin-bottom:6px}
+.avatar-menu .who b{display:block; font-size:13.5px}
+.avatar-menu .who span{color:var(--muted); font-size:12.5px}
+.avatar-menu button{width:100%; text-align:left; padding:9px 10px; border-radius:8px; font-size:13.5px; font-weight:600}
+.avatar-menu button:hover{background:var(--soft)}
+
+/* ===== Assistent-invoer ===== */
+.assist-input{display:flex; gap:8px; padding:12px 16px 14px; border-top:1px solid var(--line)}
+.assist-input input{flex:1; padding:10px 14px; border:1.5px solid var(--line); border-radius:999px; font-size:13.5px}
+.assist-input input:focus{border-color:var(--ink); outline:none}
 
 /* ===== Responsive ===== */
 @media (max-width:1240px){

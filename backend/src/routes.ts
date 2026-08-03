@@ -12,6 +12,7 @@ import type {
   Overview, PriceStripDay, PriceSuggestion, RevenueData, TimelineItem,
 } from "../../shared/types";
 import { answer } from "./assistant";
+import { aiAvailable, llmAnswer, llmDraft } from "./ai";
 
 export const routes = Router();
 
@@ -416,9 +417,50 @@ routes.get("/revenue", (_req, res) => {
   res.json(revenueData());
 });
 
-/* =========================== Assistent =========================== */
+/* =========================== Assistent & AI =========================== */
 
-routes.post("/assistant", (req, res) => {
+routes.get("/ai-status", (_req, res) => {
+  res.json({ llm: aiAvailable() });
+});
+
+routes.post("/assistant", async (req, res) => {
   const q = String(req.body?.question || "");
-  res.json({ answer: answer(q) });
+  if (aiAvailable()) {
+    try {
+      res.json({ answer: await llmAnswer(q), source: "llm" });
+      return;
+    } catch (err) {
+      console.warn("LLM-antwoord mislukt, val terug op regels:", err);
+    }
+  }
+  res.json({ answer: answer(q), source: "rules" });
+});
+
+/** Herschrijf het AI-voorstel van een gesprek met het echte model (vereist een API-key). */
+routes.post("/conversations/:id/regenerate", async (req, res) => {
+  if (!aiAvailable()) {
+    res.status(409).json({ error: "Geen AI-key geconfigureerd — zie backend/.env.example" });
+    return;
+  }
+  const c = db.prepare("SELECT * FROM conversations WHERE id = ?").get(req.params.id) as any;
+  if (!c || c.status !== "draft") {
+    res.status(409).json({ error: "alleen open voorstellen kunnen herschreven worden" });
+    return;
+  }
+  const prop = propertyById(c.property_id)!;
+  const msgs = db.prepare("SELECT sender, body FROM messages WHERE conversation_id = ? ORDER BY id").all(c.id) as any[];
+  try {
+    const draft = await llmDraft({
+      propertyName: prop.name,
+      guest: c.guest,
+      channel: c.channel,
+      messages: msgs,
+      note: c.draft_note,
+    });
+    db.prepare("UPDATE conversations SET draft = ? WHERE id = ?").run(draft, c.id);
+    res.json(conversationById(c.id));
+  } catch (err) {
+    console.warn("LLM-draft mislukt:", err);
+    res.status(502).json({ error: "AI-voorstel genereren mislukte — probeer opnieuw" });
+  }
 });

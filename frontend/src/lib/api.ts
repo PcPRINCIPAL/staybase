@@ -9,9 +9,29 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { "Content-Type": "application/json" },
     ...init,
   });
-  if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
+  if (!res.ok) {
+    if (res.status === 401 && !path.startsWith("/auth/")) {
+      window.dispatchEvent(new Event("sb:unauthorized"));
+    }
+    throw new Error(`API ${res.status}: ${await res.text()}`);
+  }
   return res.json() as Promise<T>;
 }
+
+/* ---------- auth ---------- */
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+}
+
+export const login = (email: string, password: string) =>
+  api<AuthUser>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
+
+export const logout = () => api<{ ok: boolean }>("/auth/logout", { method: "POST" });
+
+export const fetchMe = () => api<AuthUser>("/auth/me");
 
 /* ---------- queries ---------- */
 
@@ -104,3 +124,12 @@ export const useCreateProperty = () =>
 
 export const askAssistant = (question: string) =>
   api<AssistantReply>("/assistant", { method: "POST", body: JSON.stringify({ question }) });
+
+export const useAiStatus = () =>
+  useQuery({ queryKey: ["ai-status"], queryFn: () => api<{ llm: boolean }>("/ai-status"), staleTime: 60_000 });
+
+export const useRegenerateDraft = () =>
+  useInvalidating(
+    (id: string) => api<Conversation>(`/conversations/${id}/regenerate`, { method: "POST" }),
+    [["conversations"]]
+  );
