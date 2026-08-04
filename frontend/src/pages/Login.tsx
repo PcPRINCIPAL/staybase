@@ -50,7 +50,7 @@ export function Login() {
           {busy ? "Aanmelden…" : "Log in"}
         </button>
         <p className="login-hint">
-          Demo-account: <b>julie@staybase.be</b> · <b>staybase2026</b>
+          Demo: <b>julie@staybase.be</b> (beheerder) of <b>maxime@staybase.be</b> (eigenaar) · wachtwoord <b>staybase2026</b>
         </p>
       </form>
       <p className="foot" style={{ padding: 0, marginTop: 18 }}>Staybase · alle data is fictief · een voorstel van Oblivion Labs</p>

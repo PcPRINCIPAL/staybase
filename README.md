@@ -23,7 +23,9 @@ npm run dev
 
 - Frontend: http://localhost:5173 (proxyt `/api` door naar de backend)
 - Backend: http://localhost:4000 (poort wijzigen kan via `API_PORT`)
-- Inloggen: **julie@staybase.be** / **staybase2026** (demo-account, wordt mee geseed)
+- Inloggen (wachtwoord telkens **staybase2026**):
+  - **julie@staybase.be** — beheerder: alles van een eigenaar, plus de Beheer-pagina (gebruikers & rollen, tijd per onboarding-stap, recente onboardings)
+  - **maxime@staybase.be** — eigenaar: beheert panden en kan panden toevoegen; ziet de beheer-inzichten niet (ook de API geeft daar 403)
 
 Bij de eerste start wordt `backend/data/staybase.db` aangemaakt en geseed met de
 demodata (vaste "vandaag": vrijdag 17 juli 2026, zodat het verhaal altijd klopt).
@@ -47,6 +49,7 @@ Alle flows lopen via de API en worden bewaard in SQLite:
 - **Opbrengsten** — historiek (geseed) + lopende maand (live uit boekingen), per kanaal en per pand — alles telt kloppend op.
 - **Onboarding-wizard** — maakt echt een pand aan (status "onboarding") dat overal verschijnt. Het adresveld checkt automatisch echte adressen (OpenStreetMap, gratis) met een dropdown; de tijd per stap wordt geregistreerd in `onboarding_events` voor de onboarding-analytics uit de analyse (`GET /api/onboarding/stats`).
 - **Login & sessies** — echte authenticatie (scrypt-hashing, httpOnly-cookie); de hele API zit erachter.
+- **Rollen** — `admin` en `owner` op de gebruiker; admin-endpoints (`/api/admin/*`, `/api/onboarding/stats`) zijn server-side afgeschermd met een aparte middleware, en de Beheer-pagina verschijnt alleen voor admins.
 - **Assistent** — beantwoordt ook vrij getypte vragen; regelgebaseerd, of via Claude als er een key is.
 
 ## AI aanzetten (optioneel)

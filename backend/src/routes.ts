@@ -13,6 +13,7 @@ import type {
 } from "../../shared/types";
 import { answer } from "./assistant";
 import { aiAvailable, llmAnswer, llmDraft } from "./ai";
+import { currentUser, requireAdmin } from "./auth";
 
 export const routes = Router();
 
@@ -472,12 +473,17 @@ routes.post("/onboarding/track", (req, res) => {
     return;
   }
   db.prepare(
-    "INSERT INTO onboarding_events (session_id, step, step_title, duration_ms, completed) VALUES (?, ?, ?, ?, ?)"
-  ).run(sessionId, step, String(stepTitle ?? ""), Math.max(0, Math.round(durationMs)), completed ? 1 : 0);
+    "INSERT INTO onboarding_events (session_id, step, step_title, duration_ms, completed, user_id) VALUES (?, ?, ?, ?, ?, ?)"
+  ).run(
+    sessionId, step, String(stepTitle ?? ""),
+    Math.max(0, Math.round(durationMs)), completed ? 1 : 0,
+    currentUser(req)?.id ?? null
+  );
   res.status(201).json({ ok: true });
 });
 
-routes.get("/onboarding/stats", (_req, res) => {
+/** Alleen voor admins — eigenaars zien hun eigen onboarding-tijden bewust niet. */
+routes.get("/onboarding/stats", requireAdmin, (_req, res) => {
   const perStep = db.prepare(`
     SELECT step, step_title AS stepTitle,
            COUNT(*) AS visits,
@@ -487,7 +493,29 @@ routes.get("/onboarding/stats", (_req, res) => {
   `).all();
   const sessions = db.prepare("SELECT COUNT(DISTINCT session_id) AS n FROM onboarding_events").get() as { n: number };
   const completed = db.prepare("SELECT COUNT(DISTINCT session_id) AS n FROM onboarding_events WHERE completed = 1").get() as { n: number };
-  res.json({ sessionsStarted: sessions.n, sessionsCompleted: completed.n, perStep });
+  const recent = db.prepare(`
+    SELECT e.session_id AS sessionId,
+           COALESCE(u.name, 'Onbekend') AS userName,
+           MIN(e.created_at) AS startedAt,
+           SUM(e.duration_ms) AS totalMs,
+           COUNT(*) AS steps,
+           MAX(e.completed) AS completed
+    FROM onboarding_events e LEFT JOIN users u ON u.id = e.user_id
+    GROUP BY e.session_id ORDER BY MIN(e.created_at) DESC LIMIT 12
+  `).all();
+  res.json({ sessionsStarted: sessions.n, sessionsCompleted: completed.n, perStep, recent });
+});
+
+routes.get("/admin/users", requireAdmin, (_req, res) => {
+  const users = db.prepare(`
+    SELECT u.id, u.name, u.email, u.role, u.created_at AS createdAt,
+           (SELECT COUNT(*) FROM properties) AS _ignore,
+           (SELECT COUNT(DISTINCT session_id) FROM onboarding_events e WHERE e.user_id = u.id) AS onboardings,
+           (SELECT MAX(s.created_at) FROM auth_sessions s WHERE s.user_id = u.id) AS lastLogin
+    FROM users u ORDER BY u.created_at
+  `).all() as Record<string, unknown>[];
+  const roles = db.prepare("SELECT role, COUNT(*) AS n FROM users GROUP BY role").all();
+  res.json({ users: users.map(({ _ignore, ...u }) => u), roles });
 });
 
 /* =========================== Assistent & AI =========================== */

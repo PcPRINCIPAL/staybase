@@ -7,6 +7,7 @@ import { InboxPage } from "./pages/InboxPage";
 import { PricesPage } from "./pages/PricesPage";
 import { CleaningPage } from "./pages/CleaningPage";
 import { RevenuePage } from "./pages/RevenuePage";
+import { AdminPage } from "./pages/AdminPage";
 import { Login } from "./pages/Login";
 import { Wizard } from "./features/Wizard";
 import { Assistant } from "./features/Assistant";
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="/prijzen" element={<PricesPage />} />
           <Route path="/schoonmaak" element={<CleaningPage />} />
           <Route path="/opbrengsten" element={<RevenuePage />} />
+          <Route path="/beheer" element={<AdminPage />} />
         </Routes>
       </main>
       <footer className="foot">Staybase · alle data is fictief · een voorstel van Oblivion Labs</footer>

@@ -6,13 +6,14 @@ import { logout, useOverview } from "../lib/api";
 import { useUI } from "../ui";
 import { useAuth } from "../auth";
 
-const ITEMS: { to: string; icon: IconName; label: string; badge?: "inbox" | "price" }[] = [
+const ITEMS: { to: string; icon: IconName; label: string; badge?: "inbox" | "price"; adminOnly?: boolean }[] = [
   { to: "/", icon: "home", label: "Vandaag" },
   { to: "/kalender", icon: "calendar", label: "Kalender" },
   { to: "/inbox", icon: "chat", label: "Inbox", badge: "inbox" },
   { to: "/prijzen", icon: "tag", label: "Prijzen", badge: "price" },
   { to: "/schoonmaak", icon: "sparkle", label: "Schoonmaak" },
   { to: "/opbrengsten", icon: "chart", label: "Opbrengsten" },
+  { to: "/beheer", icon: "shield", label: "Beheer", adminOnly: true },
 ];
 
 export function Topbar() {
@@ -50,7 +51,7 @@ export function Topbar() {
           staybase
         </div>
         <nav className="nav">
-          {ITEMS.map((it) => (
+          {ITEMS.filter((it) => !it.adminOnly || user?.role === "admin").map((it) => (
             <NavLink key={it.to} to={it.to} end={it.to === "/"} className={({ isActive }) => (isActive ? "on" : "")}>
               <Icon name={it.icon} />
               {it.label}

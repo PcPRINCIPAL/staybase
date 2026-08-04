@@ -25,11 +25,12 @@ function verifyPassword(password: string, stored: string): boolean {
   return timingSafeEqual(candidate, Buffer.from(hash, "hex"));
 }
 
-interface UserRow {
+export interface UserRow {
   id: string;
   email: string;
   name: string;
   password_hash: string;
+  role: "admin" | "owner";
 }
 
 function parseCookies(req: Request): Record<string, string> {
@@ -64,6 +65,20 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   next();
 }
 
+/** Extra slot op admin-endpoints; draait ná requireAuth. */
+export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
+  const user = (req as Request & { user?: UserRow }).user;
+  if (user?.role !== "admin") {
+    res.status(403).json({ error: "alleen voor beheerders" });
+    return;
+  }
+  next();
+}
+
+export function currentUser(req: Request): UserRow | undefined {
+  return (req as Request & { user?: UserRow }).user;
+}
+
 export const authRoutes = Router();
 
 authRoutes.post("/login", (req, res) => {
@@ -82,7 +97,7 @@ authRoutes.post("/login", (req, res) => {
     "Set-Cookie",
     `${COOKIE_NAME}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}`
   );
-  res.json({ id: user.id, email: user.email, name: user.name });
+  res.json({ id: user.id, email: user.email, name: user.name, role: user.role });
 });
 
 authRoutes.post("/logout", (req, res) => {
@@ -98,5 +113,5 @@ authRoutes.get("/me", (req, res) => {
     res.status(401).json({ error: "niet aangemeld" });
     return;
   }
-  res.json({ id: user.id, email: user.email, name: user.name });
+  res.json({ id: user.id, email: user.email, name: user.name, role: user.role });
 });

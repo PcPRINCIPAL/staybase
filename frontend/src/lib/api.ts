@@ -24,6 +24,7 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string;
+  role: "admin" | "owner";
 }
 
 export const login = (email: string, password: string) =>
@@ -151,6 +152,34 @@ export function trackOnboarding(payload: {
     keepalive: true,
   }).catch(() => {});
 }
+
+/* ---------- admin (alleen voor rol 'admin') ---------- */
+
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  role: "admin" | "owner";
+  createdAt: string;
+  onboardings: number;
+  lastLogin: string | null;
+}
+
+export interface OnboardingStats {
+  sessionsStarted: number;
+  sessionsCompleted: number;
+  perStep: { step: number; stepTitle: string; visits: number; avgMs: number; totalSec: number }[];
+  recent: { sessionId: string; userName: string; startedAt: string; totalMs: number; steps: number; completed: number }[];
+}
+
+export const useAdminUsers = () =>
+  useQuery({
+    queryKey: ["admin-users"],
+    queryFn: () => api<{ users: AdminUser[]; roles: { role: string; n: number }[] }>("/admin/users"),
+  });
+
+export const useOnboardingStats = () =>
+  useQuery({ queryKey: ["onboarding-stats"], queryFn: () => api<OnboardingStats>("/onboarding/stats") });
 
 export const useAiStatus = () =>
   useQuery({ queryKey: ["ai-status"], queryFn: () => api<{ llm: boolean }>("/ai-status"), staleTime: 60_000 });

@@ -122,6 +122,7 @@ db.exec(`
     email TEXT NOT NULL UNIQUE,
     name TEXT NOT NULL,
     password_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'owner' CHECK (role IN ('admin', 'owner')),
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
@@ -151,14 +152,26 @@ if (hasData.n === 0) {
   console.log("Database geseed met demodata.");
 }
 
-// Aparte check zodat bestaande databases de demogebruiker ook krijgen.
-const hasUsers = db.prepare("SELECT COUNT(*) AS n FROM users").get() as { n: number };
-if (hasUsers.n === 0) {
+// Lichtgewicht migraties voor databases die vóór deze kolommen zijn aangemaakt.
+try { db.exec("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'owner'"); } catch { /* bestaat al */ }
+try { db.exec("ALTER TABLE onboarding_events ADD COLUMN user_id TEXT"); } catch { /* bestaat al */ }
+
+// Demogebruikers (idempotent): Julie beheert het platform, Maxime is eigenaar.
+{
   // Lazy import om een kringimport (auth → db → auth) te vermijden.
   const { hashPassword } = require("./auth") as typeof import("./auth");
-  db.prepare("INSERT INTO users (id, email, name, password_hash) VALUES (?, ?, ?, ?)")
-    .run("u-julie", "julie@staybase.be", "Julie", hashPassword("staybase2026"));
-  console.log("Demogebruiker aangemaakt: julie@staybase.be / staybase2026");
+  const ensureUser = (id: string, email: string, name: string, role: "admin" | "owner") => {
+    const exists = db.prepare("SELECT 1 FROM users WHERE id = ?").get(id);
+    if (!exists) {
+      db.prepare("INSERT INTO users (id, email, name, password_hash, role) VALUES (?, ?, ?, ?, ?)")
+        .run(id, email, name, hashPassword("staybase2026"), role);
+      console.log(`Demogebruiker aangemaakt: ${email} / staybase2026 (${role})`);
+    } else {
+      db.prepare("UPDATE users SET role = ? WHERE id = ?").run(role, id);
+    }
+  };
+  ensureUser("u-julie", "julie@staybase.be", "Julie", "admin");
+  ensureUser("u-maxime", "maxime@staybase.be", "Maxime", "owner");
 }
 
 export function getSetting(key: string, fallback: string): string {
