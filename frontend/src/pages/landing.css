@@ -4,12 +4,15 @@
    =========================================================== */
 
 .lp{background:var(--card); color:var(--ink)}
-.lp-container{max-width:1120px; margin:0 auto; padding:0 24px}
+.lp-container{max-width:1240px; margin:0 auto; padding:0 32px}
+/* Eerste scherm (nav, hero, vertrouwensbalk) loopt breder door. */
+.lp-hero > .lp-container,
+.lp-stats > .lp-container{max-width:1440px; padding-left:44px; padding-right:44px}
 .lp section{scroll-margin-top:80px}
 
 /* --- Nav --- */
 .lp-nav{position:sticky; top:0; z-index:60; background:rgba(255,255,255,.92); backdrop-filter:blur(12px); border-bottom:1px solid var(--line)}
-.lp-nav-in{max-width:1120px; margin:0 auto; display:flex; align-items:center; gap:16px; padding:13px 24px}
+.lp-nav-in{max-width:1440px; margin:0 auto; display:flex; align-items:center; gap:16px; padding:13px 44px}
 .lp-nav-links{display:flex; align-items:center; gap:22px; margin-left:auto}
 .lp-nav-links a{font-size:14px; font-weight:600; color:var(--muted); transition:color .15s}
 .lp-nav-links a:hover{color:var(--ink)}
@@ -57,14 +60,14 @@
   box-shadow:0 20px 50px rgba(35,35,35,.16)}
 .lp-hero-canvas img{display:block; width:100%; height:100%; object-fit:cover}
 .lp-card{position:absolute; background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow:0 8px 30px rgba(35,35,35,.13); padding:15px 17px}
-.lp-card-income{top:2%; left:0; width:210px}
+.lp-card-income{top:2%; left:0; width:236px}
 .lp-card-income .lbl{font-size:12px; color:var(--muted); font-weight:600}
 .lp-card-income .amt{display:flex; align-items:baseline; gap:8px; margin-top:4px}
 .lp-card-income .amt b{font-size:23px; font-weight:800; letter-spacing:-.03em}
 .lp-card-income .amt span{font-size:12.5px; font-weight:700; color:var(--good)}
 .lp-card-income svg{margin-top:10px; width:100%; height:42px; overflow:visible}
 .lp-card-income .axis{display:flex; justify-content:space-between; font-size:10px; color:var(--faint); margin-top:4px}
-.lp-card-book{top:16%; right:0; width:250px}
+.lp-card-book{top:16%; right:0; width:278px}
 .lp-card-book .hd{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px}
 .lp-card-book .hd b{font-size:13.5px; font-weight:800}
 .lp-card-book .hd span{font-size:11.5px; color:var(--coral); font-weight:700}
@@ -75,7 +78,7 @@
 .lp-book-row .st{font-size:10px; font-weight:700; padding:2px 7px; border-radius:999px; white-space:nowrap}
 .lp-book-row .st.ok{background:var(--good-soft); color:var(--good)}
 .lp-book-row .st.wait{background:var(--warn-soft); color:var(--warn)}
-.lp-card-review{bottom:2%; right:4%; width:255px}
+.lp-card-review{bottom:2%; right:4%; width:282px}
 .lp-card-review .who{display:flex; align-items:center; gap:9px; margin-bottom:8px}
 .lp-card-review .who .av{width:26px; height:26px; border-radius:50%; background:var(--coral-soft); display:flex; align-items:center; justify-content:center; font-size:13px}
 .lp-card-review .who b{font-size:12.5px; font-weight:700}
@@ -113,7 +116,7 @@
 .lp-quote cite{display:block; margin-top:12px; font-size:13px; font-style:normal; font-weight:600; color:var(--coral-deep); opacity:.8}
 
 /* --- Wat je krijgt met Staybase --- */
-.lp-wide{max-width:1200px; margin:0 auto; padding:0 24px}
+.lp-wide{max-width:1320px; margin:0 auto; padding:0 32px}
 .lp-getcentered{text-align:center; max-width:640px; margin:0 auto}
 .lp-getcentered .lp-sub{margin:14px auto 0}
 .lp-get{display:grid; grid-template-columns:repeat(3,1fr); gap:46px 34px; margin-top:52px}
@@ -410,7 +413,12 @@
   .lp-hero-ctas .btn{width:100%; justify-content:center}
   /* Navbalk ontlasten: 'Log in' verhuist naar het uitklapmenu. */
   .lp-nav-cta .btn.ghost{display:none}
-  .lp-nav-in{gap:10px}
+  /* Smallere zijmarges zodat er op kleine schermen genoeg inhoud past. */
+  .lp-nav-in{gap:10px; padding-left:18px; padding-right:18px}
+  .lp-container, .lp-wide,
+  .lp-hero > .lp-container,
+  .lp-stats > .lp-container{padding-left:20px; padding-right:20px}
+  .lp-mobile{padding-left:20px; padding-right:20px}
   .lp-usps{grid-template-columns:1fr; gap:14px}
   .lp-usp{flex-direction:row; align-items:flex-start; gap:12px}
   .lp-usp > div{flex:1}
