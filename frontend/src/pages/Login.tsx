@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Logo } from "../components/Icon";
 import { login } from "../lib/api";
@@ -53,7 +54,9 @@ export function Login() {
           Demo: <b>julie@staybase.be</b> (beheerder) of <b>maxime@staybase.be</b> (eigenaar) · wachtwoord <b>staybase2026</b>
         </p>
       </form>
-      <p className="foot" style={{ padding: 0, marginTop: 18 }}>Staybase · alle data is fictief · een voorstel van Oblivion Labs</p>
+      <p className="foot" style={{ padding: 0, marginTop: 18 }}>
+        <Link to="/" style={{ color: "var(--muted)", fontWeight: 600 }}>← Terug naar de website</Link>
+      </p>
     </div>
   );
 }

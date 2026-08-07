@@ -15,6 +15,8 @@ const PATHS = {
   mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3.5"/>',
   check: '<path d="M4.5 12.5 10 18 19.5 7"/>',
   shield: '<path d="M12 3 5 5.8v5.4c0 4.3 2.9 8 7 9.3 4.1-1.3 7-5 7-9.3V5.8L12 3Z"/><path d="M9 12l2.2 2.2L15.5 9.5"/>',
+  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+  chevD: '<path d="M6 9.5 12 15l6-5.5"/>',
 } as const;
 
 export type IconName = keyof typeof PATHS;

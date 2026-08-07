@@ -19,7 +19,7 @@ export const routes = Router();
 
 /* =========================== Overview =========================== */
 
-routes.get("/overview", (_req, res) => {
+routes.get("/overview", (req, res) => {
   const props = allProperties();
   const live = props.filter((p) => p.status === "live");
 
@@ -96,7 +96,7 @@ routes.get("/overview", (_req, res) => {
   const attention = { inboxDrafts: inboxDrafts + guardOpen, priceOpen, cleaningPending };
 
   const overview: Overview = {
-    greetingName: getSetting("owner_name", "Julie"),
+    greetingName: currentUser(req)?.name ?? getSetting("owner_name", "Julie"),
     dateLabel: `${dowFull[weekdayMonday(DEMO_TODAY)]} ${d.getUTCDate()} ${MONTH_FULL[d.getUTCMonth()]} ${d.getUTCFullYear()}`,
     attention,
     kpis: {

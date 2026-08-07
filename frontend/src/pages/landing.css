@@ -1,0 +1,334 @@
+/* ===========================================================
+   Landingspagina — Staybase huisstijl (koraal, licht, speels)
+   Gebaseerd op de schets van de klant, omgezet naar onze stijl.
+   =========================================================== */
+
+.lp{background:var(--card); color:var(--ink)}
+.lp-container{max-width:1120px; margin:0 auto; padding:0 24px}
+.lp section{scroll-margin-top:80px}
+
+/* --- Nav --- */
+.lp-nav{position:sticky; top:0; z-index:60; background:rgba(255,255,255,.92); backdrop-filter:blur(12px); border-bottom:1px solid var(--line)}
+.lp-nav-in{max-width:1120px; margin:0 auto; display:flex; align-items:center; gap:16px; padding:13px 24px}
+.lp-nav-links{display:flex; align-items:center; gap:22px; margin-left:auto}
+.lp-nav-links a{font-size:14px; font-weight:600; color:var(--muted); transition:color .15s}
+.lp-nav-links a:hover{color:var(--ink)}
+.lp-nav-cta{display:flex; align-items:center; gap:10px; flex-shrink:0}
+.lp-burger{display:none; width:38px; height:38px; border-radius:10px; align-items:center; justify-content:center; color:var(--ink)}
+.lp-mobile{display:none; flex-direction:column; gap:4px; padding:12px 24px 18px; border-top:1px solid var(--line); background:var(--card)}
+.lp-mobile.open{display:flex}
+.lp-mobile a{font-size:15px; font-weight:600; padding:10px 0; color:var(--ink)}
+
+/* --- Eerste scherm: hero + statsbalk vullen samen exact de viewport --- */
+/* --lp-nav-h wordt door de pagina zelf gemeten (zie useNavHeight). */
+.lp-first{display:flex; flex-direction:column}
+@media (min-width:900px){
+  .lp-first{min-height:calc(100svh - var(--lp-nav-h, 59px))}
+  .lp-first .lp-hero{flex:1; display:flex; align-items:center}
+}
+
+/* --- Hero --- */
+.lp-hero{position:relative; overflow:hidden; padding:56px 0; background:var(--card)}
+.lp-hero-bg{position:absolute; inset:0; z-index:0;
+  background:radial-gradient(ellipse 60% 60% at 82% 18%, #FFF0F3 0%, transparent 62%),
+             radial-gradient(ellipse 45% 45% at 4% 82%, #FFF6E6 0%, transparent 60%)}
+.lp-hero-bg::after{content:""; position:absolute; inset:0; opacity:.45;
+  background-image:radial-gradient(circle, #FFD9E0 1.4px, transparent 1.4px);
+  background-size:38px 38px}
+.lp-hero .lp-container{position:relative; z-index:1; width:100%}
+.lp-hero-grid{display:grid; grid-template-columns:1.02fr 1fr; gap:52px; align-items:center}
+.lp-hero h1{font-size:clamp(34px,4.6vw,56px); font-weight:800; letter-spacing:-.035em; line-height:1.06; text-wrap:balance}
+.lp-hero h1 em{font-style:normal; color:var(--coral); display:block}
+.lp-hero-sub{font-size:clamp(15px,1.4vw,17.5px); color:var(--muted); max-width:470px; margin:20px 0 0; line-height:1.6}
+.lp-hero-ctas{display:flex; gap:12px; flex-wrap:wrap; margin-top:26px}
+.lp-hero-trust{font-size:13px; color:var(--faint); margin-top:16px}
+.lp-btn-lg{padding:14px 28px; font-size:15.5px}
+
+/* Drie kernpunten onder de subtitel */
+.lp-usps{display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-top:28px; max-width:560px}
+.lp-usp{display:flex; flex-direction:column; gap:8px}
+.lp-usp .ico{width:42px; height:42px; border-radius:50%; border:1.5px solid var(--coral-line); color:var(--coral); display:flex; align-items:center; justify-content:center; flex-shrink:0}
+.lp-usp b{display:block; font-size:14px; font-weight:800; letter-spacing:-.01em}
+.lp-usp span:not(.ico){display:block; font-size:12.5px; color:var(--muted); line-height:1.45; margin-top:3px}
+
+/* Rechterkant: zwevende productkaarten */
+.lp-hero-art{position:relative; min-height:430px}
+.lp-hero-canvas{position:absolute; inset:8% 0 8% 6%; border-radius:26px;
+  background:linear-gradient(150deg,#FFE9EF 0%,#FFF4E8 55%,#F4F4F1 100%);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.6)}
+.lp-hero-canvas::after{content:"🏖️"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:96px; opacity:.22}
+.lp-card{position:absolute; background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow:0 8px 30px rgba(35,35,35,.13); padding:15px 17px}
+.lp-card-income{top:2%; left:0; width:210px}
+.lp-card-income .lbl{font-size:12px; color:var(--muted); font-weight:600}
+.lp-card-income .amt{display:flex; align-items:baseline; gap:8px; margin-top:4px}
+.lp-card-income .amt b{font-size:23px; font-weight:800; letter-spacing:-.03em}
+.lp-card-income .amt span{font-size:12.5px; font-weight:700; color:var(--good)}
+.lp-card-income svg{margin-top:10px; width:100%; height:42px; overflow:visible}
+.lp-card-income .axis{display:flex; justify-content:space-between; font-size:10px; color:var(--faint); margin-top:4px}
+.lp-card-book{top:16%; right:0; width:250px}
+.lp-card-book .hd{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px}
+.lp-card-book .hd b{font-size:13.5px; font-weight:800}
+.lp-card-book .hd span{font-size:11.5px; color:var(--coral); font-weight:700}
+.lp-book-row{display:flex; align-items:center; gap:8px; padding:6px 0; font-size:11.5px}
+.lp-book-row .av{width:22px; height:22px; border-radius:50%; background:var(--soft); display:flex; align-items:center; justify-content:center; font-size:11px; flex-shrink:0}
+.lp-book-row .nm{font-weight:600; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.lp-book-row .dt{color:var(--faint); white-space:nowrap}
+.lp-book-row .st{font-size:10px; font-weight:700; padding:2px 7px; border-radius:999px; white-space:nowrap}
+.lp-book-row .st.ok{background:var(--good-soft); color:var(--good)}
+.lp-book-row .st.wait{background:var(--warn-soft); color:var(--warn)}
+.lp-card-review{bottom:2%; right:4%; width:255px}
+.lp-card-review .who{display:flex; align-items:center; gap:9px; margin-bottom:8px}
+.lp-card-review .who .av{width:26px; height:26px; border-radius:50%; background:var(--coral-soft); display:flex; align-items:center; justify-content:center; font-size:13px}
+.lp-card-review .who b{font-size:12.5px; font-weight:700}
+.lp-card-review .who .dt{font-size:11px; color:var(--faint)}
+.lp-card-review .who .stars{margin-left:auto; color:#FFB400; font-size:11px; letter-spacing:1px}
+.lp-card-review p{font-size:12.5px; color:var(--muted); line-height:1.5}
+
+/* --- Stats / vertrouwensbalk --- */
+.lp-stats{background:var(--bg); border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:26px 0; flex-shrink:0}
+.lp-stats-grid{display:grid; grid-template-columns:1fr auto; gap:40px; align-items:center}
+.lp-trust-left b{display:block; font-size:13.5px; font-weight:700}
+.lp-trust-left span{display:block; font-size:12.5px; color:var(--faint); margin-top:5px; line-height:1.5; max-width:340px}
+.lp-stats-nums{display:flex; gap:34px}
+.lp-stat{text-align:center; padding:0 20px; border-left:1px solid var(--line)}
+.lp-stat b{display:block; font-size:27px; font-weight:800; letter-spacing:-.03em; color:var(--coral)}
+.lp-stat span{display:block; font-size:12.5px; color:var(--muted); margin-top:4px; line-height:1.4; max-width:150px}
+
+/* --- Sectie-basis --- */
+.lp-sec{padding:82px 0}
+.lp-sec.alt{background:var(--bg)}
+.lp-label{font-size:11.5px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--coral); margin-bottom:12px}
+.lp-h2{font-size:clamp(26px,3.4vw,40px); font-weight:800; letter-spacing:-.03em; line-height:1.15; text-wrap:balance}
+.lp-h2 em{font-style:normal; color:var(--coral)}
+.lp-sub{font-size:15.5px; color:var(--muted); max-width:560px; margin-top:14px; line-height:1.65}
+
+/* --- Pijnpunten --- */
+.lp-pain{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:40px}
+.lp-pain-card{background:var(--card); border:1px solid var(--line); border-radius:var(--r-md); padding:26px; box-shadow:var(--shadow); transition:transform .16s, box-shadow .16s}
+.lp-pain-card:hover{transform:translateY(-2px); box-shadow:var(--shadow-lift)}
+.lp-pain-card .em{width:46px; height:46px; border-radius:14px; background:var(--coral-soft); display:flex; align-items:center; justify-content:center; font-size:22px; margin-bottom:16px}
+.lp-pain-card h3{font-size:17px; font-weight:800; letter-spacing:-.01em; margin-bottom:8px}
+.lp-pain-card p{font-size:14px; color:var(--muted); line-height:1.6}
+.lp-quote{margin-top:34px; background:var(--coral-soft); border-left:4px solid var(--coral); border-radius:0 var(--r-md) var(--r-md) 0; padding:28px 32px; max-width:700px}
+.lp-quote blockquote{font-size:clamp(17px,2.1vw,21px); font-weight:700; letter-spacing:-.02em; color:var(--coral-deep); line-height:1.45}
+.lp-quote cite{display:block; margin-top:12px; font-size:13px; font-style:normal; font-weight:600; color:var(--coral-deep); opacity:.8}
+
+/* --- Hoe het werkt --- */
+.lp-features{display:flex; flex-direction:column; gap:26px; margin-top:44px}
+.lp-feature{display:grid; grid-template-columns:68px 1fr; gap:22px; align-items:start; background:var(--card); border:1px solid var(--line); border-radius:var(--r-md); padding:24px 26px; box-shadow:var(--shadow)}
+.lp-feature .em{width:60px; height:60px; border-radius:18px; background:var(--soft); display:flex; align-items:center; justify-content:center; font-size:27px}
+.lp-feature h3{font-size:18.5px; font-weight:800; letter-spacing:-.015em; margin-bottom:8px; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+.lp-feature p{font-size:14.5px; color:var(--muted); line-height:1.7}
+.lp-badge{font-size:10.5px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; background:var(--coral-soft); color:var(--coral-deep); border-radius:999px; padding:3px 10px}
+.lp-price-demo{background:var(--soft); border-radius:var(--r-sm); padding:14px 16px; margin-top:14px; font-size:13.5px; line-height:1.9; color:var(--muted)}
+.lp-price-demo b{color:var(--ink)}
+.lp-price-demo .voorstel{color:var(--good); font-weight:800}
+.lp-price-demo small{display:block; margin-top:6px; font-size:12px; color:var(--faint)}
+
+/* --- Calculator --- */
+.lp-calc-sec{background:linear-gradient(180deg, var(--coral-soft) 0%, var(--bg) 100%); padding:82px 0}
+.lp-calc-head{text-align:center; max-width:620px; margin:0 auto 40px}
+.lp-calc-head p{font-size:14.5px; color:var(--muted); margin-top:12px; line-height:1.6}
+.lp-calc{max-width:900px; margin:0 auto; background:var(--card); border:1px solid var(--line); border-radius:22px; box-shadow:0 4px 40px rgba(35,35,35,.09); padding:34px}
+.lp-calc-inputs{display:grid; grid-template-columns:1fr 1fr; gap:30px}
+.lp-calc-col{display:flex; flex-direction:column; gap:26px}
+.lp-field label{display:block; font-size:14.5px; font-weight:700}
+.lp-field .hint{display:block; font-size:12.5px; color:var(--faint); margin-top:3px; line-height:1.45}
+.lp-note{font-size:12px; color:var(--coral-deep); background:var(--coral-soft); border-radius:8px; padding:7px 11px; margin-top:10px; line-height:1.45}
+.lp-stepper{display:flex; align-items:center; gap:14px; margin-top:12px}
+.lp-stepper button{width:34px; height:34px; border-radius:50%; border:2px solid var(--coral); color:var(--coral); font-size:19px; font-weight:700; display:flex; align-items:center; justify-content:center; line-height:1; transition:background .14s, color .14s}
+.lp-stepper button:hover{background:var(--coral); color:#fff}
+.lp-stepper output{font-size:22px; font-weight:800; min-width:34px; text-align:center}
+.lp-slider-row{display:flex; align-items:center; gap:14px; margin-top:12px}
+.lp-slider-row input[type=range]{-webkit-appearance:none; appearance:none; flex:1; height:6px; border-radius:3px; outline:none; cursor:pointer;
+  background:linear-gradient(to right, var(--coral) 0%, var(--coral) var(--fill,40%), #E7E4DF var(--fill,40%), #E7E4DF 100%)}
+.lp-slider-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:21px; height:21px; border-radius:50%; background:#fff; border:2.5px solid var(--coral); box-shadow:0 1px 5px rgba(0,0,0,.18); cursor:pointer}
+.lp-slider-row input[type=range]::-moz-range-thumb{width:21px; height:21px; border-radius:50%; background:#fff; border:2.5px solid var(--coral); box-shadow:0 1px 5px rgba(0,0,0,.18); cursor:pointer}
+.lp-slider-val{display:flex; align-items:center; gap:3px; flex-shrink:0}
+.lp-slider-val input{width:62px; border:1.5px solid var(--line); border-radius:9px; padding:6px 8px; font-size:14px; font-weight:700; text-align:center}
+.lp-slider-val input:focus{outline:none; border-color:var(--coral)}
+.lp-slider-val span{font-size:13.5px; color:var(--muted); font-weight:600}
+.lp-choice-cards{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px}
+.lp-choice{border:1.5px solid var(--line); background:var(--card); border-radius:14px; padding:15px 14px; text-align:left; transition:all .14s}
+.lp-choice:hover{border-color:var(--coral-line)}
+.lp-choice.on{border-color:var(--coral); background:var(--coral-soft)}
+.lp-choice .em{font-size:22px; display:block; margin-bottom:7px}
+.lp-choice b{display:block; font-size:13.5px}
+.lp-choice span{display:block; font-size:11.5px; color:var(--muted); line-height:1.45; margin-top:3px}
+.lp-pills{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
+.lp-pills button{padding:8px 15px; border-radius:999px; font-size:13px; font-weight:600; background:var(--soft); color:var(--muted); border:1.5px solid transparent; transition:all .14s}
+.lp-pills button:hover{border-color:var(--coral-line); color:var(--coral-deep)}
+.lp-pills button.on{background:var(--ink); color:#fff; border-color:var(--ink)}
+.lp-calc-divider{display:flex; align-items:center; gap:16px; margin:30px 0 22px}
+.lp-calc-divider::before, .lp-calc-divider::after{content:""; flex:1; height:1px; background:var(--line)}
+.lp-calc-divider span{font-size:10.5px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); white-space:nowrap}
+.lp-results{display:grid; grid-template-columns:1.1fr 1fr; gap:14px}
+.lp-res-main{background:var(--navy); border-radius:18px; padding:28px; display:flex; flex-direction:column; gap:16px; color:#fff}
+.lp-res-eyebrow{font-size:10.5px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,.55)}
+.lp-res-num{font-size:clamp(38px,5.5vw,54px); font-weight:800; letter-spacing:-.04em; line-height:1}
+.lp-res-cap{font-size:13px; color:rgba(255,255,255,.72); line-height:1.5}
+.lp-res-pills{display:flex; flex-direction:column; gap:7px}
+.lp-res-pill{display:flex; align-items:center; gap:8px; background:rgba(255,255,255,.12); border-radius:999px; padding:7px 13px; font-size:12.5px; font-weight:600}
+.lp-persona{font-size:13px; color:rgba(255,255,255,.82); line-height:1.6; border-top:1px solid rgba(255,255,255,.16); padding-top:16px}
+.lp-persona b{color:#fff}
+.lp-persona small{display:block; margin-top:10px; font-size:11.5px; color:rgba(255,255,255,.6); line-height:1.55}
+.lp-res-side{background:var(--soft); border-radius:18px; padding:22px; display:flex; flex-direction:column; gap:16px}
+.lp-table{width:100%; border-collapse:collapse; font-size:12.5px}
+.lp-table th{text-align:left; padding:6px 4px; color:var(--faint); font-weight:700; font-size:11px; letter-spacing:.03em; border-bottom:1.5px solid var(--line)}
+.lp-table th:not(:first-child){text-align:right}
+.lp-table td{padding:7px 4px; color:var(--muted); border-bottom:1px solid var(--line)}
+.lp-table td:not(:first-child){text-align:right; font-weight:600; font-variant-numeric:tabular-nums}
+.lp-table tr.tot td{border-top:2px solid var(--line); border-bottom:none; font-weight:800; color:var(--ink); padding-top:11px}
+.lp-table tr.tot td.win{color:var(--good)}
+.lp-plan-tip{background:var(--card); border:1px solid var(--coral-line); border-radius:12px; padding:13px 15px; font-size:12.5px; color:var(--coral-deep); line-height:1.55}
+.lp-calc-cta{margin-top:24px}
+.lp-calc-cta .btn{width:100%; justify-content:center; padding:15px; font-size:15.5px}
+.lp-calc-cta p{text-align:center; font-size:12.5px; color:var(--muted); margin-top:11px}
+.lp-disclaimer{font-size:11.5px; color:var(--faint); text-align:center; margin-top:20px; line-height:1.55}
+
+/* --- Prijzen --- */
+.lp-plans{display:grid; grid-template-columns:1fr 1fr; gap:18px; margin:42px 0 30px}
+.lp-plan{border:1.5px solid var(--line); border-radius:var(--r-lg); padding:28px; background:var(--card); box-shadow:var(--shadow); display:flex; flex-direction:column; position:relative}
+.lp-plan.top{border-color:var(--coral); box-shadow:0 0 0 1px var(--coral), var(--shadow-lift)}
+.lp-plan-badge{position:absolute; top:-13px; left:50%; transform:translateX(-50%); background:linear-gradient(95deg,#FF385C,#E31C5F); color:#fff; font-size:11px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; padding:5px 15px; border-radius:999px; white-space:nowrap}
+.lp-plan-label{font-size:10.5px; font-weight:800; letter-spacing:.13em; text-transform:uppercase; color:var(--faint); margin-bottom:12px}
+.lp-plan-name{font-size:30px; font-weight:800; letter-spacing:-.03em}
+.lp-plan.top .lp-plan-name{color:var(--coral-deep)}
+.lp-plan-price{display:flex; align-items:baseline; gap:7px; margin-top:8px}
+.lp-plan-price b{font-size:38px; font-weight:800; letter-spacing:-.04em}
+.lp-plan-price span{font-size:14px; color:var(--muted)}
+.lp-plan-disc{font-size:12.5px; color:var(--muted); margin-top:6px}
+.lp-plan ul{list-style:none; display:flex; flex-direction:column; gap:10px; flex:1; margin:22px 0 0; padding-top:22px; border-top:1px solid var(--line)}
+.lp-plan li{display:flex; align-items:flex-start; gap:10px; font-size:14px; line-height:1.45}
+.lp-plan li.locked{color:var(--faint)}
+.lp-plan li .tick{color:var(--coral); flex-shrink:0; font-weight:800}
+.lp-plan li.hi{background:var(--coral-soft); border-radius:9px; padding:7px 10px; color:var(--coral-deep); font-weight:600}
+.lp-plan-note{margin-top:18px; padding:13px 15px; background:var(--soft); border-radius:12px; font-size:12.5px; color:var(--muted); line-height:1.5}
+.lp-plan .btn{margin-top:20px; width:100%; justify-content:center; padding:13px; font-size:15px}
+.lp-vol{width:100%; border-collapse:collapse; font-size:14px; margin-bottom:12px}
+.lp-vol th{text-align:left; padding:11px 14px; font-weight:700; color:var(--muted); border-bottom:2px solid var(--line)}
+.lp-vol td{padding:11px 14px; border-bottom:1px solid var(--line); color:var(--muted)}
+.lp-vol td b{color:var(--ink)}
+.lp-vol .off{color:var(--coral); font-size:12px; font-weight:700}
+.lp-guarantee{display:flex; align-items:flex-start; gap:16px; background:var(--good-soft); border:1px solid #C9E9D8; border-radius:var(--r-md); padding:24px; margin-top:26px}
+.lp-guarantee .em{font-size:26px; flex-shrink:0}
+.lp-guarantee h4{font-size:14.5px; font-weight:800; color:#14603F; margin-bottom:5px}
+.lp-guarantee p{font-size:13.5px; color:#1B7350; line-height:1.6}
+
+/* --- AI-kaarten --- */
+.lp-ai{display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-top:40px}
+.lp-ai-card{background:var(--card); border:1px solid var(--line); border-radius:var(--r-md); padding:26px; box-shadow:var(--shadow); transition:transform .16s, box-shadow .16s}
+.lp-ai-card:hover{transform:translateY(-2px); box-shadow:var(--shadow-lift)}
+.lp-ai-card .em{font-size:26px}
+.lp-ai-card .num{font-size:34px; font-weight:800; color:var(--coral-line); letter-spacing:-.03em; margin:10px 0 6px; line-height:1}
+.lp-ai-card h3{font-size:16.5px; font-weight:800; letter-spacing:-.01em; margin-bottom:8px}
+.lp-ai-card p{font-size:14px; color:var(--muted); line-height:1.6}
+
+/* --- Getuigenissen --- */
+.lp-testi{display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-top:40px}
+.lp-testi-card{background:var(--bg); border:1px solid var(--line); border-radius:var(--r-md); padding:26px; display:flex; flex-direction:column}
+.lp-stars{color:var(--coral); font-size:14px; letter-spacing:2px; margin-bottom:14px}
+.lp-testi-card p{font-size:15px; font-weight:600; letter-spacing:-.01em; line-height:1.55; flex:1; margin-bottom:20px}
+.lp-testi-who{display:flex; align-items:center; gap:12px}
+.lp-testi-who .av{width:40px; height:40px; border-radius:50%; background:var(--coral-soft); color:var(--coral-deep); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; flex-shrink:0}
+.lp-testi-who b{display:block; font-size:14px}
+.lp-testi-who span{font-size:12.5px; color:var(--muted)}
+
+/* --- Oprichters --- */
+.lp-founders{background:var(--navy); color:#fff; padding:82px 0}
+.lp-founders .lp-label{color:#FF9DB1}
+.lp-founders .lp-h2{color:#fff}
+.lp-founders-grid{display:grid; grid-template-columns:1.25fr .75fr; gap:52px; align-items:center}
+.lp-founders-photo{border-radius:24px; overflow:hidden; box-shadow:0 18px 50px rgba(0,0,0,.32); border:1px solid rgba(255,255,255,.14)}
+.lp-founders-photo img{display:block; width:100%; height:auto; max-height:560px; object-fit:cover; aspect-ratio:3/4}
+.lp-founders-cap{font-size:12.5px; color:rgba(255,255,255,.5); margin-top:14px; text-align:center; line-height:1.5}
+.lp-founders-text{font-size:15px; color:rgba(255,255,255,.75); line-height:1.75; max-width:660px; margin-top:22px}
+.lp-founders-text em{font-style:italic; color:rgba(255,255,255,.95)}
+.lp-founder-cards{display:grid; grid-template-columns:1fr 1fr; gap:16px; max-width:620px; margin-top:34px}
+.lp-founder{display:flex; gap:14px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.13); border-radius:var(--r-md); padding:20px}
+.lp-founder .av{width:46px; height:46px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; flex-shrink:0; background:rgba(255,157,177,.2); color:#FF9DB1}
+.lp-founder h4{font-size:15px; font-weight:800}
+.lp-founder .rol{font-size:12px; color:rgba(255,255,255,.5); margin:2px 0 6px}
+.lp-founder p{font-size:13px; color:rgba(255,255,255,.68); line-height:1.55}
+
+/* --- FAQ --- */
+.lp-faq{max-width:740px; margin-top:36px}
+.lp-faq-item{border-bottom:1px solid var(--line)}
+.lp-faq-item:first-child{border-top:1px solid var(--line)}
+.lp-faq-q{width:100%; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:22px 0; text-align:left}
+.lp-faq-q b{font-size:16.5px; font-weight:700; letter-spacing:-.01em}
+.lp-faq-q .chev{color:var(--coral); flex-shrink:0; transition:transform .25s}
+.lp-faq-item.open .lp-faq-q .chev{transform:rotate(180deg)}
+.lp-faq-a{max-height:0; overflow:hidden; transition:max-height .3s ease}
+.lp-faq-item.open .lp-faq-a{max-height:340px}
+.lp-faq-a p{padding-bottom:22px; font-size:14.5px; color:var(--muted); line-height:1.7}
+
+/* --- Laatste CTA --- */
+.lp-final{padding:86px 0; text-align:center; background:var(--card)}
+.lp-final h2{font-size:clamp(26px,3.8vw,42px); font-weight:800; letter-spacing:-.03em; max-width:640px; margin:0 auto; line-height:1.15; text-wrap:balance}
+.lp-final .sub{font-size:16px; color:var(--muted); max-width:480px; margin:18px auto 28px; line-height:1.6}
+.lp-final-ctas{display:flex; gap:14px; justify-content:center; align-items:center; flex-wrap:wrap; margin-bottom:20px}
+.lp-final-link{font-size:15px; font-weight:600; color:var(--coral-deep); text-decoration:underline; text-underline-offset:3px}
+
+/* --- Footer --- */
+.lp-footer{background:var(--navy); color:rgba(255,255,255,.72); padding:52px 0 26px}
+.lp-footer-top{display:grid; grid-template-columns:2fr 1fr 1fr 1.4fr; gap:36px; padding-bottom:34px; border-bottom:1px solid rgba(255,255,255,.1)}
+.lp-footer .logo{color:#fff; margin-bottom:12px}
+.lp-footer-tag{font-size:13px; color:rgba(255,255,255,.45); line-height:1.6; max-width:230px}
+.lp-footer-col h5{font-size:11.5px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.4); margin-bottom:16px}
+.lp-footer-col a{display:block; font-size:14px; color:rgba(255,255,255,.65); margin-bottom:10px; transition:color .15s; cursor:pointer}
+.lp-footer-col a:hover{color:#fff}
+.lp-footer-bottom{display:flex; align-items:center; justify-content:space-between; gap:14px; font-size:12.5px; color:rgba(255,255,255,.4); padding-top:22px; flex-wrap:wrap}
+
+/* --- Video-modal --- */
+.lp-modal{position:fixed; inset:0; z-index:200; background:rgba(20,20,20,.72); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; padding:24px; animation:fadein .2s ease}
+.lp-modal-box{background:var(--card); border-radius:var(--r-lg); width:min(880px,100%); overflow:hidden; box-shadow:var(--shadow-lift)}
+.lp-modal-head{display:flex; align-items:center; gap:12px; padding:16px 20px; border-bottom:1px solid var(--line)}
+.lp-modal-head b{font-size:15.5px; font-weight:800}
+.lp-modal-body{aspect-ratio:16/9; background:var(--soft); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; text-align:center; padding:30px}
+.lp-modal-body video{width:100%; height:100%; object-fit:cover; display:block}
+.lp-modal-ph .em{font-size:46px}
+.lp-modal-ph b{display:block; font-size:17px; font-weight:800; margin-top:12px}
+.lp-modal-ph span{display:block; font-size:14px; color:var(--muted); margin-top:8px; max-width:420px; line-height:1.6}
+.lp-modal-ph code{background:var(--card); border:1px solid var(--line); border-radius:7px; padding:3px 8px; font-size:12.5px}
+
+/* --- Fade-in bij scrollen --- */
+.lp-fade{opacity:0; transform:translateY(18px); transition:opacity .55s ease, transform .55s ease}
+.lp-fade.in{opacity:1; transform:none}
+@media (prefers-reduced-motion:reduce){ .lp-fade{opacity:1; transform:none} }
+
+/* --- Responsief --- */
+@media (max-width:900px){
+  .lp-nav-links{display:none}
+  .lp-burger{display:flex}
+  .lp-hero-grid{grid-template-columns:1fr; gap:36px}
+  .lp-hero-art{display:none}
+  .lp-usps{max-width:none}
+  .lp-stats-grid{grid-template-columns:1fr; gap:22px}
+  .lp-stats-nums{justify-content:space-between; gap:0}
+  .lp-stat{padding:0 8px; border-left:none}
+  .lp-stat span{font-size:11.5px}
+  .lp-founders-grid{grid-template-columns:1fr; gap:32px}
+  .lp-founders-photo{order:-1}
+  .lp-pain{grid-template-columns:1fr}
+  .lp-calc-inputs{grid-template-columns:1fr}
+  .lp-results{grid-template-columns:1fr}
+  .lp-plans{grid-template-columns:1fr}
+  .lp-plan.top{order:-1}
+  .lp-ai, .lp-testi{grid-template-columns:1fr}
+  .lp-founder-cards{grid-template-columns:1fr; max-width:100%}
+  .lp-footer-top{grid-template-columns:1fr 1fr}
+  .lp-footer-col:first-child{grid-column:1/-1}
+}
+@media (max-width:640px){
+  .lp-sec, .lp-calc-sec, .lp-founders{padding:56px 0}
+  .lp-calc{padding:22px}
+  .lp-feature{grid-template-columns:1fr}
+  .lp-choice-cards{grid-template-columns:1fr}
+  .lp-hero-ctas{flex-direction:column}
+  .lp-hero-ctas .btn{width:100%; justify-content:center}
+  .lp-usps{grid-template-columns:1fr; gap:14px}
+  .lp-usp{flex-direction:row; align-items:flex-start; gap:12px}
+  .lp-usp > div{flex:1}
+  .lp-footer-top{grid-template-columns:1fr}
+}
