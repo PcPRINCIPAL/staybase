@@ -8,6 +8,7 @@ import { PricesPage } from "./pages/PricesPage";
 import { CleaningPage } from "./pages/CleaningPage";
 import { RevenuePage } from "./pages/RevenuePage";
 import { AdminPage } from "./pages/AdminPage";
+import { PropertyPage } from "./pages/PropertyPage";
 import { LandingPage } from "./pages/LandingPage";
 import { ArticlePage } from "./pages/ArticlePage";
 import { Login } from "./pages/Login";
@@ -46,6 +47,7 @@ export default function App() {
         {user ? (
           <Route element={<AppLayout />}>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/pand/:id" element={<PropertyPage />} />
             <Route path="/kalender" element={<CalendarPage />} />
             <Route path="/inbox" element={<InboxPage />} />
             <Route path="/prijzen" element={<PricesPage />} />

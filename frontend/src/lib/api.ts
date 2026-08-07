@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   AssistantReply, CalendarData, Cleaning, Conversation, NewPropertyInput,
-  Overview, PriceStripDay, PriceSuggestion, Property, RevenueData,
+  Overview, PriceStripDay, PriceSuggestion, Property, PropertyDetail, RevenueData,
 } from "@shared/types";
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
@@ -38,6 +38,13 @@ export const fetchMe = () => api<AuthUser>("/auth/me");
 
 export const useOverview = () =>
   useQuery({ queryKey: ["overview"], queryFn: () => api<Overview>("/overview") });
+
+export const usePropertyDetail = (id: string | undefined) =>
+  useQuery({
+    queryKey: ["property", id],
+    queryFn: () => api<PropertyDetail>(`/properties/${id}`),
+    enabled: Boolean(id),
+  });
 
 export const useCalendar = (property: string, month: string) =>
   useQuery({

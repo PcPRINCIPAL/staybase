@@ -4,22 +4,29 @@ import type { DatabaseSync } from "node:sqlite";
 export function seed(db: DatabaseSync) {
   const insProp = db.prepare(`
     INSERT INTO properties (id, name, location, type, bedrooms, bathrooms, max_guests, area_m2,
-      rating, status, status_label, art, art_bg, channels, cleaning_price, base_price_week, base_price_weekend)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      rating, status, status_label, art, art_bg, photo, description, channels, cleaning_price,
+      base_price_week, base_price_weekend)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   insProp.run(
     "villa-zeewind", "Villa Zeewind", "Knokke-Heist", "Villa", 4, 3, 8, 180,
     4.93, "live", "Live · Airbnb + Booking", "🏖️", "linear-gradient(135deg,#FFE3E9,#FFD1DB)",
+    "/pand1.webp",
+    "Ruime villa op wandelafstand van het strand, met een omheinde tuin en verwarmd zwembad. Vier slaapkamers, drie badkamers en een grote leefruimte die uitgeeft op het terras — geliefd bij families en groepen vrienden die er een week neerstrijken.",
     JSON.stringify(["airbnb", "booking"]), 95, 245, 285
   );
   insProp.run(
     "duplex-zeedijk", "Duplex Zeedijk 401", "Knokke", "Duplex", 2, 1, 5, 120,
     4.88, "live", "Live · Airbnb + Booking", "🌊", "linear-gradient(135deg,#DCEBFF,#C9DEFC)",
+    "/pand2.webp",
+    "Lichte duplex op de Zeedijk met frontaal zeezicht en een zonneterras. Instapklaar afgewerkt, twee slaapkamers en een open leefruimte. Populair bij koppels en kleine gezinnen, ook buiten het hoogseizoen.",
     JSON.stringify(["airbnb", "booking"]), 75, 175, 195
   );
   insProp.run(
     "residentie-lichttoren", "Residentie Lichttoren 12", "Knokke", "Appartement", 2, 1, 4, 85,
     null, "onboarding", "⏳ Wacht op brandveiligheidsattest", "🏢", "linear-gradient(135deg,#FFF0D9,#FFE4BC)",
+    "/pand3.webp",
+    "Recent gerenoveerd appartement in een rustige residentie, op vijf minuten van het centrum. Ruime leefruimte met open keuken en een aparte eethoek. Wacht nog op het brandveiligheidsattest voor het online kan.",
     JSON.stringify(["airbnb"]), 65, 155, 175
   );
 

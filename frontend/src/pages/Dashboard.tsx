@@ -106,8 +106,11 @@ export function Dashboard() {
       <h2 className="sec-title"><span className="em">🏡</span> Jouw panden</h2>
       <div className="props">
         {data.properties.map((p) => (
-          <article className="prop" key={p.id}>
-            <div className="prop-art" style={{ background: p.artBg }}>{p.art}</div>
+          <article className="prop" key={p.id} onClick={() => nav(`/pand/${p.id}`)} role="link" tabIndex={0}
+            onKeyDown={(e) => { if (e.key === "Enter") nav(`/pand/${p.id}`); }}>
+            <div className="prop-art" style={{ background: p.artBg }}>
+              {p.photo ? <img src={p.photo} alt="" loading="lazy" decoding="async" /> : p.art}
+            </div>
             <div className="prop-body">
               <div className="name">
                 {p.name}

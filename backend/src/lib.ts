@@ -48,7 +48,8 @@ export interface PropertyRow {
   id: string; name: string; location: string; type: string;
   bedrooms: number; bathrooms: number; max_guests: number; area_m2: number;
   rating: number | null; status: "live" | "onboarding"; status_label: string;
-  art: string; art_bg: string; channels: string; cleaning_price: number;
+  art: string; art_bg: string; photo: string | null; description: string | null;
+  channels: string; cleaning_price: number;
   base_price_week: number; base_price_weekend: number;
 }
 
@@ -57,7 +58,8 @@ export function mapProperty(r: PropertyRow): Property {
     id: r.id, name: r.name, location: r.location, type: r.type,
     bedrooms: r.bedrooms, bathrooms: r.bathrooms, maxGuests: r.max_guests, areaM2: r.area_m2,
     rating: r.rating, status: r.status, statusLabel: r.status_label,
-    art: r.art, artBg: r.art_bg, channels: JSON.parse(r.channels) as Channel[],
+    art: r.art, artBg: r.art_bg, photo: r.photo, description: r.description,
+    channels: JSON.parse(r.channels) as Channel[],
     cleaningPrice: r.cleaning_price,
   };
 }

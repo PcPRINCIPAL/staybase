@@ -125,6 +125,64 @@ routes.get("/properties", (_req, res) => {
   res.json(allProperties().map(mapProperty));
 });
 
+/** Alles voor de detailpagina van één pand. */
+routes.get("/properties/:id", (req, res) => {
+  const prop = propertyById(req.params.id);
+  if (!prop) {
+    res.status(404).json({ error: "onbekend pand" });
+    return;
+  }
+  const jaar = DEMO_TODAY.slice(0, 4);
+  const boekingen = (db.prepare(
+    "SELECT * FROM bookings WHERE property_id = ? ORDER BY start_date"
+  ).all(prop.id) as unknown as BookingRow[]).map(mapBooking);
+
+  const ditJaar = boekingen.filter((b) => b.startDate.startsWith(jaar));
+  const nachten = ditJaar.reduce((n, b) => n + nightsBetween(b.startDate, b.endDate), 0);
+  const omzetBoekingen = ditJaar.reduce((n, b) => n + b.payout, 0);
+  const historisch = (db.prepare("SELECT amount FROM property_revenue_h1 WHERE property_id = ?")
+    .get(prop.id) as { amount: number } | undefined)?.amount ?? 0;
+
+  // Bezetting van de demomaand voor dit pand.
+  const [yy, mm] = DEMO_MONTH.split("-").map(Number);
+  const dim = daysInMonth(yy, mm);
+  const monthStart = `${DEMO_MONTH}-01`;
+  const monthEnd = addDays(iso(yy, mm, dim), 1);
+  let geboekteNachten = 0;
+  for (const b of boekingen) {
+    if (b.startDate < monthEnd && b.endDate > monthStart) {
+      const van = b.startDate > monthStart ? b.startDate : monthStart;
+      const tot = b.endDate < monthEnd ? b.endDate : monthEnd;
+      geboekteNachten += nightsBetween(van, tot);
+    }
+  }
+
+  const perKanaal = { airbnb: 0, booking: 0, vrbo: 0 };
+  for (const b of ditJaar) perKanaal[b.channel] += b.payout;
+  const totaalKanaal = perKanaal.airbnb + perKanaal.booking + perKanaal.vrbo || 1;
+
+  res.json({
+    property: mapProperty(prop),
+    kpis: {
+      occupancyPct: Math.round((geboekteNachten / dim) * 100),
+      revenueYear: historisch + omzetBoekingen,
+      avgNight: nachten ? Math.round(omzetBoekingen / nachten) : 0,
+      bookingsYear: ditJaar.length,
+      nightsBooked: nachten,
+    },
+    upcomingBookings: boekingen.filter((b) => b.endDate >= DEMO_TODAY).slice(0, 6),
+    cleanings: (db.prepare("SELECT * FROM cleanings WHERE property_id = ? ORDER BY date").all(prop.id) as any[]).map(mapCleaning),
+    suggestions: (db.prepare("SELECT * FROM price_suggestions WHERE property_id = ? AND status = 'open' ORDER BY start_date").all(prop.id) as any[]).map(mapSuggestion),
+    revenueByChannel: ([["airbnb", "Airbnb"], ["booking", "Booking.com"], ["vrbo", "VRBO"]] as const)
+      .map(([ch, label]) => ({
+        channel: ch, label,
+        amount: perKanaal[ch],
+        pct: Math.round((perKanaal[ch] / totaalKanaal) * 100),
+      }))
+      .filter((c) => c.amount > 0),
+  });
+});
+
 routes.post("/properties", (req, res) => {
   const input = req.body as NewPropertyInput;
   if (!input?.address || typeof input.address !== "string") {
@@ -139,16 +197,23 @@ routes.post("/properties", (req, res) => {
     return;
   }
   const area = Math.max(60, (input.bedrooms || 3) * 45);
+  const aantal = (db.prepare("SELECT COUNT(*) n FROM properties").get() as { n: number }).n;
+  const voorzieningen = (input.amenities ?? []).map((a) => a.replace(/^\S+\s/, "").toLowerCase());
   db.prepare(`
     INSERT INTO properties (id, name, location, type, bedrooms, bathrooms, max_guests, area_m2,
-      rating, status, status_label, art, art_bg, channels, cleaning_price, base_price_week, base_price_weekend)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, 'onboarding', ?, ?, ?, ?, ?, ?, ?)
+      rating, status, status_label, art, art_bg, photo, description, channels, cleaning_price,
+      base_price_week, base_price_weekend)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, 'onboarding', ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id, street,
     input.address.includes(",") ? input.address.split(",").slice(1).join(",").replace(/\d{4}/, "").trim() : "Knokke-Heist",
     input.type || "Huis",
     input.bedrooms ?? 3, input.bathrooms ?? 2, input.maxGuests ?? 8, area,
     "⏳ Wacht op brandveiligheidsattest", "🏡", "linear-gradient(135deg,#E9F6EF,#D3EDDD)",
+    `/pand${(aantal % 4) + 1}.webp`,
+    `${input.type || "Huis"} met ${input.bedrooms ?? 3} slaapkamers voor maximaal ${input.maxGuests ?? 8} gasten` +
+      (voorzieningen.length ? `, met ${voorzieningen.slice(0, 3).join(", ")}.` : ".") +
+      " Deze beschrijving is automatisch opgesteld tijdens de onboarding en kan je nog aanpassen.",
     JSON.stringify(input.vrbo ? ["airbnb", "booking", "vrbo"] : ["airbnb", "booking"]),
     Math.round(area * 0.5), 225, 265
   );

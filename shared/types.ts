@@ -23,8 +23,26 @@ export interface Property {
   statusLabel: string;
   art: string;
   artBg: string;
+  photo: string | null;
+  description: string | null;
   channels: Channel[];
   cleaningPrice: number;
+}
+
+/** Alles wat de detailpagina van één pand toont. */
+export interface PropertyDetail {
+  property: Property;
+  kpis: {
+    occupancyPct: number;
+    revenueYear: number;
+    avgNight: number;
+    bookingsYear: number;
+    nightsBooked: number;
+  };
+  upcomingBookings: Booking[];
+  cleanings: Cleaning[];
+  suggestions: PriceSuggestion[];
+  revenueByChannel: { channel: Channel; label: string; amount: number; pct: number }[];
 }
 
 export interface Booking {

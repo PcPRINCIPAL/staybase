@@ -100,9 +100,12 @@ h1{font-size:28px; font-weight:800; letter-spacing:-.02em; text-wrap:balance}
 .bar-fill{height:100%; border-radius:4px; background:linear-gradient(90deg,#FF385C,#E31C5F); transition:width .3s}
 
 .props{display:grid; grid-template-columns:repeat(4,1fr); gap:14px}
-.prop{overflow:hidden; border-radius:var(--r-md); background:var(--card); border:1px solid var(--line); box-shadow:var(--shadow); transition:transform .15s, box-shadow .15s}
+.prop{overflow:hidden; border-radius:var(--r-md); background:var(--card); border:1px solid var(--line); box-shadow:var(--shadow); transition:transform .15s, box-shadow .15s; cursor:pointer}
 .prop:hover{transform:translateY(-2px); box-shadow:var(--shadow-lift)}
-.prop-art{height:118px; display:flex; align-items:center; justify-content:center; font-size:44px}
+.prop:focus-visible{outline:2px solid var(--coral); outline-offset:2px}
+.prop-art{height:132px; display:flex; align-items:center; justify-content:center; font-size:44px; overflow:hidden}
+.prop-art img{width:100%; height:100%; object-fit:cover; display:block; transition:transform .35s}
+.prop:hover .prop-art img{transform:scale(1.05)}
 .prop-body{padding:14px 16px 16px}
 .prop-body .name{font-weight:800; font-size:15px; display:flex; align-items:center; justify-content:space-between; gap:8px}
 .prop-body .rate{font-size:13px; font-weight:700; display:flex; align-items:center; gap:3px; color:var(--ink)}
@@ -325,6 +328,45 @@ table.mini td:last-child{text-align:right; font-weight:700; white-space:nowrap}
 
 .foot{max-width:1160px; margin:0 auto; padding:0 24px 40px; color:var(--faint); font-size:12.5px; text-align:center}
 .loading{padding:60px 0; text-align:center; color:var(--faint); font-size:14px}
+
+/* ===== Panddetail ===== */
+.pand-terug{display:inline-flex; align-items:center; gap:7px; font-size:13.5px; font-weight:700; color:var(--muted); margin-bottom:18px; transition:color .15s}
+.pand-terug:hover{color:var(--ink)}
+.pand-hero{position:relative; border-radius:var(--r-lg); overflow:hidden; box-shadow:var(--shadow-lift); height:340px}
+.pand-hero img{width:100%; height:100%; object-fit:cover; display:block}
+.pand-hero-leeg{width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:80px}
+.pand-hero-ov{position:absolute; inset:auto 0 0 0; padding:28px 30px;
+  background:linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.72) 100%); color:#fff}
+.pand-hero-ov h1{font-size:clamp(24px,3vw,34px); color:#fff; margin-top:10px; letter-spacing:-.03em}
+.pand-hero-ov p{font-size:14px; color:rgba(255,255,255,.85); margin-top:6px}
+.pand-rating{position:absolute; top:18px; right:18px; background:rgba(255,255,255,.94); backdrop-filter:blur(6px);
+  border-radius:999px; padding:7px 14px; font-size:14px; font-weight:800}
+.pand-grid{display:grid; grid-template-columns:1fr 330px; gap:18px; align-items:start; margin-top:24px}
+.pand-blok{padding:22px 24px}
+.pand-blok h2{font-size:15.5px; font-weight:800; letter-spacing:-.01em; margin-bottom:12px}
+.pand-tekst{font-size:14.5px; color:var(--muted); line-height:1.7}
+.pand-kanalen{display:flex; flex-wrap:wrap; gap:8px; margin-top:16px}
+.pand-leeg{padding:20px; font-size:14px; color:var(--muted)}
+.pand-zij{display:flex; flex-direction:column; gap:14px; position:sticky; top:84px}
+.pand-kpis{padding:6px 0}
+.pand-kpis > div{padding:14px 22px}
+.pand-kpis > div + div{border-top:1px solid var(--line)}
+.pand-kpis .lbl{display:block; font-size:11.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--faint)}
+.pand-kpis b{display:block; font-size:22px; font-weight:800; letter-spacing:-.02em; margin-top:4px}
+.pand-sug{display:flex; align-items:center; gap:12px; padding:9px 0; font-size:13.5px}
+.pand-sug + .pand-sug{border-top:1px solid var(--line)}
+.pand-sug b{display:block; font-size:13.5px}
+.pand-sug span{font-size:12px; color:var(--muted)}
+.pand-sug .num{margin-left:auto; font-weight:800; font-size:15px}
+.pand-sug .op{color:var(--good)}
+.pand-sug .neer{color:var(--coral-deep)}
+.pand-acties{display:flex; flex-direction:column; gap:8px}
+.pand-acties .btn{width:100%; justify-content:flex-start}
+@media (max-width:1020px){
+  .pand-grid{grid-template-columns:1fr}
+  .pand-zij{position:static}
+  .pand-hero{height:260px}
+}
 
 /* ===== Login ===== */
 .login-wrap{min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px}
