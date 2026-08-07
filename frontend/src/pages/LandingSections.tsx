@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Icon, type IconName } from "../components/Icon";
+import { ARTIKELEN, type Artikel } from "../content/artikelen";
 
 /* ============================================================
    "Wat je krijgt met Staybase" — tekst vrij op de achtergrond,
@@ -183,6 +185,44 @@ export function WatJeKrijgt({ onCta }: { onCta: () => void }) {
               </article>
             );
           })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ============================================================
+   Kennis & inspiratie — kaarten die naar de artikelpagina linken
+   ============================================================ */
+
+export function ArtikelKaart({ a }: { a: Artikel }) {
+  return (
+    <Link to={`/kennis/${a.slug}`} className="lp-art-card lp-fade">
+      <div className="lp-art-beeld">
+        <img src={a.afbeelding} alt="" loading="lazy" decoding="async" />
+        <span className="cat">{a.categorie}</span>
+      </div>
+      <div className="lp-art-meta">{a.leestijd} min lezen</div>
+      <h3 className="lp-art-titel">{a.titel}</h3>
+      <p className="lp-art-intro">{a.intro}</p>
+      <span className="lp-art-lees">Lees meer →</span>
+    </Link>
+  );
+}
+
+export function KennisEnInspiratie() {
+  return (
+    <section className="lp-sec alt" id="kennis">
+      <div className="lp-container">
+        <div className="lp-kennis-hd lp-fade">
+          <div className="mid">
+            <h2 className="lp-h2">Kennis &amp; inspiratie</h2>
+            <p className="lp-sub">Praktische tips en inzichten om meer uit jouw verhuur te halen.</p>
+          </div>
+          <Link to={`/kennis/${ARTIKELEN[0].slug}`} className="lp-kennis-alle">Bekijk alle artikelen →</Link>
+        </div>
+        <div className="lp-kennis">
+          {ARTIKELEN.map((a) => <ArtikelKaart a={a} key={a.slug} />)}
         </div>
       </div>
     </section>

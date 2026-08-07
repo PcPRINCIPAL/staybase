@@ -56,18 +56,19 @@
 
 /* Rechterkant: foto met zwevende productkaarten */
 .lp-hero-art{position:relative; min-height:472px}
-.lp-hero-canvas{position:absolute; inset:2% 0 2% 3%; border-radius:24px; overflow:hidden;
+/* De foto staat iets naar binnen zodat de kaarten er buiten kunnen treden. */
+.lp-hero-canvas{position:absolute; inset:2% 3% 3% 9%; border-radius:24px; overflow:hidden;
   box-shadow:0 20px 50px rgba(35,35,35,.16)}
 .lp-hero-canvas img{display:block; width:100%; height:100%; object-fit:cover}
 .lp-card{position:absolute; background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow:0 8px 30px rgba(35,35,35,.13); padding:15px 17px}
-.lp-card-income{top:2%; left:0; width:236px}
+.lp-card-income{top:0; left:-5%; width:236px}
 .lp-card-income .lbl{font-size:12px; color:var(--muted); font-weight:600}
 .lp-card-income .amt{display:flex; align-items:baseline; gap:8px; margin-top:4px}
 .lp-card-income .amt b{font-size:23px; font-weight:800; letter-spacing:-.03em}
 .lp-card-income .amt span{font-size:12.5px; font-weight:700; color:var(--good)}
 .lp-card-income svg{margin-top:10px; width:100%; height:42px; overflow:visible}
 .lp-card-income .axis{display:flex; justify-content:space-between; font-size:10px; color:var(--faint); margin-top:4px}
-.lp-card-book{top:16%; right:0; width:278px}
+.lp-card-book{top:14%; right:-4%; width:278px}
 .lp-card-book .hd{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px}
 .lp-card-book .hd b{font-size:13.5px; font-weight:800}
 .lp-card-book .hd span{font-size:11.5px; color:var(--coral); font-weight:700}
@@ -78,7 +79,7 @@
 .lp-book-row .st{font-size:10px; font-weight:700; padding:2px 7px; border-radius:999px; white-space:nowrap}
 .lp-book-row .st.ok{background:var(--good-soft); color:var(--good)}
 .lp-book-row .st.wait{background:var(--warn-soft); color:var(--warn)}
-.lp-card-review{bottom:2%; right:4%; width:282px}
+.lp-card-review{bottom:-5%; right:3%; width:282px}
 .lp-card-review .who{display:flex; align-items:center; gap:9px; margin-bottom:8px}
 .lp-card-review .who .av{width:26px; height:26px; border-radius:50%; background:var(--coral-soft); display:flex; align-items:center; justify-content:center; font-size:13px}
 .lp-card-review .who b{font-size:12.5px; font-weight:700}
@@ -163,6 +164,54 @@
 .lp-site-hero b{display:block; color:#fff; font-size:12px; font-weight:800; letter-spacing:-.02em; line-height:1.25}
 .lp-site-hero .tag{display:block; color:rgba(255,255,255,.85); font-size:8.5px; line-height:1.35}
 .lp-site-hero .cta{align-self:flex-start; margin-top:3px; background:#fff; color:var(--ink); border-radius:999px; padding:3px 9px; font-size:8.5px; font-weight:800}
+
+/* --- Kennis & inspiratie --- */
+.lp-kennis-hd{display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:44px}
+.lp-kennis-hd .mid{text-align:center; flex:1}
+.lp-kennis-hd .mid .lp-sub{margin:14px auto 0}
+.lp-kennis-alle{font-size:13.5px; font-weight:700; color:var(--coral-deep); white-space:nowrap; display:inline-flex; gap:6px; transition:gap .15s}
+.lp-kennis-alle:hover{gap:10px}
+.lp-kennis{display:grid; grid-template-columns:repeat(3,1fr); gap:26px}
+.lp-art-card{display:flex; flex-direction:column; text-align:left; background:transparent; transition:transform .16s}
+.lp-art-card:hover{transform:translateY(-3px)}
+.lp-art-card:hover .lp-art-titel{color:var(--coral-deep)}
+.lp-art-beeld{position:relative; border-radius:16px; overflow:hidden; aspect-ratio:16/10; box-shadow:var(--shadow)}
+.lp-art-beeld img{width:100%; height:100%; object-fit:cover; display:block; transition:transform .4s}
+.lp-art-card:hover .lp-art-beeld img{transform:scale(1.04)}
+.lp-art-beeld .cat{position:absolute; left:12px; bottom:12px; background:rgba(255,255,255,.94); backdrop-filter:blur(6px); border-radius:999px; padding:5px 12px; font-size:11.5px; font-weight:800; color:var(--ink)}
+.lp-art-meta{display:flex; align-items:center; gap:8px; margin-top:16px; font-size:12px; color:var(--faint); font-weight:600}
+.lp-art-titel{font-size:19px; font-weight:800; letter-spacing:-.02em; line-height:1.28; margin-top:8px; transition:color .15s}
+.lp-art-intro{font-size:14px; color:var(--muted); line-height:1.6; margin-top:10px; flex:1}
+.lp-art-lees{display:inline-flex; align-items:center; gap:6px; margin-top:16px; font-size:13.5px; font-weight:700; color:var(--coral-deep); transition:gap .15s}
+.lp-art-card:hover .lp-art-lees{gap:10px}
+
+/* --- Artikelpagina --- */
+.art-wrap{max-width:760px; margin:0 auto; padding:52px 24px 90px}
+.art-terug{display:inline-flex; align-items:center; gap:7px; font-size:13.5px; font-weight:700; color:var(--muted); margin-bottom:28px; transition:color .15s}
+.art-terug:hover{color:var(--ink)}
+.art-cat{display:inline-block; background:var(--coral-soft); color:var(--coral-deep); border-radius:999px; padding:5px 13px; font-size:11.5px; font-weight:800; letter-spacing:.04em; text-transform:uppercase}
+.art-titel{font-size:clamp(28px,4.2vw,44px); font-weight:800; letter-spacing:-.035em; line-height:1.12; margin-top:16px; text-wrap:balance}
+.art-meta{display:flex; align-items:center; gap:10px; margin-top:16px; font-size:13.5px; color:var(--faint); font-weight:600}
+.art-intro{font-size:18px; color:var(--muted); line-height:1.65; margin-top:20px}
+.art-beeld{border-radius:20px; overflow:hidden; margin:34px 0 40px; box-shadow:var(--shadow-lift)}
+.art-beeld img{display:block; width:100%; height:auto; aspect-ratio:16/9; object-fit:cover}
+.art-body h2{font-size:24px; font-weight:800; letter-spacing:-.025em; margin:38px 0 14px; line-height:1.25}
+.art-body p{font-size:16.5px; line-height:1.78; color:var(--ink-2, #3F3F46); margin-bottom:18px}
+.art-body ul{list-style:none; margin:0 0 20px; padding:0; display:flex; flex-direction:column; gap:11px}
+.art-body li{position:relative; padding-left:26px; font-size:16px; line-height:1.65; color:var(--muted)}
+.art-body li::before{content:"→"; position:absolute; left:0; top:0; color:var(--coral); font-weight:800}
+.art-tip{background:var(--coral-soft); border:1px solid var(--coral-line); border-radius:var(--r-md); padding:20px 22px; margin:26px 0}
+.art-tip b{display:block; font-size:14.5px; font-weight:800; color:var(--coral-deep); margin-bottom:6px}
+.art-tip p{font-size:15px; color:var(--ink); margin:0; line-height:1.65}
+.art-quote{border-left:4px solid var(--coral); padding:6px 0 6px 22px; margin:30px 0}
+.art-quote p{font-size:19px; font-weight:700; letter-spacing:-.015em; line-height:1.45; color:var(--ink); margin:0}
+.art-quote cite{display:block; margin-top:10px; font-size:13.5px; font-style:normal; color:var(--muted); font-weight:600}
+.art-cta{margin-top:52px; background:var(--navy); color:#fff; border-radius:var(--r-lg); padding:36px 38px; text-align:center}
+.art-cta h3{font-size:23px; font-weight:800; letter-spacing:-.025em; text-wrap:balance}
+.art-cta p{font-size:15px; color:rgba(255,255,255,.75); margin:12px auto 22px; max-width:420px; line-height:1.6}
+.art-verder{margin-top:64px}
+.art-verder h3{font-size:19px; font-weight:800; letter-spacing:-.02em; margin-bottom:22px}
+.art-verder-grid{display:grid; grid-template-columns:1fr 1fr; gap:22px}
 
 /* --- Uitgelichte review met foto --- */
 .lp-story{display:grid; grid-template-columns:.82fr 1.18fr; gap:48px; align-items:center; margin-top:44px}
@@ -390,6 +439,11 @@
   .lp-founders-grid{grid-template-columns:1fr; gap:32px}
   .lp-founders-photo{order:-1}
   .lp-get{grid-template-columns:1fr; gap:34px}
+  .lp-kennis{grid-template-columns:1fr}
+  .lp-kennis-hd{flex-direction:column; align-items:flex-start; gap:14px}
+  .lp-kennis-hd .mid{text-align:left}
+  .lp-kennis-hd .mid .lp-sub{margin-left:0}
+  .art-verder-grid{grid-template-columns:1fr}
   .lp-story{grid-template-columns:1fr; gap:34px}
   .lp-story-art{order:-1}
   .lp-story-card.bezet{left:4%}

@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Icon, Logo } from "../components/Icon";
 import { Calculator } from "./Calculator";
-import { UitgelichteReview, WatJeKrijgt } from "./LandingSections";
+import { KennisEnInspiratie, UitgelichteReview, WatJeKrijgt } from "./LandingSections";
+import { useFadeIn } from "../lib/useFadeIn";
 import "./landing.css";
 
 /**
@@ -74,23 +75,6 @@ function useNavHeight(ref: React.RefObject<HTMLElement>) {
     ro.observe(el);
     return () => { ro.disconnect(); document.documentElement.style.removeProperty("--lp-nav-h"); };
   }, [ref]);
-}
-
-/** Voegt .in toe zodra een element in beeld scrollt. */
-function useFadeIn() {
-  useEffect(() => {
-    const els = document.querySelectorAll(".lp-fade");
-    if (!("IntersectionObserver" in window)) {
-      els.forEach((el) => el.classList.add("in"));
-      return;
-    }
-    const io = new IntersectionObserver(
-      (entries) => entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }),
-      { rootMargin: "0px 0px -60px 0px" }
-    );
-    els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
-  }, []);
 }
 
 function VideoModal({ onClose }: { onClose: () => void }) {
@@ -536,6 +520,9 @@ export function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* KENNIS & INSPIRATIE */}
+      <KennisEnInspiratie />
 
       {/* LAATSTE CTA */}
       <section className="lp-final">
