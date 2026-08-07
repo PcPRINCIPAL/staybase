@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Icon, Logo } from "../components/Icon";
 import { Calculator } from "./Calculator";
+import { UitgelichteReview, WatJeKrijgt } from "./LandingSections";
 import "./landing.css";
 
 /**
@@ -164,7 +165,10 @@ export function LandingPage() {
           {NAV.map((n) => (
             <a key={n.href} href={n.href} onClick={() => setMenuOpen(false)}>{n.label}</a>
           ))}
-          <button className="btn coral" style={{ justifyContent: "center", marginTop: 8 }} onClick={naarLogin}>
+          <button className="btn ghost" style={{ justifyContent: "center", marginTop: 8 }} onClick={naarLogin}>
+            Log in
+          </button>
+          <button className="btn coral" style={{ justifyContent: "center" }} onClick={naarLogin}>
             Gratis proberen
           </button>
         </div>
@@ -201,8 +205,16 @@ export function LandingPage() {
                 <p className="lp-hero-trust lp-fade">Geen contract. Geen opstartkosten. Maandelijks opzegbaar.</p>
               </div>
 
-              <div className="lp-hero-art lp-fade" aria-hidden="true">
-                <div className="lp-hero-canvas" />
+              <div className="lp-hero-art lp-fade">
+                <div className="lp-hero-canvas">
+                  <img
+                    src="/villasun.png"
+                    alt="Zonnige woonkamer van een vakantiewoning met zicht op zee"
+                    width={1536}
+                    height={1024}
+                    decoding="async"
+                  />
+                </div>
 
                 <div className="lp-card lp-card-income">
                   <span className="lbl">Inkomsten deze maand</span>
@@ -296,6 +308,9 @@ export function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* WAT JE KRIJGT */}
+      <WatJeKrijgt onCta={naarLogin} />
 
       {/* HOE */}
       <section className="lp-sec alt" id="hoe">
@@ -427,6 +442,10 @@ export function LandingPage() {
       {/* VERHALEN */}
       <section className="lp-sec" id="verhalen">
         <div className="lp-container">
+          <UitgelichteReview onCta={naarLogin} />
+        </div>
+
+        <div className="lp-container" style={{ marginTop: 82 }}>
           <p className="lp-label lp-fade">Wat verhuurders zeggen</p>
           <h2 className="lp-h2 lp-fade">Na de eerste maand.</h2>
           <div className="lp-testi">
