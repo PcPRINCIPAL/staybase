@@ -16,6 +16,8 @@ const PATHS = {
   check: '<path d="M4.5 12.5 10 18 19.5 7"/>',
   shield: '<path d="M12 3 5 5.8v5.4c0 4.3 2.9 8 7 9.3 4.1-1.3 7-5 7-9.3V5.8L12 3Z"/><path d="M9 12l2.2 2.2L15.5 9.5"/>',
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+  plug: '<path d="M9 3v4.5M15 3v4.5"/><path d="M6.5 7.5h11V12a5.5 5.5 0 0 1-11 0V7.5Z"/><path d="M12 17.5V21"/>',
+  building: '<rect x="4.5" y="3.5" width="15" height="17" rx="2"/><path d="M8.5 8h2M13.5 8h2M8.5 12h2M13.5 12h2M10.5 20.5v-4h3v4"/>',
   chevD: '<path d="M6 9.5 12 15l6-5.5"/>',
 } as const;
 

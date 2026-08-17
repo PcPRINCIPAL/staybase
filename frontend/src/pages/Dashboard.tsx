@@ -1,7 +1,9 @@
 import { useNavigate } from "react-router-dom";
+import { DEMO_TODAY } from "@shared/types";
 import { useOverview } from "../lib/api";
-import { eur } from "../lib/format";
+import { eur, monthName } from "../lib/format";
 import { Icon } from "../components/Icon";
+import { PropertyCard } from "../components/PropertyCard";
 import { useUI } from "../ui";
 
 export function Dashboard() {
@@ -57,14 +59,14 @@ export function Dashboard() {
       <h2 className="sec-title"><span className="em">📈</span> Deze maand</h2>
       <div className="kpis">
         <div className="card kpi">
-          <span className="lbl">Bezetting juli</span>
+          <span className="lbl">Bezetting {monthName(DEMO_TODAY)}</span>
           <span className="val num">{data.kpis.occupancyPct}%</span>
-          <span className="cmp"><b>+9%</b> t.o.v. juli 2025</span>
+          <span className="cmp">Over alle live panden</span>
         </div>
         <div className="card kpi">
-          <span className="lbl">Opbrengsten juli</span>
+          <span className="lbl">Opbrengsten {monthName(DEMO_TODAY)}</span>
           <span className="val num">{eur(data.kpis.monthRevenue)}</span>
-          <span className="cmp"><b>+18%</b> t.o.v. vorig jaar</span>
+          <span className="cmp">Boekingen met check-in deze maand</span>
         </div>
         <div className="card kpi">
           <span className="lbl">Gemiddelde nachtprijs</span>
@@ -81,6 +83,11 @@ export function Dashboard() {
       <h2 className="sec-title"><span className="em">🗓️</span> Vandaag op de planning</h2>
       <div className="today-grid">
         <div className="card tl">
+          {data.timeline.length === 0 && (
+            <p style={{ color: "var(--muted)", fontSize: 14, padding: "16px 18px", margin: 0 }}>
+              Geen check-ins, check-outs of poetsbeurten vandaag — een rustige dag. 🌤️
+            </p>
+          )}
           {data.timeline.map((t, i) => (
             <div className="tl-row" key={i}>
               <span className="tl-time num">{t.time}</span>
@@ -106,22 +113,7 @@ export function Dashboard() {
       <h2 className="sec-title"><span className="em">🏡</span> Jouw panden</h2>
       <div className="props">
         {data.properties.map((p) => (
-          <article className="prop" key={p.id} onClick={() => nav(`/pand/${p.id}`)} role="link" tabIndex={0}
-            onKeyDown={(e) => { if (e.key === "Enter") nav(`/pand/${p.id}`); }}>
-            <div className="prop-art" style={{ background: p.artBg }}>
-              {p.photo ? <img src={p.photo} alt="" loading="lazy" decoding="async" /> : p.art}
-            </div>
-            <div className="prop-body">
-              <div className="name">
-                {p.name}
-                {p.rating != null && <span className="rate">★ {p.rating.toFixed(2).replace(".", ",")}</span>}
-              </div>
-              <div className="loc">
-                {p.location} · {p.bedrooms} slpk · {p.type === "Villa" ? "zwembad" : p.bathrooms + " badk."}
-              </div>
-              <span className={`chip ${p.status === "live" ? "coral" : "warn"}`}>{p.statusLabel}</span>
-            </div>
-          </article>
+          <PropertyCard key={p.id} p={p} />
         ))}
         <button className="prop-add" onClick={openWizard}>
           <span className="plus"><Icon name="plus" /></span>

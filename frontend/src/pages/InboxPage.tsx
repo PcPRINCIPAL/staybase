@@ -28,6 +28,24 @@ export function InboxPage() {
 
   if (isLoading || !convos) return <div className="loading">Inbox laden…</div>;
 
+  if (convos.length === 0) {
+    return (
+      <section className="page">
+        <h1>Inbox</h1>
+        <p className="sub">
+          Alle gastenberichten van elk kanaal, in één plek. Staybase schrijft het antwoord — in jouw stijl. Jij keurt goed.
+        </p>
+        <div className="card" style={{ marginTop: 24, padding: "28px 24px", textAlign: "center", color: "var(--muted)" }}>
+          <div style={{ fontSize: 34, marginBottom: 10 }}>📭</div>
+          <b style={{ color: "var(--ink)" }}>Nog geen gesprekken</b>
+          <p style={{ fontSize: 14, margin: "6px auto 0", maxWidth: 420 }}>
+            Synchroniseer met Guesty via <b>Koppelingen</b> om de gastenberichten van Airbnb en Booking.com hier binnen te halen.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
   const active = convos.find((c) => c.id === activeId) ?? convos.find((c) => c.status === "draft") ?? convos[0];
   const trust = overview?.trust ?? { count: 13, target: 20 };
 
@@ -50,14 +68,14 @@ export function InboxPage() {
   };
 
   return (
-    <section className="page">
+    <section className="page inbox-page">
       <h1>Inbox</h1>
       <p className="sub">
         Alle gastenberichten van elk kanaal, in één plek. Staybase schrijft het antwoord — in jouw stijl. Jij keurt goed.
       </p>
 
       <div className="inbox-grid">
-        <div>
+        <div className="inbox-left">
           <div className="card convo-list">
             {convos.map((c) => (
               <button
@@ -147,25 +165,33 @@ export function InboxPage() {
 
           {active.status === "guard" && (
             <div className="ai-card guard">
-              <div className="ai-top">🛡️ Deze beantwoordt Staybase niet zelf</div>
-              <p>{active.guardReason}</p>
+              <div className="ai-top">💬 Wacht op jouw antwoord</div>
+              <p>{active.guardReason ?? "De gast stuurde een bericht dat nog niet beantwoord is."}</p>
               <div className="ai-actions">
                 <button className="btn primary sm" onClick={() => { setShowReply(true); setReplyText(""); }}>
                   Zelf antwoorden
                 </button>
-                <button
-                  className="btn ghost sm"
-                  onClick={() => { setShowReply(true); setReplyText("Bonjour Claire! Goed nieuws: bij een verblijf van 14 nachten of langer geven we graag 10% korting op de extra week. Zal ik het voorstel doorsturen?"); }}
-                >
-                  Vraag een suggestie
-                </button>
+                {aiStatus?.llm && (
+                  <button
+                    className="btn ghost sm"
+                    disabled={regenerate.isPending}
+                    onClick={() =>
+                      regenerate.mutate([active.id], {
+                        onSuccess: () => toast("Voorstel geschreven — kijk het na ✨"),
+                        onError: () => toast("Voorstel schrijven mislukte — probeer opnieuw"),
+                      })
+                    }
+                  >
+                    {regenerate.isPending ? "Schrijven…" : "✨ Laat Staybase een voorstel schrijven"}
+                  </button>
+                )}
               </div>
             </div>
           )}
 
           {active.status === "done" && !showReply && (
             <div style={{ padding: "0 20px 20px" }}>
-              <span className="chip good">✓ Beantwoord — stijl door jou goedgekeurd</span>
+              <span className="chip good">✓ Beantwoord</span>
             </div>
           )}
 

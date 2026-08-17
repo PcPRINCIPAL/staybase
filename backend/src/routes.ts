@@ -8,14 +8,20 @@ import {
 } from "./lib";
 import { DEMO_TODAY } from "../../shared/types";
 import type {
-  CalendarData, CalendarDay, Cleaning, Conversation, Message, NewPropertyInput,
+  CalendarData, CalendarDay, CalendarOverview, Cleaning, Conversation, Message, NewPropertyInput,
   Overview, PriceStripDay, PriceSuggestion, RevenueData, TimelineItem,
 } from "../../shared/types";
 import { answer } from "./assistant";
 import { aiAvailable, llmAnswer, llmDraft } from "./ai";
+import { guestyAvailable, guestyStatus, resetGuestyData, syncGuesty, testGuesty } from "./guesty";
 import { currentUser, requireAdmin } from "./auth";
 
 export const routes = Router();
+
+/** Publieke client-config: alleen waarden die de browser mag zien. */
+routes.get("/client-config", (_req, res) => {
+  res.json({ mapboxToken: process.env.MAPBOX_TOKEN ?? null });
+});
 
 /* =========================== Overview =========================== */
 
@@ -50,7 +56,7 @@ routes.get("/overview", (req, res) => {
       paidNights += nightsBetween(b.start_date, b.end_date);
     }
   }
-  const occupancyPct = Math.round((bookedNights / (dim * live.length)) * 100);
+  const occupancyPct = live.length ? Math.round((bookedNights / (dim * live.length)) * 100) : 0;
   const avgNight = paidNights ? Math.round(payoutSum / paidNights) : 0;
 
   // Tijdlijn van "vandaag": check-outs, poetsbeurten en check-ins.
@@ -89,7 +95,7 @@ routes.get("/overview", (req, res) => {
   const hostMsgs = (db.prepare("SELECT COUNT(*) n FROM messages WHERE sender = 'host'").get() as { n: number }).n;
   const plannedCleanings = (db.prepare("SELECT COUNT(*) n FROM cleanings WHERE status != 'done'").get() as { n: number }).n;
   const priceUpdates = (db.prepare("SELECT COUNT(*) n FROM price_suggestions WHERE status = 'accepted'").get() as { n: number }).n;
-  const taskTotal = 16 + hostMsgs + plannedCleanings + priceUpdates;
+  const taskTotal = hostMsgs + plannedCleanings + priceUpdates;
 
   const d = new Date(DEMO_TODAY + "T00:00:00Z");
   const dowFull = ["Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag", "Zondag"];
@@ -108,7 +114,9 @@ routes.get("/overview", (req, res) => {
     timeline,
     tasksThisWeek: {
       total: taskTotal,
-      detail: `${16 + hostMsgs} gastenberichten beantwoord · ${plannedCleanings} poetsbeurten ingepland · ${2 + priceUpdates} prijsupdates doorgevoerd. Jij keek enkel goed. ✨`,
+      detail: taskTotal > 0
+        ? `${hostMsgs} gastenberichten beantwoord · ${plannedCleanings} poetsbeurten ingepland · ${priceUpdates} prijsupdates doorgevoerd. Jij keek enkel goed. ✨`
+        : "Zodra Staybase berichten beantwoordt, poetsbeurten inplant of prijzen bijstuurt, zie je dat hier.",
     },
     properties: allProperties().map(mapProperty),
     trust: {
@@ -280,6 +288,45 @@ routes.get("/calendar", (req, res) => {
   res.json(data);
 });
 
+/** Tijdlijnweergave: alle panden met hun boekingen en bezetting voor één maand. */
+routes.get("/calendar-overview", (req, res) => {
+  const month = String(req.query.month || DEMO_MONTH);
+  if (!/^\d{4}-\d{2}$/.test(month)) {
+    res.status(400).json({ error: "ongeldige maand" });
+    return;
+  }
+  const [yy, mm] = month.split("-").map(Number);
+  const dim = daysInMonth(yy, mm);
+  const monthStart = `${month}-01`;
+  const monthEnd = addDays(iso(yy, mm, dim), 1);
+
+  const rows = allProperties().map((p) => {
+    const bookings = db.prepare(
+      "SELECT * FROM bookings WHERE property_id = ? AND start_date < ? AND end_date > ? ORDER BY start_date"
+    ).all(p.id, monthEnd, monthStart) as unknown as BookingRow[];
+    let nights = 0;
+    for (const b of bookings) {
+      const from = b.start_date > monthStart ? b.start_date : monthStart;
+      const to = b.end_date < monthEnd ? b.end_date : monthEnd;
+      nights += nightsBetween(from, to);
+    }
+    return {
+      property: mapProperty(p),
+      occupancyPct: Math.round((nights / dim) * 100),
+      bookings: bookings.map(mapBooking),
+    };
+  });
+
+  const overview: CalendarOverview = {
+    month,
+    monthLabel: `${MONTH_FULL[mm - 1][0].toUpperCase()}${MONTH_FULL[mm - 1].slice(1)} ${yy}`,
+    daysInMonth: dim,
+    todayDay: DEMO_TODAY.startsWith(month) ? Number(DEMO_TODAY.slice(8)) : null,
+    properties: rows,
+  };
+  res.json(overview);
+});
+
 /* =========================== Inbox =========================== */
 
 function conversationById(id: string): Conversation | null {
@@ -448,12 +495,13 @@ export function revenueData(): RevenueData {
   const sum = (k: "airbnb" | "booking" | "vrbo") => all.reduce((acc, m) => acc + m[k], 0);
   const chAmounts = { airbnb: sum("airbnb"), booking: sum("booking"), vrbo: sum("vrbo") };
   const totalYear = chAmounts.airbnb + chAmounts.booking + chAmounts.vrbo;
+  const totalDiv = totalYear || 1; // lege database → geen NaN-percentages
   const channels = ([
     ["airbnb", "Airbnb"], ["booking", "Booking.com"], ["vrbo", "VRBO"],
   ] as const).map(([ch, label]) => ({
     channel: ch, label,
     amount: chAmounts[ch],
-    pct: Math.round((chAmounts[ch] / totalYear) * 100),
+    pct: Math.round((chAmounts[ch] / totalDiv) * 100),
   }));
 
   const perProperty = allProperties().map((p) => {
@@ -583,6 +631,42 @@ routes.get("/admin/users", requireAdmin, (_req, res) => {
   res.json({ users: users.map(({ _ignore, ...u }) => u), roles });
 });
 
+/* =========================== Guesty-koppeling =========================== */
+
+routes.get("/integrations/guesty", (_req, res) => {
+  res.json(guestyStatus());
+});
+
+routes.post("/integrations/guesty/test", requireAdmin, async (_req, res) => {
+  if (!guestyAvailable()) {
+    res.status(409).json({ error: "Guesty niet geconfigureerd — zet GUESTY_CLIENT_ID en GUESTY_CLIENT_SECRET in backend/.env" });
+    return;
+  }
+  try {
+    res.json(await testGuesty());
+  } catch (err) {
+    console.warn("Guesty-verbindingstest mislukt:", err);
+    res.status(502).json({ error: err instanceof Error ? err.message : "Verbinding met Guesty mislukte" });
+  }
+});
+
+routes.post("/integrations/guesty/sync", requireAdmin, async (_req, res) => {
+  if (!guestyAvailable()) {
+    res.status(409).json({ error: "Guesty niet geconfigureerd — zet GUESTY_CLIENT_ID en GUESTY_CLIENT_SECRET in backend/.env" });
+    return;
+  }
+  try {
+    res.json(await syncGuesty());
+  } catch (err) {
+    console.warn("Guesty-sync mislukt:", err);
+    res.status(502).json({ error: err instanceof Error ? err.message : "Synchroniseren met Guesty mislukte" });
+  }
+});
+
+routes.post("/integrations/guesty/reset", requireAdmin, (_req, res) => {
+  res.json(resetGuestyData());
+});
+
 /* =========================== Assistent & AI =========================== */
 
 routes.get("/ai-status", (_req, res) => {
@@ -609,8 +693,10 @@ routes.post("/conversations/:id/regenerate", async (req, res) => {
     return;
   }
   const c = db.prepare("SELECT * FROM conversations WHERE id = ?").get(req.params.id) as any;
-  if (!c || c.status !== "draft") {
-    res.status(409).json({ error: "alleen open voorstellen kunnen herschreven worden" });
+  // 'draft' = bestaand voorstel herschrijven; 'guard' = onbeantwoord gastbericht
+  // waarvoor Staybase alsnog een voorstel schrijft (wordt daarna 'draft').
+  if (!c || (c.status !== "draft" && c.status !== "guard")) {
+    res.status(409).json({ error: "alleen open gesprekken kunnen een voorstel krijgen" });
     return;
   }
   const prop = propertyById(c.property_id)!;
@@ -623,7 +709,7 @@ routes.post("/conversations/:id/regenerate", async (req, res) => {
       messages: msgs,
       note: c.draft_note,
     });
-    db.prepare("UPDATE conversations SET draft = ? WHERE id = ?").run(draft, c.id);
+    db.prepare("UPDATE conversations SET draft = ?, status = 'draft', guard_reason = NULL WHERE id = ?").run(draft, c.id);
     res.json(conversationById(c.id));
   } catch (err) {
     console.warn("LLM-draft mislukt:", err);

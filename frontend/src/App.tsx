@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
-import { Topbar } from "./components/Topbar";
+import { Sidebar } from "./components/Sidebar";
 import { Dashboard } from "./pages/Dashboard";
 import { CalendarPage } from "./pages/CalendarPage";
 import { InboxPage } from "./pages/InboxPage";
@@ -8,6 +8,8 @@ import { PricesPage } from "./pages/PricesPage";
 import { CleaningPage } from "./pages/CleaningPage";
 import { RevenuePage } from "./pages/RevenuePage";
 import { AdminPage } from "./pages/AdminPage";
+import { IntegrationsPage } from "./pages/IntegrationsPage";
+import { PropertiesPage } from "./pages/PropertiesPage";
 import { PropertyPage } from "./pages/PropertyPage";
 import { LandingPage } from "./pages/LandingPage";
 import { ArticlePage } from "./pages/ArticlePage";
@@ -20,14 +22,16 @@ import { useAuth } from "./auth";
 /** Schil rond de ingelogde app: navigatie, footer en de assistent. */
 function AppLayout() {
   return (
-    <>
-      <Topbar />
-      <main className="wrap">
-        <Outlet />
-      </main>
-      <footer className="foot">Staybase · alle data is fictief · een voorstel van Oblivion Labs</footer>
+    <div className="shell">
+      <Sidebar />
+      <div className="shell-main">
+        <main className="wrap">
+          <Outlet />
+        </main>
+        <footer className="foot">Staybase · een voorstel van Oblivion Labs</footer>
+      </div>
       <Assistant />
-    </>
+    </div>
   );
 }
 
@@ -47,6 +51,7 @@ export default function App() {
         {user ? (
           <Route element={<AppLayout />}>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/panden" element={<PropertiesPage />} />
             <Route path="/pand/:id" element={<PropertyPage />} />
             <Route path="/kalender" element={<CalendarPage />} />
             <Route path="/inbox" element={<InboxPage />} />
@@ -54,6 +59,7 @@ export default function App() {
             <Route path="/schoonmaak" element={<CleaningPage />} />
             <Route path="/opbrengsten" element={<RevenuePage />} />
             <Route path="/beheer" element={<AdminPage />} />
+            <Route path="/koppelingen" element={<IntegrationsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         ) : (

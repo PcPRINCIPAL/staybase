@@ -27,23 +27,24 @@ npm run dev
   - **julie@staybase.be** — beheerder: alles van een eigenaar, plus de Beheer-pagina (gebruikers & rollen, tijd per onboarding-stap, recente onboardings)
   - **maxime@staybase.be** — eigenaar: beheert panden en kan panden toevoegen; ziet de beheer-inzichten niet (ook de API geeft daar 403)
 
-Bij de eerste start wordt `backend/data/staybase.db` aangemaakt en geseed met de
-demodata (vaste "vandaag": vrijdag 17 juli 2026, zodat het verhaal altijd klopt).
-Terug naar de beginstaat:
+Bij de eerste start wordt `backend/data/staybase.db` leeg aangemaakt — er is
+geen demodata meer. Panden en boekingen komen binnen via de Guesty-koppeling
+(zie hieronder); "vandaag" is gewoon de echte datum. Helemaal opnieuw beginnen:
 
 ```bash
 npm run db:reset
 ```
 
-en herstart daarna de dev-server (de seed draait opnieuw bij het opstarten).
+herstart daarna de dev-server en draai een nieuwe Guesty-sync.
 
 ## Wat werkt er echt
 
 Alle flows lopen via de API en worden bewaard in SQLite:
 
 - **Vandaag** — KPI's (bezetting, omzet, gem. nachtprijs) worden live berekend uit de boekingen; de tijdlijn van vandaag wordt afgeleid uit check-outs, poetsbeurten en check-ins.
-- **Kalender** — maandnavigatie, meerdere panden, kanaal-kleuren, prijzen voor vrije nachten (weekend/week + verwerkte prijsvoorstellen).
-- **Inbox** — AI-voorstel goedkeuren verstuurt en bewaart het bericht, verhoogt de leerteller; kortingsvragen zijn afgeschermd (guardrail) en beantwoord je zelf.
+- **Panden** — aparte pagina met tegel-, lijst- en kaartweergave. De kaart gebruikt de Mapbox-huisstijl (streets-v12 als raster-tegels via Leaflet — bewust geen mapbox-gl/WebGL, dat liep vast; `MAPBOX_TOKEN` in `backend/.env`, de frontend haalt hem op via `/api/client-config`). Coördinaten komen uit Guesty.
+- **Kalender** — twee weergaven (switch rechtsboven): *Maand* met pandenlijst als kaartjes links en dagdetails rechts, en *Lijst* — een Guesty-achtige tijdlijn met één rij per pand, boekingsbalken in kanaal-kleuren en sortering op bezetting of naam (`GET /api/calendar-overview?month=`).
+- **Inbox** — de echte gastenberichten uit Guesty (Airbnb & Booking.com): de sync haalt de 40 recentste gesprekken op (elke conversatie kost een extra API-call, Guesty limiteert op ±120/min). Onbeantwoorde gastberichten krijgen het label "Voor jou"; met een AI-key schrijft Staybase op verzoek een voorstel dat je goedkeurt of aanpast. ⚠️ Antwoorden worden lokaal bewaard maar nog **niet** teruggestuurd naar Guesty — dat is de volgende stap.
 - **Prijzen** — voorstellen toepassen/afwijzen werkt door in kalender én prijsgrafiek.
 - **Schoonmaak** — marktplaats-beurt bevestigen; watervalsysteem als uitleg.
 - **Opbrengsten** — historiek (geseed) + lopende maand (live uit boekingen), per kanaal en per pand — alles telt kloppend op.
@@ -66,6 +67,26 @@ Guardrails blijven hard afgedwongen: vragen over kortingen of voorwaarden gaan
 nooit naar het model — die komen altijd eerst bij de eigenaar. `STAYBASE_AI_BASE_URL`
 is het koppelpunt voor de ORQ.AI-gateway uit de analyse.
 
+## Guesty koppelen (optioneel)
+
+Guesty is in de POC de distributiehub (push naar Airbnb, Booking.com en VRBO).
+De koppeling haalt listings en reservaties op en zet ze als panden en boekingen
+in Staybase, naast de demodata. Aanzetten:
+
+1. In Guesty: **Settings → Integrations → API** → maak een applicatie met scope
+   **Open API** aan en kopieer de client-id + secret.
+2. Zet ze in `backend/.env` als `GUESTY_CLIENT_ID` en `GUESTY_CLIENT_SECRET` en
+   herstart `npm run dev`.
+3. Log in als admin (julie@staybase.be) → avatar-menu → **Koppelingen** →
+   *Test verbinding* en daarna *Synchroniseer nu*.
+
+Opnieuw synchroniseren werkt bestaande rijen bij (geen dubbels, upsert op
+`guesty_id`); geannuleerde reservaties worden lokaal opgeruimd. *Geïmporteerde
+data verwijderen* haalt alles wat uit Guesty kwam weer weg — Guesty zelf wordt
+nooit aangepast (de koppeling is puur lezend). Let op: Guesty geeft maar ± 5
+OAuth-tokens per 24 uur; de app bewaart het token daarom in de database en
+vraagt er nooit onnodig een aan.
+
 ## Supabase
 
 Het Postgres-schema staat klaar in `supabase/migrations/0001_init.sql` — plakken en
@@ -78,5 +99,5 @@ Supabase te laten draaien is nog de **database-connectiestring** nodig
 
 - Backend omschakelen naar Supabase Postgres (schema staat klaar, connectiestring nodig) en Supabase Auth i.p.v. de eigen sessielaag
 - ORQ.AI-gateway ertussen via `STAYBASE_AI_BASE_URL` (code blijft ongewijzigd)
-- Guesty-koppeling (POC) voor echte boekingen en distributie
+- Guesty-koppeling uitbreiden: antwoorden uit de inbox terugsturen naar Guesty (POST op de conversation), webhooks voor realtime boekingen & berichten, kalender/prijzen terugschrijven (nu puur lezend), een eigen 'direct'-kanaal voor handmatige boekingen
 - Deploy: frontend op Vercel, backend op Railway (accounts + secrets nodig)

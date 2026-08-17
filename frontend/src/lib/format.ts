@@ -14,6 +14,16 @@ export function nightsBetween(start: string, end: string): number {
   );
 }
 
+const MONTH_FULL_NL = [
+  "januari", "februari", "maart", "april", "mei", "juni",
+  "juli", "augustus", "september", "oktober", "november", "december",
+];
+
+/** Volledige Nederlandse maandnaam uit een ISO-datum of "yyyy-mm". */
+export function monthName(iso: string): string {
+  return MONTH_FULL_NL[Number(iso.slice(5, 7)) - 1];
+}
+
 export function addMonths(month: string, delta: number): string {
   const [y, m] = month.split("-").map(Number);
   const d = new Date(Date.UTC(y, m - 1 + delta, 1));

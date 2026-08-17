@@ -1,9 +1,10 @@
 /**
  * Gedeelde types tussen frontend en backend.
- * De demo-dataset speelt zich af rond een vaste "vandaag" zodat het verhaal
- * (check-out Müller, poets, check-in Peeters) altijd klopt.
+ * Sinds de Guesty-koppeling live is, is "vandaag" gewoon de echte datum
+ * (voorheen een vaste demodag zodat het demoverhaal klopte).
  */
-export const DEMO_TODAY = "2026-07-17";
+const now = new Date();
+export const DEMO_TODAY = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
 export type Channel = "airbnb" | "booking" | "vrbo";
 
@@ -27,6 +28,10 @@ export interface Property {
   description: string | null;
   channels: Channel[];
   cleaningPrice: number;
+  basePriceWeek: number;
+  basePriceWeekend: number;
+  lat: number | null;
+  lng: number | null;
 }
 
 /** Alles wat de detailpagina van één pand toont. */
@@ -56,6 +61,8 @@ export interface Booking {
   guests: number;
   payout: number;    // euro
   note: string | null;
+  checkInTime: string | null;   // "17:00" (lokale tijd, uit Guesty)
+  checkOutTime: string | null;  // "10:00"
 }
 
 export interface CalendarDay {
@@ -82,6 +89,21 @@ export interface CalendarData {
   leadingBlanks: number;
   days: CalendarDay[];
   bookings: Booking[];
+}
+
+/** Eén rij in de tijdlijnweergave van de kalender (alle panden naast elkaar). */
+export interface CalendarOverviewRow {
+  property: Property;
+  occupancyPct: number;   // bezetting binnen de getoonde maand
+  bookings: Booking[];    // alle boekingen die de maand overlappen
+}
+
+export interface CalendarOverview {
+  month: string;          // yyyy-mm
+  monthLabel: string;
+  daysInMonth: number;
+  todayDay: number | null; // dagnummer van vandaag als die in deze maand valt
+  properties: CalendarOverviewRow[];
 }
 
 export type ConversationStatus = "draft" | "guard" | "done";

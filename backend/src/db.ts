@@ -1,7 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { seed } from "./seed";
 
 const dataDir = path.join(__dirname, "..", "data");
 mkdirSync(dataDir, { recursive: true });
@@ -148,49 +147,28 @@ db.exec(`
   );
 `);
 
-const hasData = db.prepare("SELECT COUNT(*) AS n FROM properties").get() as { n: number };
-if (hasData.n === 0) {
-  seed(db);
-  console.log("Database geseed met demodata.");
-}
+// Sinds de Guesty-koppeling live is, wordt er niet meer geseed met demodata:
+// panden en boekingen komen binnen via Koppelingen → Synchroniseer nu.
+// (De oude demo-seed staat nog in git-historie: backend/src/seed.ts.)
 
 // Lichtgewicht migraties voor databases die vóór deze kolommen zijn aangemaakt.
 try { db.exec("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'owner'"); } catch { /* bestaat al */ }
 try { db.exec("ALTER TABLE onboarding_events ADD COLUMN user_id TEXT"); } catch { /* bestaat al */ }
 try { db.exec("ALTER TABLE properties ADD COLUMN photo TEXT"); } catch { /* bestaat al */ }
 try { db.exec("ALTER TABLE properties ADD COLUMN description TEXT"); } catch { /* bestaat al */ }
+// Guesty-koppeling: onthoud welke rijen uit Guesty komen (upsert bij elke sync).
+try { db.exec("ALTER TABLE properties ADD COLUMN guesty_id TEXT"); } catch { /* bestaat al */ }
+try { db.exec("ALTER TABLE bookings ADD COLUMN guesty_id TEXT"); } catch { /* bestaat al */ }
+// Coördinaten voor de kaartweergave; Guesty levert ze mee bij elke sync.
+try { db.exec("ALTER TABLE properties ADD COLUMN lat REAL"); } catch { /* bestaat al */ }
+try { db.exec("ALTER TABLE properties ADD COLUMN lng REAL"); } catch { /* bestaat al */ }
+// Gastenberichten uit Guesty (inbox-sync).
+try { db.exec("ALTER TABLE conversations ADD COLUMN guesty_id TEXT"); } catch { /* bestaat al */ }
+try { db.exec("ALTER TABLE messages ADD COLUMN guesty_id TEXT"); } catch { /* bestaat al */ }
+// In- en uitchecktijd (HH:MM, lokale tijd) — Guesty levert exacte tijdstippen mee.
+try { db.exec("ALTER TABLE bookings ADD COLUMN checkin_time TEXT"); } catch { /* bestaat al */ }
+try { db.exec("ALTER TABLE bookings ADD COLUMN checkout_time TEXT"); } catch { /* bestaat al */ }
 
-// Bestaande panden zonder coverfoto of beschrijving vullen we alsnog aan,
-// zodat databases van vóór deze kolommen niet leeg blijven.
-{
-  const vasteFoto: Record<string, string> = {
-    "villa-zeewind": "/pand1.webp",
-    "duplex-zeedijk": "/pand2.webp",
-    "residentie-lichttoren": "/pand3.webp",
-  };
-  const vasteTekst: Record<string, string> = {
-    "villa-zeewind": "Ruime villa op wandelafstand van het strand, met een omheinde tuin en verwarmd zwembad. Vier slaapkamers, drie badkamers en een grote leefruimte die uitgeeft op het terras — geliefd bij families en groepen vrienden die er een week neerstrijken.",
-    "duplex-zeedijk": "Lichte duplex op de Zeedijk met frontaal zeezicht en een zonneterras. Instapklaar afgewerkt, twee slaapkamers en een open leefruimte. Populair bij koppels en kleine gezinnen, ook buiten het hoogseizoen.",
-    "residentie-lichttoren": "Recent gerenoveerd appartement in een rustige residentie, op vijf minuten van het centrum. Ruime leefruimte met open keuken en een aparte eethoek. Wacht nog op het brandveiligheidsattest voor het online kan.",
-  };
-  const onvolledig = db.prepare(`
-    SELECT id, name, type, bedrooms, max_guests FROM properties
-    WHERE photo IS NULL OR photo = '' OR description IS NULL OR description = ''
-    ORDER BY created_at
-  `).all() as unknown as { id: string; name: string; type: string; bedrooms: number; max_guests: number }[];
-
-  onvolledig.forEach((p, i) => {
-    const foto = vasteFoto[p.id] ?? `/pand${(i % 4) + 1}.webp`;
-    const tekst = vasteTekst[p.id] ??
-      `${p.type} met ${p.bedrooms} slaapkamers voor maximaal ${p.max_guests} gasten. ` +
-      "Deze beschrijving is automatisch opgesteld tijdens de onboarding en kan je nog aanpassen.";
-    db.prepare(`
-      UPDATE properties
-      SET photo = COALESCE(NULLIF(photo, ''), ?), description = COALESCE(NULLIF(description, ''), ?)
-      WHERE id = ?
-    `).run(foto, tekst, p.id);
-  });
-}
 
 // Demogebruikers (idempotent): Julie beheert het platform, Maxime is eigenaar.
 {

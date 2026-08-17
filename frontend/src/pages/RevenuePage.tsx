@@ -1,7 +1,7 @@
 import { useState } from "react";
-import type { RevenueMonth } from "@shared/types";
+import { DEMO_TODAY, type RevenueMonth } from "@shared/types";
 import { useRevenue } from "../lib/api";
-import { eur } from "../lib/format";
+import { eur, monthName } from "../lib/format";
 import { Icon } from "../components/Icon";
 import { useToast } from "../components/Toast";
 
@@ -109,7 +109,7 @@ export function RevenuePage() {
       <div className="rev-grid">
         <div className="card chart-card">
           <h3>Per maand, per kanaal</h3>
-          <p className="hint">Juli loopt nog — stand van vandaag, live uit je boekingen</p>
+          <p className="hint">{monthName(DEMO_TODAY)[0].toUpperCase() + monthName(DEMO_TODAY).slice(1)} loopt nog — stand van vandaag, live uit je boekingen</p>
           <RevenueChart months={data.months} />
           <div className="legend">
             {SERIES.map((s) => (

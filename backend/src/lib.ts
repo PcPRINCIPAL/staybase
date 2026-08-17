@@ -51,6 +51,7 @@ export interface PropertyRow {
   art: string; art_bg: string; photo: string | null; description: string | null;
   channels: string; cleaning_price: number;
   base_price_week: number; base_price_weekend: number;
+  lat: number | null; lng: number | null;
 }
 
 export function mapProperty(r: PropertyRow): Property {
@@ -61,18 +62,22 @@ export function mapProperty(r: PropertyRow): Property {
     art: r.art, artBg: r.art_bg, photo: r.photo, description: r.description,
     channels: JSON.parse(r.channels) as Channel[],
     cleaningPrice: r.cleaning_price,
+    basePriceWeek: r.base_price_week, basePriceWeekend: r.base_price_weekend,
+    lat: r.lat, lng: r.lng,
   };
 }
 
 export interface BookingRow {
   id: string; property_id: string; guest: string; avatar: string; channel: Channel;
   start_date: string; end_date: string; guests: number; payout: number; note: string | null;
+  checkin_time: string | null; checkout_time: string | null;
 }
 
 export function mapBooking(r: BookingRow): Booking {
   return {
     id: r.id, propertyId: r.property_id, guest: r.guest, avatar: r.avatar, channel: r.channel,
     startDate: r.start_date, endDate: r.end_date, guests: r.guests, payout: r.payout, note: r.note,
+    checkInTime: r.checkin_time, checkOutTime: r.checkout_time,
   };
 }
 

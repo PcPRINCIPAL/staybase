@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
-  AssistantReply, CalendarData, Cleaning, Conversation, NewPropertyInput,
+  AssistantReply, CalendarData, CalendarOverview, Cleaning, Conversation, NewPropertyInput,
   Overview, PriceStripDay, PriceSuggestion, Property, PropertyDetail, RevenueData,
 } from "@shared/types";
 
@@ -39,6 +39,16 @@ export const fetchMe = () => api<AuthUser>("/auth/me");
 export const useOverview = () =>
   useQuery({ queryKey: ["overview"], queryFn: () => api<Overview>("/overview") });
 
+export const useProperties = () =>
+  useQuery({ queryKey: ["properties"], queryFn: () => api<Property[]>("/properties") });
+
+export const useClientConfig = () =>
+  useQuery({
+    queryKey: ["client-config"],
+    queryFn: () => api<{ mapboxToken: string | null }>("/client-config"),
+    staleTime: Infinity,
+  });
+
 export const usePropertyDetail = (id: string | undefined) =>
   useQuery({
     queryKey: ["property", id],
@@ -50,6 +60,13 @@ export const useCalendar = (property: string, month: string) =>
   useQuery({
     queryKey: ["calendar", property, month],
     queryFn: () => api<CalendarData>(`/calendar?property=${property}&month=${month}`),
+    enabled: Boolean(property),
+  });
+
+export const useCalendarOverview = (month: string) =>
+  useQuery({
+    queryKey: ["calendar-overview", month],
+    queryFn: () => api<CalendarOverview>(`/calendar-overview?month=${month}`),
   });
 
 export const useConversations = () =>
@@ -127,7 +144,7 @@ export const useSetAutoPricing = () =>
 export const useCreateProperty = () =>
   useInvalidating(
     (input: NewPropertyInput) => api<Property>("/properties", { method: "POST", body: JSON.stringify(input) }),
-    [["overview"], ["revenue"]]
+    [["overview"], ["revenue"], ["properties"]]
   );
 
 export const askAssistant = (question: string) =>
@@ -187,6 +204,41 @@ export const useAdminUsers = () =>
 
 export const useOnboardingStats = () =>
   useQuery({ queryKey: ["onboarding-stats"], queryFn: () => api<OnboardingStats>("/onboarding/stats") });
+
+/* ---------- Guesty-koppeling ---------- */
+
+export interface GuestySyncSummary {
+  at: string;
+  listings: { created: number; updated: number; total: number };
+  bookings: { created: number; updated: number; removed: number; skipped: number };
+  messages: { created: number; updated: number; newMessages: number; skipped: number; totalRemote: number };
+}
+
+export interface GuestyStatus {
+  configured: boolean;
+  lastSync: GuestySyncSummary | null;
+  linkedProperties: number;
+  linkedBookings: number;
+  linkedConversations: number;
+}
+
+export const useGuestyStatus = () =>
+  useQuery({ queryKey: ["guesty-status"], queryFn: () => api<GuestyStatus>("/integrations/guesty") });
+
+export const testGuestyConnection = () =>
+  api<{ ok: boolean; listingsTotal: number }>("/integrations/guesty/test", { method: "POST" });
+
+// Na een sync of reset kan élke datapagina veranderd zijn.
+const GUESTY_KEYS = [["guesty-status"], ["overview"], ["revenue"], ["calendar"], ["property"], ["properties"], ["price-strip"], ["cleanings"], ["conversations"]];
+
+export const useGuestySync = () =>
+  useInvalidating(() => api<GuestySyncSummary>("/integrations/guesty/sync", { method: "POST" }), GUESTY_KEYS);
+
+export const useGuestyReset = () =>
+  useInvalidating(
+    () => api<{ properties: number; bookings: number }>("/integrations/guesty/reset", { method: "POST" }),
+    GUESTY_KEYS
+  );
 
 export const useAiStatus = () =>
   useQuery({ queryKey: ["ai-status"], queryFn: () => api<{ llm: boolean }>("/ai-status"), staleTime: 60_000 });
