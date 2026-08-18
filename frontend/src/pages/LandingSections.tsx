@@ -219,7 +219,7 @@ export function KennisEnInspiratie() {
             <h2 className="lp-h2">Kennis &amp; inspiratie</h2>
             <p className="lp-sub">Praktische tips en inzichten om meer uit jouw verhuur te halen.</p>
           </div>
-          <Link to={`/kennis/${ARTIKELEN[0].slug}`} className="lp-kennis-alle">Bekijk alle artikelen →</Link>
+          <Link to="/kennis" className="lp-kennis-alle">Bekijk alle artikelen →</Link>
         </div>
         <div className="lp-kennis">
           {ARTIKELEN.map((a) => <ArtikelKaart a={a} key={a.slug} />)}

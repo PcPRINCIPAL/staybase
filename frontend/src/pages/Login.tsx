@@ -50,6 +50,9 @@ export function Login() {
         <button className="btn coral" type="submit" disabled={busy} style={{ width: "100%", justifyContent: "center", marginTop: 20, padding: "13px 16px" }}>
           {busy ? "Aanmelden…" : "Log in"}
         </button>
+        <p className="login-hint" style={{ marginBottom: 6 }}>
+          Nog geen account? <Link to="/registreer" style={{ fontWeight: 700, color: "var(--coral-deep)" }}>Registreer gratis</Link>
+        </p>
         <p className="login-hint">
           Demo: <b>julie@staybase.be</b> (beheerder) of <b>maxime@staybase.be</b> (eigenaar) · wachtwoord <b>staybase2026</b>
         </p>

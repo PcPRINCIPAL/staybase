@@ -55,13 +55,13 @@ export function ArticlePage() {
           </Link>
           <div className="lp-nav-cta" style={{ marginLeft: "auto" }}>
             <button className="btn ghost sm" onClick={() => nav("/login")}>Log in</button>
-            <button className="btn coral sm" onClick={() => nav("/login")}>Gratis proberen</button>
+            <button className="btn coral sm" onClick={() => nav("/registreer")}>Gratis proberen</button>
           </div>
         </div>
       </header>
 
       <article className="art-wrap">
-        <Link to="/#kennis" className="art-terug">← Alle artikelen</Link>
+        <Link to="/kennis" className="art-terug">← Alle artikelen</Link>
 
         <span className="art-cat">{artikel.categorie}</span>
         <h1 className="art-titel">{artikel.titel}</h1>
@@ -86,7 +86,7 @@ export function ArticlePage() {
             Staybase neemt het repetitieve werk over — prijzen, gastberichten en schoonmaak —
             en laat de beslissingen bij jou.
           </p>
-          <button className="btn coral" onClick={() => nav("/login")}>Probeer Staybase gratis</button>
+          <button className="btn coral" onClick={() => nav("/registreer")}>Probeer Staybase gratis</button>
         </div>
 
         <div className="art-verder">

@@ -125,6 +125,7 @@ export function LandingPage() {
   useFadeIn();
 
   const naarLogin = () => nav("/login");
+  const naarRegistreer = () => nav("/registreer");
 
   return (
     <div className="lp">
@@ -139,7 +140,7 @@ export function LandingPage() {
           </nav>
           <div className="lp-nav-cta">
             <button className="btn ghost sm" onClick={naarLogin}>Log in</button>
-            <button className="btn coral sm" onClick={naarLogin}>Gratis proberen</button>
+            <button className="btn coral sm" onClick={naarRegistreer}>Gratis proberen</button>
           </div>
           <button className="lp-burger" onClick={() => setMenuOpen((o) => !o)} aria-label="Menu">
             <Icon name={menuOpen ? "x" : "menu"} size={22} />
@@ -152,7 +153,7 @@ export function LandingPage() {
           <button className="btn ghost" style={{ justifyContent: "center", marginTop: 8 }} onClick={naarLogin}>
             Log in
           </button>
-          <button className="btn coral" style={{ justifyContent: "center" }} onClick={naarLogin}>
+          <button className="btn coral" style={{ justifyContent: "center" }} onClick={naarRegistreer}>
             Gratis proberen
           </button>
         </div>
@@ -183,7 +184,7 @@ export function LandingPage() {
                   ))}
                 </div>
                 <div className="lp-hero-ctas lp-fade">
-                  <button className="btn coral lp-btn-lg" onClick={naarLogin}>Gratis proberen</button>
+                  <button className="btn coral lp-btn-lg" onClick={naarRegistreer}>Gratis proberen</button>
                   <button className="btn ghost lp-btn-lg" onClick={() => setVideoOpen(true)}>▶︎ Bekijk de demo (2 min)</button>
                 </div>
                 <p className="lp-hero-trust lp-fade">Geen contract. Geen opstartkosten. Maandelijks opzegbaar.</p>
@@ -362,7 +363,7 @@ export function LandingPage() {
                 <li className="locked"><span>🔒</span>Eigen boekingspagina — enkel Craft</li>
               </ul>
               <div className="lp-plan-note">Op dag 30 zie je als Host-klant wat dynamische prijzen je vorige maand hadden opgeleverd.</div>
-              <button className="btn ghost" onClick={naarLogin}>Gratis proberen</button>
+              <button className="btn ghost" onClick={naarRegistreer}>Gratis proberen</button>
             </div>
 
             <div className="lp-plan top lp-fade">
@@ -380,7 +381,7 @@ export function LandingPage() {
                 <li><span className="tick">✓</span>Reviewantwoorden in jouw stem</li>
                 <li><span className="tick">✓</span>Persoonlijk onboardinggesprek (30 min)</li>
               </ul>
-              <button className="btn coral" onClick={naarLogin}>Gratis proberen</button>
+              <button className="btn coral" onClick={naarRegistreer}>Gratis proberen</button>
             </div>
           </div>
 
@@ -530,7 +531,7 @@ export function LandingPage() {
           <h2 className="lp-fade">Je pand is meer waard dan een spreadsheet kan meten.</h2>
           <p className="sub lp-fade">Start met Host, upgrade wanneer je meer wil verdienen. Koppel je Airbnb in acht minuten.</p>
           <div className="lp-final-ctas lp-fade">
-            <button className="btn coral lp-btn-lg" onClick={naarLogin}>Gratis proberen</button>
+            <button className="btn coral lp-btn-lg" onClick={naarRegistreer}>Gratis proberen</button>
             <a className="lp-final-link" href="#hoe">Bekijk hoe het werkt →</a>
           </div>
           <p style={{ fontSize: 13, color: "var(--faint)" }}>Geen kaartgegevens. Geen contract. Maandelijks opzegbaar.</p>
@@ -558,7 +559,7 @@ export function LandingPage() {
             </div>
             <div className="lp-footer-col">
               <h5>Aan de slag</h5>
-              <button className="btn coral sm" style={{ justifyContent: "center" }} onClick={naarLogin}>Gratis proberen</button>
+              <button className="btn coral sm" style={{ justifyContent: "center" }} onClick={naarRegistreer}>Gratis proberen</button>
               <a onClick={naarLogin} style={{ marginTop: 12 }}>Ik heb al een account →</a>
             </div>
           </div>
