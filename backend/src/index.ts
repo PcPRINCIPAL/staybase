@@ -8,7 +8,8 @@ import { bootstrap } from "./db";
 import { authRoutes, requireAuth } from "./auth";
 
 const app = express();
-const PORT = Number(process.env.API_PORT || 4000);
+// Lokaal wint API_PORT (PORT botst met Vite); op Railway e.d. komt PORT binnen.
+const PORT = Number(process.env.API_PORT || process.env.PORT || 4000);
 
 // Express 4 vangt async fouten niet; zonder dit vangnet zou één mislukte
 // query het hele proces neerhalen (Node stopt op unhandled rejections).

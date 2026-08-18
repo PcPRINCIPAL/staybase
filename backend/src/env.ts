@@ -6,13 +6,20 @@ import path from "node:path";
  * die bestaat en vult process.env aan zonder bestaande waarden te overschrijven.
  */
 export function loadEnv(): void {
-  const file = path.join(__dirname, "..", ".env");
-  let raw: string;
-  try {
-    raw = readFileSync(file, "utf8");
-  } catch {
-    return; // geen .env — prima, dan draait de app zonder AI-key
+  // Vanuit src/ (tsx) ligt .env één map hoger; vanuit dist/backend/src/ drie.
+  // In de cloud (Railway e.d.) is er geen .env — variabelen komen dan uit het dashboard.
+  const candidates = [
+    path.join(__dirname, "..", ".env"),
+    path.join(__dirname, "..", "..", "..", ".env"),
+  ];
+  let raw: string | null = null;
+  for (const file of candidates) {
+    try {
+      raw = readFileSync(file, "utf8");
+      break;
+    } catch { /* volgende kandidaat */ }
   }
+  if (raw == null) return;
   for (const line of raw.split("\n")) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#")) continue;
