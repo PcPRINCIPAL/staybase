@@ -4,6 +4,7 @@
   "buildCommand": "npm run build --workspace frontend",
   "outputDirectory": "frontend/dist",
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://backend-production-2f99b.up.railway.app/api/$1" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
