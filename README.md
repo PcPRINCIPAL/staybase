@@ -98,6 +98,17 @@ haar eigen `users`/`auth_sessions`-tabellen (aangemaakt bij het opstarten).
 De data uit de SQLite-fase (panden, boekingen, gesprekken, gebruikers met
 formules) is op 18 aug 2026 gemigreerd.
 
+## Deploy
+
+- **Frontend (Vercel)** — `vercel.json` in de root bouwt de frontend-workspace
+  (`frontend/dist`) met een SPA-fallback. Werkt zodra het Vercel-project dit
+  repo gebruikt zonder verdere instellingen.
+- **Backend** — de Express-API draait niet op Vercel; host hem apart (Railway/
+  Render/Fly) met de env-variabelen uit `backend/.env.example`. Voeg daarna in
+  `vercel.json` een rewrite toe van `/api/(.*)` naar `https://<backend-host>/api/$1`
+  zodat de frontend en API onder één domein werken. Tot die tijd werkt de
+  gedeployde site als website (landing + kennisbank) maar kan je er niet inloggen.
+
 ## Volgende stappen (roadmap)
 
 - Supabase Auth i.p.v. de eigen sessielaag (profiles-tabel + trigger staan klaar) en multi-tenancy via owner_id op panden
