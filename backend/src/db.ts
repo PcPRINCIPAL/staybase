@@ -168,6 +168,9 @@ try { db.exec("ALTER TABLE messages ADD COLUMN guesty_id TEXT"); } catch { /* be
 // In- en uitchecktijd (HH:MM, lokale tijd) — Guesty levert exacte tijdstippen mee.
 try { db.exec("ALTER TABLE bookings ADD COLUMN checkin_time TEXT"); } catch { /* bestaat al */ }
 try { db.exec("ALTER TABLE bookings ADD COLUMN checkout_time TEXT"); } catch { /* bestaat al */ }
+// Voor de Insights-pagina: wanneer werd geboekt en wanneer werd elk bericht verstuurd.
+try { db.exec("ALTER TABLE bookings ADD COLUMN booked_at TEXT"); } catch { /* bestaat al */ }
+try { db.exec("ALTER TABLE messages ADD COLUMN created_at TEXT"); } catch { /* bestaat al */ }
 
 
 // Demogebruikers (idempotent): Julie beheert het platform, Maxime is eigenaar.

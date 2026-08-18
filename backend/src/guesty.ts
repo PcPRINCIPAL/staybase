@@ -139,6 +139,8 @@ interface GuestyReservation {
   guest?: { fullName?: string };
   money?: { hostPayout?: number; netIncome?: number; subTotalPrice?: number };
   integration?: { platform?: string };
+  createdAt?: string;   // wanneer de reservatie werd aangemaakt (boekingsmoment)
+  confirmedAt?: string;
 }
 
 /* =========================== Mapping =========================== */
@@ -282,8 +284,8 @@ async function syncMessages(summary: GuestySyncSummary): Promise<void> {
       time_label = ?, guard_reason = ?, sort = ? WHERE guesty_id = ?
   `);
   const insertMsg = db.prepare(`
-    INSERT INTO messages (conversation_id, sender, body, time_label, auto, guesty_id)
-    VALUES (?, ?, ?, ?, 0, ?)
+    INSERT INTO messages (conversation_id, sender, body, time_label, auto, created_at, guesty_id)
+    VALUES (?, ?, ?, ?, 0, ?, ?)
   `);
 
   for (const [i, c] of convs.entries()) {
@@ -335,6 +337,7 @@ async function syncMessages(summary: GuestySyncSummary): Promise<void> {
         p.sentBy === "guest" ? "guest" : "host",
         cleanBody(p.body ?? ""),
         timeLabel(p.createdAt),
+        p.createdAt ?? null,
         p._id
       );
       summary.messages.newMessages++;
@@ -429,7 +432,7 @@ export async function syncGuesty(): Promise<GuestySyncSummary> {
   // we ze lokaal kunnen opruimen als ze eerder geïmporteerd waren.
   const yearStart = `${new Date().getFullYear()}-01-01`;
   const reservations = await fetchAll<GuestyReservation>("/reservations", {
-    fields: "listingId status source integration checkIn checkOut guestsCount guest money",
+    fields: "listingId status source integration checkIn checkOut guestsCount guest money createdAt confirmedAt",
     filters: JSON.stringify([
       { field: "checkOut", operator: "$gte", value: yearStart },
       { field: "status", operator: "$in", value: ["confirmed", "closed", "canceled"] },
@@ -438,12 +441,12 @@ export async function syncGuesty(): Promise<GuestySyncSummary> {
 
   const insertBooking = db.prepare(`
     INSERT INTO bookings (id, property_id, guest, avatar, channel, start_date, end_date, guests, payout, note,
-      checkin_time, checkout_time, guesty_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      checkin_time, checkout_time, booked_at, guesty_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const updateBooking = db.prepare(`
     UPDATE bookings SET property_id = ?, guest = ?, channel = ?, start_date = ?, end_date = ?,
-      guests = ?, payout = ?, note = ?, checkin_time = ?, checkout_time = ? WHERE guesty_id = ?
+      guests = ?, payout = ?, note = ?, checkin_time = ?, checkout_time = ?, booked_at = ? WHERE guesty_id = ?
   `);
 
   for (const r of reservations) {
@@ -472,11 +475,12 @@ export async function syncGuesty(): Promise<GuestySyncSummary> {
     const guest = r.guest?.fullName || "Gast via Guesty";
     const inTime = localTime(r.checkIn);
     const outTime = localTime(r.checkOut);
+    const bookedAt = r.confirmedAt ?? r.createdAt ?? null;
     if (existing) {
-      updateBooking.run(propId, guest, channel, start, end, r.guestsCount ?? 2, payout, sourceNote, inTime, outTime, r._id);
+      updateBooking.run(propId, guest, channel, start, end, r.guestsCount ?? 2, payout, sourceNote, inTime, outTime, bookedAt, r._id);
       summary.bookings.updated++;
     } else {
-      insertBooking.run("g-" + r._id, propId, guest, avatarFor(r._id), channel, start, end, r.guestsCount ?? 2, payout, sourceNote, inTime, outTime, r._id);
+      insertBooking.run("g-" + r._id, propId, guest, avatarFor(r._id), channel, start, end, r.guestsCount ?? 2, payout, sourceNote, inTime, outTime, bookedAt, r._id);
       summary.bookings.created++;
     }
   }

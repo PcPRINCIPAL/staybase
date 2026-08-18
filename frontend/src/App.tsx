@@ -10,6 +10,7 @@ import { RevenuePage } from "./pages/RevenuePage";
 import { AdminPage } from "./pages/AdminPage";
 import { IntegrationsPage } from "./pages/IntegrationsPage";
 import { PropertiesPage } from "./pages/PropertiesPage";
+import { InsightsPage } from "./pages/InsightsPage";
 import { PropertyPage } from "./pages/PropertyPage";
 import { LandingPage } from "./pages/LandingPage";
 import { ArticlePage } from "./pages/ArticlePage";
@@ -58,6 +59,7 @@ export default function App() {
             <Route path="/prijzen" element={<PricesPage />} />
             <Route path="/schoonmaak" element={<CleaningPage />} />
             <Route path="/opbrengsten" element={<RevenuePage />} />
+            <Route path="/insights" element={<InsightsPage />} />
             <Route path="/beheer" element={<AdminPage />} />
             <Route path="/koppelingen" element={<IntegrationsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />

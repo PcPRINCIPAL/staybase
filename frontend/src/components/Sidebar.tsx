@@ -14,6 +14,7 @@ const ITEMS: { to: string; icon: IconName; label: string; badge?: "inbox" | "pri
   { to: "/prijzen", icon: "tag", label: "Prijzen", badge: "price" },
   { to: "/schoonmaak", icon: "sparkle", label: "Schoonmaak" },
   { to: "/opbrengsten", icon: "chart", label: "Opbrengsten" },
+  { to: "/insights", icon: "pulse", label: "Insights", adminOnly: true },
   { to: "/beheer", icon: "shield", label: "Beheer", adminOnly: true },
   { to: "/koppelingen", icon: "plug", label: "Koppelingen", adminOnly: true },
 ];

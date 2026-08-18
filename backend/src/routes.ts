@@ -8,8 +8,8 @@ import {
 } from "./lib";
 import { DEMO_TODAY } from "../../shared/types";
 import type {
-  CalendarData, CalendarDay, CalendarOverview, Cleaning, Conversation, Message, NewPropertyInput,
-  Overview, PriceStripDay, PriceSuggestion, RevenueData, TimelineItem,
+  CalendarData, CalendarDay, CalendarOverview, Cleaning, Conversation, InsightsData, Message,
+  NewPropertyInput, Overview, PriceStripDay, PriceSuggestion, RevenueData, TimelineItem,
 } from "../../shared/types";
 import { answer } from "./assistant";
 import { aiAvailable, llmAnswer, llmDraft } from "./ai";
@@ -17,6 +17,32 @@ import { guestyAvailable, guestyStatus, resetGuestyData, syncGuesty, testGuesty 
 import { currentUser, requireAdmin } from "./auth";
 
 export const routes = Router();
+
+/**
+ * Reactietijden in minuten: per gesprek de tijd tussen een (eerste onbeantwoord)
+ * gastbericht en het eerstvolgende antwoord. Gebruikt door /overview en /insights.
+ */
+function responseDeltasMin(): number[] {
+  const msgs = db.prepare(
+    "SELECT conversation_id, sender, created_at FROM messages WHERE created_at IS NOT NULL ORDER BY conversation_id, created_at"
+  ).all() as unknown as { conversation_id: string; sender: string; created_at: string }[];
+  const deltas: number[] = [];
+  let conv = "";
+  let openGuestAt: number | null = null;
+  for (const m of msgs) {
+    if (m.conversation_id !== conv) { conv = m.conversation_id; openGuestAt = null; }
+    const t = Date.parse(m.created_at);
+    if (Number.isNaN(t)) continue;
+    if (m.sender === "guest") {
+      openGuestAt = openGuestAt ?? t;
+    } else if (openGuestAt != null) {
+      const d = (t - openGuestAt) / 60000;
+      if (d >= 0 && d <= 7 * 24 * 60) deltas.push(d);
+      openGuestAt = null;
+    }
+  }
+  return deltas.sort((a, b) => a - b);
+}
 
 /** Publieke client-config: alleen waarden die de browser mag zien. */
 routes.get("/client-config", (_req, res) => {
@@ -101,6 +127,162 @@ routes.get("/overview", (req, res) => {
   const dowFull = ["Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag", "Zondag"];
   const attention = { inboxDrafts: inboxDrafts + guardOpen, priceOpen, cleaningPending };
 
+  /* ---------- Homepage-data (alles uit echte boekingen/berichten) ---------- */
+  const liveIds = new Set(live.map((p) => p.id));
+  const paid = (db.prepare("SELECT * FROM bookings WHERE payout > 0").all() as unknown as BookingRow[])
+    .filter((b) => liveIds.has(b.property_id));
+  const liveCount = live.length || 1;
+
+  const nightsWin = (from: string, toEx: string, propertyId?: string) => {
+    let n = 0;
+    for (const b of paid) {
+      if (propertyId && b.property_id !== propertyId) continue;
+      if (b.start_date < toEx && b.end_date > from) {
+        const f = b.start_date > from ? b.start_date : from;
+        const t = b.end_date < toEx ? b.end_date : toEx;
+        n += nightsBetween(f, t);
+      }
+    }
+    return n;
+  };
+  const monthMeta = (off: number) => {
+    const dt = new Date(Date.UTC(yy, mm - 1 + off, 1));
+    const y = dt.getUTCFullYear();
+    const m = dt.getUTCMonth() + 1;
+    const dd = daysInMonth(y, m);
+    const month = `${y}-${String(m).padStart(2, "0")}`;
+    return { month, dim: dd, from: `${month}-01`, toEx: addDays(iso(y, m, dd), 1) };
+  };
+
+  // Sparklines: laatste 8 maanden t.e.m. nu.
+  const sparkOccupancy: number[] = [];
+  const sparkRevenue: number[] = [];
+  const sparkAdr: number[] = [];
+  const sparkBookings: number[] = [];
+  for (let off = -7; off <= 0; off++) {
+    const mm2 = monthMeta(off);
+    sparkOccupancy.push(Math.round((nightsWin(mm2.from, mm2.toEx) / (mm2.dim * liveCount)) * 100));
+    const started = paid.filter((b) => b.start_date >= mm2.from && b.start_date < mm2.toEx);
+    const rev = started.reduce((a, b) => a + b.payout, 0);
+    const nights = started.reduce((a, b) => a + nightsBetween(b.start_date, b.end_date), 0);
+    sparkRevenue.push(rev);
+    sparkAdr.push(nights ? Math.round(rev / nights) : 0);
+    sparkBookings.push(started.length);
+  }
+  const prev = monthMeta(-1);
+  const occupancyPrevPct = Math.round((nightsWin(prev.from, prev.toEx) / (prev.dim * liveCount)) * 100);
+  const prevMonthRevenue = paid
+    .filter((b) => b.start_date >= prev.from && b.start_date < prev.toEx)
+    .reduce((a, b) => a + b.payout, 0);
+
+  const ratings = live.map((p) => p.rating).filter((r): r is number => r != null);
+  const rating = ratings.length ? Math.round((ratings.reduce((a, r) => a + r, 0) / ratings.length) * 100) / 100 : null;
+
+  const deltas = responseDeltasMin();
+  const medianResponse = deltas.length ? Math.round(deltas[Math.floor(deltas.length / 2)]) : null;
+
+  // Oudste onbeantwoorde gastbericht (open gesprekken).
+  const oldest = db.prepare(`
+    SELECT MIN(m.created_at) AS t FROM messages m
+    JOIN conversations c ON c.id = m.conversation_id
+    WHERE c.status IN ('draft','guard') AND m.sender = 'guest' AND m.created_at IS NOT NULL
+  `).get() as { t: string | null };
+  const oldestInboxMinutes = oldest.t ? Math.max(1, Math.round((Date.now() - Date.parse(oldest.t)) / 60000)) : null;
+
+  const tomorrowIso = addDays(DEMO_TODAY, 1);
+  const tomorrow = {
+    checkIns: paid.filter((b) => b.start_date === tomorrowIso).length,
+    checkOuts: paid.filter((b) => b.end_date === tomorrowIso).length,
+    // Elke check-out betekent een poetsbeurt (zolang de poets-marktplaats nog niet live is).
+    cleanings: paid.filter((b) => b.end_date === tomorrowIso).length,
+  };
+
+  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+  const weekAgoDay = addDays(DEMO_TODAY, -7);
+  const weekMessages = (db.prepare(
+    "SELECT COUNT(*) n FROM messages WHERE sender = 'host' AND created_at >= ?"
+  ).get(weekAgo) as { n: number }).n;
+  const weekNewBookings = paid.filter((b) => b.booked_at && b.booked_at >= weekAgo).length;
+  const weekCheckIns = paid.filter((b) => b.start_date >= weekAgoDay && b.start_date <= DEMO_TODAY).length;
+  const weekWork = {
+    messages: weekMessages,
+    newBookings: weekNewBookings,
+    checkIns: weekCheckIns,
+    minutes: weekMessages * 4 + weekNewBookings * 3 + weekCheckIns * 2, // geschatte tijdswinst
+  };
+
+  // Inzichtkaarten: concreet en berekend, geen verzinsels.
+  const homeInsights = [];
+  if (attention.inboxDrafts > 0) {
+    homeInsights.push({
+      icon: "💬", title: "Gastberichten",
+      body: `${attention.inboxDrafts} ${attention.inboxDrafts === 1 ? "gast wacht" : "gasten wachten"} op antwoord.`,
+      cta: "Laat Staybase antwoorden", to: "/inbox",
+    });
+  }
+  const in30 = addDays(DEMO_TODAY, 30);
+  const quietProp = live
+    .map((p) => ({ p, free: 30 - nightsWin(DEMO_TODAY, in30, p.id) }))
+    .sort((a, b) => b.free - a.free)[0];
+  if (quietProp && quietProp.free > 0) {
+    homeInsights.push({
+      icon: "📅", title: "Beschikbaarheid",
+      body: `${quietProp.p.name} heeft de komende 30 dagen nog ${quietProp.free} vrije nachten.`,
+      cta: "Bekijk de kalender", to: "/kalender",
+    });
+  }
+  let weakMonth: { label: string; pct: number } | null = null;
+  for (let off = 1; off <= 4; off++) {
+    const mm3 = monthMeta(off);
+    const pct = Math.round((nightsWin(mm3.from, mm3.toEx) / (mm3.dim * liveCount)) * 100);
+    if (!weakMonth || pct < weakMonth.pct) weakMonth = { label: MONTH_FULL[Number(mm3.month.slice(5)) - 1], pct };
+  }
+  if (weakMonth && weakMonth.pct < 50) {
+    homeInsights.push({
+      icon: "🏷️", title: "Prijskans",
+      body: `${weakMonth.label[0].toUpperCase()}${weakMonth.label.slice(1)} is pas ${weakMonth.pct}% gevuld — een scherpere prijs kan boekingen versnellen.`,
+      cta: "Bekijk prijzen", to: "/prijzen",
+    });
+  }
+
+  const curMonth = monthMeta(0);
+  const homeProperties = live.map((p) => {
+    const checkin = paid.find((b) => b.property_id === p.id && b.start_date === DEMO_TODAY);
+    const checkout = paid.find((b) => b.property_id === p.id && b.end_date === DEMO_TODAY);
+    const todayLabel = checkin && checkout
+      ? "Vandaag: wisseldag"
+      : checkin ? `Vandaag: check-in${checkin.checkin_time ? ` om ${checkin.checkin_time}` : ""}`
+      : checkout ? `Vandaag: check-out${checkout.checkout_time ? ` om ${checkout.checkout_time}` : ""}`
+      : "Vandaag: niets gepland";
+    return {
+      id: p.id, name: p.name, location: p.location, photo: p.photo, art: p.art, artBg: p.art_bg,
+      occupancyPct: Math.round((nightsWin(curMonth.from, curMonth.toEx, p.id) / curMonth.dim) * 100),
+      monthRevenue: paid
+        .filter((b) => b.property_id === p.id && b.start_date >= curMonth.from && b.start_date < curMonth.toEx)
+        .reduce((a, b) => a + b.payout, 0),
+      rating: p.rating,
+      todayLabel,
+    };
+  }).sort((a, b) => b.monthRevenue - a.monthRevenue);
+
+  const home = {
+    oldestInboxMinutes,
+    occupancyPrevPct,
+    prevMonthRevenue,
+    sparkOccupancy,
+    sparkRevenue,
+    sparkAdr,
+    sparkBookings,
+    adrPrev: sparkAdr[sparkAdr.length - 2] || null,
+    rating,
+    medianResponseMin: medianResponse,
+    guestySyncAt: guestyStatus().lastSync?.at ?? null,
+    tomorrow,
+    weekWork,
+    insights: homeInsights.slice(0, 3),
+    properties: homeProperties,
+  };
+
   const overview: Overview = {
     greetingName: currentUser(req)?.name ?? getSetting("owner_name", "Julie"),
     dateLabel: `${dowFull[weekdayMonday(DEMO_TODAY)]} ${d.getUTCDate()} ${MONTH_FULL[d.getUTCMonth()]} ${d.getUTCFullYear()}`,
@@ -119,6 +301,7 @@ routes.get("/overview", (req, res) => {
         : "Zodra Staybase berichten beantwoordt, poetsbeurten inplant of prijzen bijstuurt, zie je dat hier.",
     },
     properties: allProperties().map(mapProperty),
+    home,
     trust: {
       count: Number(getSetting("trust_count", "13")),
       target: Number(getSetting("trust_target", "20")),
@@ -629,6 +812,114 @@ routes.get("/admin/users", requireAdmin, (_req, res) => {
   `).all() as Record<string, unknown>[];
   const roles = db.prepare("SELECT role, COUNT(*) AS n FROM users GROUP BY role").all();
   res.json({ users: users.map(({ _ignore, ...u }) => u), roles });
+});
+
+/* =========================== Insights (admin) =========================== */
+
+routes.get("/insights", requireAdmin, (_req, res) => {
+  const live = allProperties().filter((p) => p.status === "live");
+  const liveCount = live.length || 1;
+  const liveIds = new Set(live.map((p) => p.id));
+  // Alleen echte gastverblijven: eigenaarsblokkades staan op € 0 payout.
+  const paid = (db.prepare("SELECT * FROM bookings WHERE payout > 0").all() as unknown as BookingRow[])
+    .filter((b) => liveIds.has(b.property_id));
+
+  const nightsInWindow = (from: string, toEx: string, propertyId?: string) => {
+    let n = 0;
+    for (const b of paid) {
+      if (propertyId && b.property_id !== propertyId) continue;
+      if (b.start_date < toEx && b.end_date > from) {
+        const f = b.start_date > from ? b.start_date : from;
+        const t = b.end_date < toEx ? b.end_date : toEx;
+        n += nightsBetween(f, t);
+      }
+    }
+    return n;
+  };
+
+  // Bezetting per maand: 3 maanden terug t.e.m. 8 vooruit.
+  const occupancyByMonth = [];
+  for (let off = -3; off <= 8; off++) {
+    const [cy, cm] = DEMO_MONTH.split("-").map(Number);
+    const dt = new Date(Date.UTC(cy, cm - 1 + off, 1));
+    const month = `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}`;
+    const dim = daysInMonth(dt.getUTCFullYear(), dt.getUTCMonth() + 1);
+    const from = `${month}-01`;
+    const toEx = addDays(iso(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dim), 1);
+    occupancyByMonth.push({
+      month,
+      label: MONTH_LABELS[dt.getUTCMonth()],
+      pct: Math.round((nightsInWindow(from, toEx) / (dim * liveCount)) * 100),
+      current: month === DEMO_MONTH,
+    });
+  }
+
+  // Reactietijd: per gesprek de tijd tussen een gastbericht en het eerstvolgende antwoord.
+  const deltasMin = responseDeltasMin();
+  const medianResponseMin = deltasMin.length
+    ? Math.round(deltasMin[Math.floor(deltasMin.length / 2)])
+    : null;
+  const responseBuckets = [
+    { label: "< 15 min", count: deltasMin.filter((d) => d < 15).length },
+    { label: "15–60 min", count: deltasMin.filter((d) => d >= 15 && d < 60).length },
+    { label: "1–4 u", count: deltasMin.filter((d) => d >= 60 && d < 240).length },
+    { label: "4–24 u", count: deltasMin.filter((d) => d >= 240 && d < 1440).length },
+    { label: "> 24 u", count: deltasMin.filter((d) => d >= 1440).length },
+  ];
+
+  // Verblijfsduur en boekingsvenster.
+  const stays = paid.map((b) => nightsBetween(b.start_date, b.end_date)).filter((n) => n > 0);
+  const bucket = (defs: [string, (v: number) => boolean][], values: number[]) =>
+    defs.map(([label, test]) => ({ label, count: values.filter(test).length }));
+  const stayLengthBuckets = bucket([
+    ["1–2", (n) => n <= 2], ["3–4", (n) => n >= 3 && n <= 4], ["5–7", (n) => n >= 5 && n <= 7],
+    ["8–14", (n) => n >= 8 && n <= 14], ["15+", (n) => n >= 15],
+  ], stays);
+  const leads = paid
+    .filter((b) => b.booked_at)
+    .map((b) => Math.round((Date.parse(b.start_date) - Date.parse(b.booked_at!)) / 86400000))
+    .filter((d) => d >= 0);
+  const leadTimeBuckets = bucket([
+    ["< 1 week", (d) => d < 7], ["1–4 weken", (d) => d >= 7 && d < 30], ["1–3 mnd", (d) => d >= 30 && d < 90],
+    ["3–6 mnd", (d) => d >= 90 && d < 180], ["6+ mnd", (d) => d >= 180],
+  ], leads);
+
+  // Bezetting per pand: komende 90 dagen.
+  const in90 = addDays(DEMO_TODAY, 90);
+  const occupancyByProperty = live
+    .map((p) => ({
+      propertyId: p.id,
+      name: p.name,
+      pct: Math.round((nightsInWindow(DEMO_TODAY, in90, p.id) / 90) * 100),
+    }))
+    .sort((a, b) => b.pct - a.pct);
+
+  // Kanaalmix over alle betaalde boekingen.
+  const channelMix = ([["airbnb", "Airbnb"], ["booking", "Booking.com"], ["vrbo", "VRBO"]] as const)
+    .map(([ch, label]) => {
+      const rows = paid.filter((b) => b.channel === ch);
+      return { channel: ch, label, bookings: rows.length, revenue: rows.reduce((a, b) => a + b.payout, 0) };
+    })
+    .filter((c) => c.bookings > 0);
+
+  const totalNights = stays.reduce((a, n) => a + n, 0);
+  const totalRevenue = paid.reduce((a, b) => a + b.payout, 0);
+  const insights: InsightsData = {
+    kpis: {
+      occupancyNext30: Math.round((nightsInWindow(DEMO_TODAY, addDays(DEMO_TODAY, 30)) / (30 * liveCount)) * 100),
+      medianResponseMin,
+      avgStayNights: stays.length ? Math.round((totalNights / stays.length) * 10) / 10 : null,
+      avgLeadDays: leads.length ? Math.round(leads.reduce((a, d) => a + d, 0) / leads.length) : null,
+      adr: totalNights ? Math.round(totalRevenue / totalNights) : null,
+    },
+    occupancyByMonth,
+    responseBuckets,
+    occupancyByProperty,
+    stayLengthBuckets,
+    leadTimeBuckets,
+    channelMix,
+  };
+  res.json(insights);
 });
 
 /* =========================== Guesty-koppeling =========================== */

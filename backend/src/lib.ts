@@ -71,6 +71,7 @@ export interface BookingRow {
   id: string; property_id: string; guest: string; avatar: string; channel: Channel;
   start_date: string; end_date: string; guests: number; payout: number; note: string | null;
   checkin_time: string | null; checkout_time: string | null;
+  booked_at: string | null;
 }
 
 export function mapBooking(r: BookingRow): Booking {

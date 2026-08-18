@@ -41,7 +41,7 @@ herstart daarna de dev-server en draai een nieuwe Guesty-sync.
 
 Alle flows lopen via de API en worden bewaard in SQLite:
 
-- **Vandaag** — KPI's (bezetting, omzet, gem. nachtprijs) worden live berekend uit de boekingen; de tijdlijn van vandaag wordt afgeleid uit check-outs, poetsbeurten en check-ins.
+- **Vandaag (home)** — begroeting op dagdeel, actiebanner met het oudste onbeantwoorde bericht, vier KPI-tegels met sparklines en deltas t.o.v. vorige maand (bezetting, omzet, nachtprijs, nieuwe boekingen), vandaag/morgen-planning, pandkaarten met bezettingsbadge, en een rechterkolom met assistent-invoer, berekende inzichtkaarten en "Staybase werkte deze week" — alles live uit de boekingen en berichten.
 - **Panden** — aparte pagina met tegel-, lijst- en kaartweergave. De kaart gebruikt de Mapbox-huisstijl (streets-v12 als raster-tegels via Leaflet — bewust geen mapbox-gl/WebGL, dat liep vast; `MAPBOX_TOKEN` in `backend/.env`, de frontend haalt hem op via `/api/client-config`). Coördinaten komen uit Guesty.
 - **Kalender** — twee weergaven (switch rechtsboven): *Maand* met pandenlijst als kaartjes links en dagdetails rechts, en *Lijst* — een Guesty-achtige tijdlijn met één rij per pand, boekingsbalken in kanaal-kleuren en sortering op bezetting of naam (`GET /api/calendar-overview?month=`).
 - **Inbox** — de echte gastenberichten uit Guesty (Airbnb & Booking.com): de sync haalt de 40 recentste gesprekken op (elke conversatie kost een extra API-call, Guesty limiteert op ±120/min). Onbeantwoorde gastberichten krijgen het label "Voor jou"; met een AI-key schrijft Staybase op verzoek een voorstel dat je goedkeurt of aanpast. ⚠️ Antwoorden worden lokaal bewaard maar nog **niet** teruggestuurd naar Guesty — dat is de volgende stap.
@@ -50,6 +50,7 @@ Alle flows lopen via de API en worden bewaard in SQLite:
 - **Opbrengsten** — historiek (geseed) + lopende maand (live uit boekingen), per kanaal en per pand — alles telt kloppend op.
 - **Onboarding-wizard** — maakt echt een pand aan (status "onboarding") dat overal verschijnt. Het adresveld checkt automatisch echte adressen (OpenStreetMap, gratis) met een dropdown; de tijd per stap wordt geregistreerd in `onboarding_events` voor de onboarding-analytics uit de analyse (`GET /api/onboarding/stats`).
 - **Login & sessies** — echte authenticatie (scrypt-hashing, httpOnly-cookie); de hele API zit erachter.
+- **Insights** (alleen admin) — dashboard met échte cijfers uit de boekingen en gesprekken: bezetting komende 30 dagen, mediane reactietijd op gastberichten, gemiddelde verblijfsduur, boekingsvenster (boeking → check-in) en gemiddelde nachtprijs, plus grafieken voor bezetting per maand/pand, reactietijd-verdeling, verblijfsduur, boekingsvenster en kanaalmix (`GET /api/insights`).
 - **Rollen** — `admin` en `owner` op de gebruiker; admin-endpoints (`/api/admin/*`, `/api/onboarding/stats`) zijn server-side afgeschermd met een aparte middleware, en de Beheer-pagina verschijnt alleen voor admins.
 - **Assistent** — beantwoordt ook vrij getypte vragen; regelgebaseerd, of via Claude als er een key is.
 

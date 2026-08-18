@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { askAssistant, useAiStatus } from "../lib/api";
 import { Icon } from "../components/Icon";
 
@@ -46,6 +46,19 @@ export function Assistant() {
       scroll();
     }
   };
+
+  // De homepage kan een vraag insturen via een globaal event (sb:ask).
+  useEffect(() => {
+    const onAsk = (e: Event) => {
+      const q = (e as CustomEvent<string>).detail?.trim();
+      if (!q) return;
+      setOpen(true);
+      ask(q);
+    };
+    window.addEventListener("sb:ask", onAsk);
+    return () => window.removeEventListener("sb:ask", onAsk);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>

@@ -18,6 +18,7 @@ const PATHS = {
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
   plug: '<path d="M9 3v4.5M15 3v4.5"/><path d="M6.5 7.5h11V12a5.5 5.5 0 0 1-11 0V7.5Z"/><path d="M12 17.5V21"/>',
   building: '<rect x="4.5" y="3.5" width="15" height="17" rx="2"/><path d="M8.5 8h2M13.5 8h2M8.5 12h2M13.5 12h2M10.5 20.5v-4h3v4"/>',
+  pulse: '<path d="M3 12.5h4l2.5-6.5 4.5 12 2.5-6.5H21"/>',
   chevD: '<path d="M6 9.5 12 15l6-5.5"/>',
 } as const;
 

@@ -106,6 +106,68 @@ export interface CalendarOverview {
   properties: CalendarOverviewRow[];
 }
 
+/** Homepage: alles server-side berekend uit echte data. */
+export interface HomeInsightCard {
+  icon: string;
+  title: string;
+  body: string;
+  cta: string;
+  to: string;
+}
+
+export interface HomePropertyCard {
+  id: string;
+  name: string;
+  location: string;
+  photo: string | null;
+  art: string;
+  artBg: string;
+  occupancyPct: number;   // deze maand
+  monthRevenue: number;
+  rating: number | null;
+  todayLabel: string;     // "Check-in om 17:00" / "Niets gepland vandaag"
+}
+
+export interface HomeData {
+  oldestInboxMinutes: number | null;
+  occupancyPrevPct: number;
+  prevMonthRevenue: number;
+  sparkOccupancy: number[];  // laatste 8 maanden t.e.m. nu
+  sparkRevenue: number[];
+  sparkAdr: number[];
+  sparkBookings: number[];
+  adrPrev: number | null;
+  rating: number | null;     // gem. score van live panden (uit Guesty)
+  medianResponseMin: number | null;
+  guestySyncAt: string | null;
+  tomorrow: { checkIns: number; checkOuts: number; cleanings: number };
+  weekWork: { messages: number; newBookings: number; checkIns: number; minutes: number };
+  insights: HomeInsightCard[];
+  properties: HomePropertyCard[];
+}
+
+/** Insights-pagina (admin): alles server-side berekend uit echte data. */
+export interface InsightBucket {
+  label: string;
+  count: number;
+}
+
+export interface InsightsData {
+  kpis: {
+    occupancyNext30: number;           // % over alle live panden
+    medianResponseMin: number | null;  // mediane reactietijd op gastberichten
+    avgStayNights: number | null;
+    avgLeadDays: number | null;        // boekingsvenster: boeking → check-in
+    adr: number | null;                // gemiddelde nachtprijs (euro)
+  };
+  occupancyByMonth: { month: string; label: string; pct: number; current: boolean }[];
+  responseBuckets: InsightBucket[];
+  occupancyByProperty: { propertyId: string; name: string; pct: number }[];
+  stayLengthBuckets: InsightBucket[];
+  leadTimeBuckets: InsightBucket[];
+  channelMix: { channel: Channel; label: string; bookings: number; revenue: number }[];
+}
+
 export type ConversationStatus = "draft" | "guard" | "done";
 
 export interface Message {
@@ -218,6 +280,7 @@ export interface Overview {
   timeline: TimelineItem[];
   tasksThisWeek: { total: number; detail: string };
   properties: Property[];
+  home: HomeData;
   trust: { count: number; target: number };
 }
 

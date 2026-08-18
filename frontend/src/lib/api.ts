@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
-  AssistantReply, CalendarData, CalendarOverview, Cleaning, Conversation, NewPropertyInput,
-  Overview, PriceStripDay, PriceSuggestion, Property, PropertyDetail, RevenueData,
+  AssistantReply, CalendarData, CalendarOverview, Cleaning, Conversation, InsightsData,
+  NewPropertyInput, Overview, PriceStripDay, PriceSuggestion, Property, PropertyDetail, RevenueData,
 } from "@shared/types";
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
@@ -195,6 +195,9 @@ export interface OnboardingStats {
   perStep: { step: number; stepTitle: string; visits: number; avgMs: number; totalSec: number }[];
   recent: { sessionId: string; userName: string; startedAt: string; totalMs: number; steps: number; completed: number }[];
 }
+
+export const useInsights = () =>
+  useQuery({ queryKey: ["insights"], queryFn: () => api<InsightsData>("/insights") });
 
 export const useAdminUsers = () =>
   useQuery({
