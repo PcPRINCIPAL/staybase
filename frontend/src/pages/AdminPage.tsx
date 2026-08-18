@@ -1,6 +1,8 @@
 import { Navigate } from "react-router-dom";
-import { useAdminUsers, useOnboardingStats } from "../lib/api";
+import { PLAN_LABEL, type UserPlan } from "@shared/types";
+import { useAdminUsers, useOnboardingStats, useSetUserPlan } from "../lib/api";
 import { useAuth } from "../auth";
+import { useToast } from "../components/Toast";
 
 function fmtDur(ms: number): string {
   if (ms < 1000) return "< 1 s";
@@ -15,6 +17,8 @@ export function AdminPage() {
   const { user } = useAuth();
   const { data: usersData, isLoading: usersLoading } = useAdminUsers();
   const { data: stats, isLoading: statsLoading } = useOnboardingStats();
+  const setPlan = useSetUserPlan();
+  const toast = useToast();
 
   if (user?.role !== "admin") return <Navigate to="/" replace />;
   if (usersLoading || statsLoading || !usersData || !stats) {
@@ -75,6 +79,26 @@ export function AdminPage() {
                   <span className={`chip ${u.role === "admin" ? "coral" : "gray"}`}>
                     {u.role === "admin" ? "🛡️ " : ""}{ROLE_LABEL[u.role] ?? u.role}
                   </span>
+                </td>
+                <td>
+                  {u.role === "admin" ? (
+                    <span style={{ color: "var(--faint)", fontSize: 13 }}>alle toegang</span>
+                  ) : (
+                    <select
+                      className="plan-select"
+                      value={u.plan}
+                      onChange={(e) =>
+                        setPlan.mutate([u.id, e.target.value as UserPlan], {
+                          onSuccess: (r) => toast(`${u.name} staat nu op de ${PLAN_LABEL[r.plan]}-formule ✓`),
+                          onError: () => toast("Formule wijzigen mislukte"),
+                        })
+                      }
+                    >
+                      {(["basic", "premium", "super"] as const).map((p) => (
+                        <option key={p} value={p}>{PLAN_LABEL[p]}</option>
+                      ))}
+                    </select>
+                  )}
                 </td>
                 <td className="num" style={{ color: "var(--muted)", fontWeight: 500 }}>
                   {u.onboardings} onboarding{u.onboardings === 1 ? "" : "s"}

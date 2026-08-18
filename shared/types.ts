@@ -106,6 +106,11 @@ export interface CalendarOverview {
   properties: CalendarOverviewRow[];
 }
 
+/** Formules: bepalen welke schermen een eigenaar ziet. Admins zien alles. */
+export type UserPlan = "basic" | "premium" | "super";
+export const PLAN_RANK: Record<UserPlan, number> = { basic: 0, premium: 1, super: 2 };
+export const PLAN_LABEL: Record<UserPlan, string> = { basic: "Basic", premium: "Premium", super: "Super" };
+
 /** Homepage: alles server-side berekend uit echte data. */
 export interface HomeInsightCard {
   icon: string;

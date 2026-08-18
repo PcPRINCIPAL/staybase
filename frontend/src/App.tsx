@@ -14,8 +14,11 @@ import { InsightsPage } from "./pages/InsightsPage";
 import { PropertyPage } from "./pages/PropertyPage";
 import { LandingPage } from "./pages/LandingPage";
 import { ArticlePage } from "./pages/ArticlePage";
+import { KennisPage } from "./pages/KennisPage";
 import { Login } from "./pages/Login";
+import { Register } from "./pages/Register";
 import { Wizard } from "./features/Wizard";
+import { PlanGate } from "./components/PlanGate";
 import { Assistant } from "./features/Assistant";
 import { UICtx } from "./ui";
 import { useAuth } from "./auth";
@@ -47,6 +50,7 @@ export default function App() {
     <UICtx.Provider value={ui}>
       <Routes>
         {/* Kennisbank is publiek en blijft ook bereikbaar als je ingelogd bent. */}
+        <Route path="/kennis" element={<KennisPage />} />
         <Route path="/kennis/:slug" element={<ArticlePage />} />
 
         {user ? (
@@ -56,10 +60,10 @@ export default function App() {
             <Route path="/pand/:id" element={<PropertyPage />} />
             <Route path="/kalender" element={<CalendarPage />} />
             <Route path="/inbox" element={<InboxPage />} />
-            <Route path="/prijzen" element={<PricesPage />} />
+            <Route path="/prijzen" element={<PlanGate min="premium"><PricesPage /></PlanGate>} />
             <Route path="/schoonmaak" element={<CleaningPage />} />
-            <Route path="/opbrengsten" element={<RevenuePage />} />
-            <Route path="/insights" element={<InsightsPage />} />
+            <Route path="/opbrengsten" element={<PlanGate min="premium"><RevenuePage /></PlanGate>} />
+            <Route path="/insights" element={<PlanGate min="super"><InsightsPage /></PlanGate>} />
             <Route path="/beheer" element={<AdminPage />} />
             <Route path="/koppelingen" element={<IntegrationsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
@@ -68,6 +72,7 @@ export default function App() {
           <>
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/registreer" element={<Register />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </>
         )}

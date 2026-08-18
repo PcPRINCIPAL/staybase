@@ -1,20 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import type { UserPlan } from "@shared/types";
 import { Icon, Logo, type IconName } from "./Icon";
 import { logout, useOverview } from "../lib/api";
+import { hasPlan } from "./PlanGate";
 import { useUI } from "../ui";
 import { useAuth } from "../auth";
 
-const ITEMS: { to: string; icon: IconName; label: string; badge?: "inbox" | "price"; adminOnly?: boolean }[] = [
+const ITEMS: { to: string; icon: IconName; label: string; badge?: "inbox" | "price"; adminOnly?: boolean; minPlan?: UserPlan }[] = [
   { to: "/", icon: "home", label: "Vandaag" },
   { to: "/panden", icon: "building", label: "Panden" },
   { to: "/kalender", icon: "calendar", label: "Kalender" },
   { to: "/inbox", icon: "chat", label: "Inbox", badge: "inbox" },
-  { to: "/prijzen", icon: "tag", label: "Prijzen", badge: "price" },
+  { to: "/prijzen", icon: "tag", label: "Prijzen", badge: "price", minPlan: "premium" },
   { to: "/schoonmaak", icon: "sparkle", label: "Schoonmaak" },
-  { to: "/opbrengsten", icon: "chart", label: "Opbrengsten" },
-  { to: "/insights", icon: "pulse", label: "Insights", adminOnly: true },
+  { to: "/opbrengsten", icon: "chart", label: "Opbrengsten", minPlan: "premium" },
+  { to: "/insights", icon: "pulse", label: "Insights", minPlan: "super" },
   { to: "/beheer", icon: "shield", label: "Beheer", adminOnly: true },
   { to: "/koppelingen", icon: "plug", label: "Koppelingen", adminOnly: true },
 ];
@@ -77,13 +79,20 @@ export function Sidebar() {
         </button>
       </div>
       <nav className="side-nav">
-        {ITEMS.filter((it) => !it.adminOnly || user?.role === "admin").map((it) => (
-          <NavLink key={it.to} to={it.to} end={it.to === "/"} className={({ isActive }) => (isActive ? "on" : "")}>
-            <Icon name={it.icon} />
-            <span className="lbl">{it.label}</span>
-            {it.badge && badges[it.badge] > 0 && <span className="badge num">{badges[it.badge]}</span>}
-          </NavLink>
-        ))}
+        {ITEMS.filter((it) => !it.adminOnly || user?.role === "admin").map((it) => {
+          const locked = it.minPlan ? !hasPlan(user, it.minPlan) : false;
+          return (
+            <NavLink key={it.to} to={it.to} end={it.to === "/"}
+              className={({ isActive }) => `${isActive ? "on" : ""}${locked ? " locked" : ""}`}
+              title={locked ? `Zit in de ${it.minPlan === "super" ? "Super" : "Premium"}-formule` : undefined}>
+              <Icon name={it.icon} />
+              <span className="lbl">{it.label}</span>
+              {locked
+                ? <span className="lock">🔒</span>
+                : it.badge && badges[it.badge] > 0 && <span className="badge num">{badges[it.badge]}</span>}
+            </NavLink>
+          );
+        })}
       </nav>
       <div className="side-bottom">
         <button className="btn-new" onClick={openWizard}>

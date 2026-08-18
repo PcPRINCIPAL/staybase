@@ -1,9 +1,7 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
 import type { InsightBucket } from "@shared/types";
 import { useInsights } from "../lib/api";
 import { eur } from "../lib/format";
-import { useAuth } from "../auth";
 
 const CORAL = "var(--coral)";
 
@@ -86,10 +84,8 @@ function fmtResponse(min: number | null): string {
 }
 
 export function InsightsPage() {
-  const { user } = useAuth();
   const { data, isLoading } = useInsights();
 
-  if (user?.role !== "admin") return <Navigate to="/" replace />;
   if (isLoading || !data) return <div className="loading">Insights laden…</div>;
 
   const k = data.kpis;

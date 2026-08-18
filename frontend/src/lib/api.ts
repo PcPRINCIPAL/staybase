@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   AssistantReply, CalendarData, CalendarOverview, Cleaning, Conversation, InsightsData,
-  NewPropertyInput, Overview, PriceStripDay, PriceSuggestion, Property, PropertyDetail, RevenueData,
+  NewPropertyInput, Overview, PriceStripDay, PriceSuggestion, Property, PropertyDetail,
+  RevenueData, UserPlan,
 } from "@shared/types";
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
@@ -25,10 +26,14 @@ export interface AuthUser {
   email: string;
   name: string;
   role: "admin" | "owner";
+  plan: UserPlan;
 }
 
 export const login = (email: string, password: string) =>
   api<AuthUser>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
+
+export const register = (name: string, email: string, password: string) =>
+  api<AuthUser>("/auth/register", { method: "POST", body: JSON.stringify({ name, email, password }) });
 
 export const logout = () => api<{ ok: boolean }>("/auth/logout", { method: "POST" });
 
@@ -184,6 +189,7 @@ export interface AdminUser {
   name: string;
   email: string;
   role: "admin" | "owner";
+  plan: UserPlan;
   createdAt: string;
   onboardings: number;
   lastLogin: string | null;
@@ -198,6 +204,13 @@ export interface OnboardingStats {
 
 export const useInsights = () =>
   useQuery({ queryKey: ["insights"], queryFn: () => api<InsightsData>("/insights") });
+
+export const useSetUserPlan = () =>
+  useInvalidating(
+    (id: string, plan: UserPlan) =>
+      api<{ ok: boolean; plan: UserPlan }>(`/admin/users/${id}/plan`, { method: "PATCH", body: JSON.stringify({ plan }) }),
+    [["admin-users"]]
+  );
 
 export const useAdminUsers = () =>
   useQuery({
