@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "concurrently -n api,web -c blue,magenta \"npm run dev --workspace backend\" \"npm run dev --workspace frontend\"",
     "build": "npm run build --workspace backend && npm run build --workspace frontend",
-    "db:reset": "rm -f backend/data/staybase.db && echo \"Database gereset — de seed draait opnieuw bij de volgende start.\""
+    "db:reset": "echo 'De app draait op Supabase Postgres — beheer de data via het Supabase-dashboard (backend/data/staybase.db is enkel nog een backup van vóór de migratie).'"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"

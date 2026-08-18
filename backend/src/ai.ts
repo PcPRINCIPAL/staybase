@@ -36,16 +36,16 @@ function getClient(): Anthropic {
 }
 
 /** Compacte datasamenvatting uit SQLite als context voor het model. */
-function dataContext(): string {
-  const props = db.prepare("SELECT name, location, status, rating, bedrooms FROM properties").all();
-  const bookings = db.prepare(
+async function dataContext(): Promise<string> {
+  const props = await db.prepare("SELECT name, location, status, rating, bedrooms FROM properties").all();
+  const bookings = await db.prepare(
     "SELECT b.guest, b.channel, b.start_date, b.end_date, b.guests, b.payout, p.name AS property FROM bookings b JOIN properties p ON p.id = b.property_id ORDER BY b.start_date"
   ).all();
-  const revenue = db.prepare("SELECT * FROM revenue_months ORDER BY month").all();
-  const suggestions = db.prepare(
+  const revenue = await db.prepare("SELECT * FROM revenue_months ORDER BY month").all();
+  const suggestions = await db.prepare(
     "SELECT range_label, price_from, price_to, reason, status FROM price_suggestions"
   ).all();
-  const cleanings = db.prepare(
+  const cleanings = await db.prepare(
     "SELECT c.date, c.team, c.status, p.name AS property FROM cleanings c JOIN properties p ON p.id = c.property_id ORDER BY c.date"
   ).all();
   return JSON.stringify({ vandaag: DEMO_TODAY, panden: props, boekingen: bookings, maandomzet_euro: revenue, prijsvoorstellen: suggestions, poetsbeurten: cleanings });
@@ -68,7 +68,7 @@ export async function llmAnswer(question: string): Promise<string> {
     messages: [
       {
         role: "user",
-        content: `Data van dit moment (JSON):\n${dataContext()}\n\nVraag van de eigenaar: ${question}`,
+        content: `Data van dit moment (JSON):\n${await dataContext()}\n\nVraag van de eigenaar: ${question}`,
       },
     ],
   });

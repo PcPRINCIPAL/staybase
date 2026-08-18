@@ -46,16 +46,16 @@ async function requestToken(): Promise<string> {
   const data = (await res.json()) as { access_token: string; expires_in: number };
   // 5 minuten marge zodat we nooit met een net-verlopen token werken.
   const expires = new Date(Date.now() + (data.expires_in - 300) * 1000).toISOString();
-  setSetting("guesty_token", data.access_token);
-  setSetting("guesty_token_expires", expires);
+  await setSetting("guesty_token", data.access_token);
+  await setSetting("guesty_token_expires", expires);
   return data.access_token;
 }
 
 async function getToken(forceNew = false): Promise<string> {
   if (!guestyAvailable()) throw new Error("Guesty niet geconfigureerd — zie backend/.env.example");
   if (!forceNew) {
-    const cached = getSetting("guesty_token", "");
-    const expires = getSetting("guesty_token_expires", "");
+    const cached = await getSetting("guesty_token", "");
+    const expires = await getSetting("guesty_token_expires", "");
     if (cached && expires && new Date(expires).getTime() > Date.now()) return cached;
   }
   return requestToken();
@@ -285,13 +285,13 @@ async function syncMessages(summary: GuestySyncSummary): Promise<void> {
   `);
   const insertMsg = db.prepare(`
     INSERT INTO messages (conversation_id, sender, body, time_label, auto, created_at, guesty_id)
-    VALUES (?, ?, ?, ?, 0, ?, ?)
+    VALUES (?, ?, ?, ?, false, ?, ?)
   `);
 
   for (const [i, c] of convs.entries()) {
     const listingId = c.meta?.reservations?.[0]?.listing?._id;
     const prop = listingId
-      ? (db.prepare("SELECT id FROM properties WHERE guesty_id = ?").get(listingId) as { id: string } | undefined)
+      ? (await db.prepare("SELECT id FROM properties WHERE guesty_id = ?").get(listingId) as { id: string } | undefined)
       : undefined;
     if (!prop) {
       summary.messages.skipped++;
@@ -320,19 +320,19 @@ async function syncMessages(summary: GuestySyncSummary): Promise<void> {
     const snippet = cleanBody(last.body ?? "").replace(/\s+/g, " ").slice(0, 60) + "…";
     const convId = "g-" + c._id;
 
-    const exists = db.prepare("SELECT id FROM conversations WHERE guesty_id = ?").get(c._id) as { id: string } | undefined;
+    const exists = await db.prepare("SELECT id FROM conversations WHERE guesty_id = ?").get(c._id) as { id: string } | undefined;
     if (exists) {
-      updateConv.run(prop.id, guest, channel, status, snippet, timeLabel(last.createdAt), guardReason, i, c._id);
+      await updateConv.run(prop.id, guest, channel, status, snippet, timeLabel(last.createdAt), guardReason, i, c._id);
       summary.messages.updated++;
     } else {
-      insertConv.run(convId, prop.id, guest, avatarFor(c._id), channel, status, snippet, timeLabel(last.createdAt), guardReason, i, c._id);
+      await insertConv.run(convId, prop.id, guest, avatarFor(c._id), channel, status, snippet, timeLabel(last.createdAt), guardReason, i, c._id);
       summary.messages.created++;
     }
 
     for (const p of posts) {
-      const msgExists = db.prepare("SELECT 1 FROM messages WHERE guesty_id = ?").get(p._id);
+      const msgExists = await db.prepare("SELECT 1 FROM messages WHERE guesty_id = ?").get(p._id);
       if (msgExists) continue;
-      insertMsg.run(
+      await insertMsg.run(
         exists?.id ?? convId,
         p.sentBy === "guest" ? "guest" : "host",
         cleanBody(p.body ?? ""),
@@ -381,7 +381,7 @@ export async function syncGuesty(): Promise<GuestySyncSummary> {
   `);
 
   const usedNames = new Set<string>();
-  listings.forEach((l, i) => {
+  for (const [i, l] of listings.entries()) {
     const name = listingName(l, usedNames);
     const live = Boolean(l.active && l.isListed);
     const bedrooms = Math.max(1, Math.round(l.bedrooms ?? 1));
@@ -407,16 +407,16 @@ export async function syncGuesty(): Promise<GuestySyncSummary> {
       l.address?.lng ?? null,
     ] as const;
 
-    const existing = db.prepare("SELECT id FROM properties WHERE guesty_id = ?").get(l._id) as { id: string } | undefined;
+    const existing = await db.prepare("SELECT id FROM properties WHERE guesty_id = ?").get(l._id) as { id: string } | undefined;
     if (existing) {
       // Kunst (emoji/gradient) en beschrijving laten we staan — die kan de
       // eigenaar in Staybase zelf hebben aangepast.
-      updateProp.run(vals[0], vals[1], vals[2], vals[3], vals[4], vals[5], vals[6], vals[7], vals[8], vals[9], vals[10], vals[11], vals[12], vals[13], vals[14], vals[15], l._id);
+      await updateProp.run(vals[0], vals[1], vals[2], vals[3], vals[4], vals[5], vals[6], vals[7], vals[8], vals[9], vals[10], vals[11], vals[12], vals[13], vals[14], vals[15], l._id);
       propIdByGuesty.set(l._id, existing.id);
       summary.listings.updated++;
     } else {
       const id = "g-" + l._id;
-      insertProp.run(
+      await insertProp.run(
         id, vals[0], vals[1], vals[2], vals[3], vals[4], vals[5], vals[6], vals[7], vals[8], vals[9],
         "🏠", GRADIENTS[i % GRADIENTS.length], vals[10],
         `Geïmporteerd uit Guesty. Pas deze beschrijving gerust aan in Staybase.`,
@@ -426,7 +426,7 @@ export async function syncGuesty(): Promise<GuestySyncSummary> {
       propIdByGuesty.set(l._id, id);
       summary.listings.created++;
     }
-  });
+  }
 
   // Boekingen vanaf 1 januari van dit jaar; geannuleerde halen we ook op zodat
   // we ze lokaal kunnen opruimen als ze eerder geïmporteerd waren.
@@ -450,18 +450,18 @@ export async function syncGuesty(): Promise<GuestySyncSummary> {
   `);
 
   for (const r of reservations) {
-    const existing = db.prepare("SELECT id FROM bookings WHERE guesty_id = ?").get(r._id) as { id: string } | undefined;
+    const existing = await db.prepare("SELECT id FROM bookings WHERE guesty_id = ?").get(r._id) as { id: string } | undefined;
 
     if (r.status === "canceled") {
       if (existing) {
-        db.prepare("DELETE FROM bookings WHERE guesty_id = ?").run(r._id);
+        await db.prepare("DELETE FROM bookings WHERE guesty_id = ?").run(r._id);
         summary.bookings.removed++;
       }
       continue;
     }
 
     const propId = r.listingId ? propIdByGuesty.get(r.listingId)
-      ?? (db.prepare("SELECT id FROM properties WHERE guesty_id = ?").get(r.listingId) as { id: string } | undefined)?.id
+      ?? (await db.prepare("SELECT id FROM properties WHERE guesty_id = ?").get(r.listingId) as { id: string } | undefined)?.id
       : undefined;
     const start = r.checkIn?.slice(0, 10);
     const end = r.checkOut?.slice(0, 10);
@@ -477,17 +477,17 @@ export async function syncGuesty(): Promise<GuestySyncSummary> {
     const outTime = localTime(r.checkOut);
     const bookedAt = r.confirmedAt ?? r.createdAt ?? null;
     if (existing) {
-      updateBooking.run(propId, guest, channel, start, end, r.guestsCount ?? 2, payout, sourceNote, inTime, outTime, bookedAt, r._id);
+      await updateBooking.run(propId, guest, channel, start, end, r.guestsCount ?? 2, payout, sourceNote, inTime, outTime, bookedAt, r._id);
       summary.bookings.updated++;
     } else {
-      insertBooking.run("g-" + r._id, propId, guest, avatarFor(r._id), channel, start, end, r.guestsCount ?? 2, payout, sourceNote, inTime, outTime, bookedAt, r._id);
+      await insertBooking.run("g-" + r._id, propId, guest, avatarFor(r._id), channel, start, end, r.guestsCount ?? 2, payout, sourceNote, inTime, outTime, bookedAt, r._id);
       summary.bookings.created++;
     }
   }
 
   await syncMessages(summary);
 
-  setSetting("guesty_last_sync", JSON.stringify(summary));
+  await setSetting("guesty_last_sync", JSON.stringify(summary));
   return summary;
 }
 
@@ -498,31 +498,31 @@ export async function testGuesty(): Promise<{ ok: true; listingsTotal: number }>
 }
 
 /** Verwijder alles wat uit Guesty kwam (handig om opnieuw te beginnen). */
-export function resetGuestyData(): { properties: number; bookings: number; conversations: number } {
+export async function resetGuestyData(): Promise<{ properties: number; bookings: number; conversations: number }> {
   // Ook lokaal getypte antwoorden binnen Guesty-gesprekken gaan mee weg.
-  db.prepare("DELETE FROM messages WHERE conversation_id IN (SELECT id FROM conversations WHERE guesty_id IS NOT NULL)").run();
-  const conversations = db.prepare("DELETE FROM conversations WHERE guesty_id IS NOT NULL").run().changes;
-  const bookings = db.prepare("DELETE FROM bookings WHERE guesty_id IS NOT NULL").run().changes;
+  await db.prepare("DELETE FROM messages WHERE conversation_id IN (SELECT id FROM conversations WHERE guesty_id IS NOT NULL)").run();
+  const conversations = (await db.prepare("DELETE FROM conversations WHERE guesty_id IS NOT NULL").run()).changes;
+  const bookings = (await db.prepare("DELETE FROM bookings WHERE guesty_id IS NOT NULL").run()).changes;
   // Eerst boekingen die (via een oudere sync) aan een Guesty-pand hangen.
-  db.prepare("DELETE FROM bookings WHERE property_id IN (SELECT id FROM properties WHERE guesty_id IS NOT NULL)").run();
-  const properties = db.prepare("DELETE FROM properties WHERE guesty_id IS NOT NULL").run().changes;
-  db.prepare("DELETE FROM settings WHERE key = 'guesty_last_sync'").run();
+  await db.prepare("DELETE FROM bookings WHERE property_id IN (SELECT id FROM properties WHERE guesty_id IS NOT NULL)").run();
+  const properties = (await db.prepare("DELETE FROM properties WHERE guesty_id IS NOT NULL").run()).changes;
+  await db.prepare("DELETE FROM settings WHERE key = 'guesty_last_sync'").run();
   return { properties: Number(properties), bookings: Number(bookings), conversations: Number(conversations) };
 }
 
-export function guestyStatus(): {
+export async function guestyStatus(): Promise<{
   configured: boolean;
   lastSync: GuestySyncSummary | null;
   linkedProperties: number;
   linkedBookings: number;
   linkedConversations: number;
-} {
-  const raw = getSetting("guesty_last_sync", "");
+}> {
+  const raw = await getSetting("guesty_last_sync", "");
   return {
     configured: guestyAvailable(),
     lastSync: raw ? (JSON.parse(raw) as GuestySyncSummary) : null,
-    linkedProperties: (db.prepare("SELECT COUNT(*) n FROM properties WHERE guesty_id IS NOT NULL").get() as { n: number }).n,
-    linkedBookings: (db.prepare("SELECT COUNT(*) n FROM bookings WHERE guesty_id IS NOT NULL").get() as { n: number }).n,
-    linkedConversations: (db.prepare("SELECT COUNT(*) n FROM conversations WHERE guesty_id IS NOT NULL").get() as { n: number }).n,
+    linkedProperties: (await db.prepare("SELECT COUNT(*) n FROM properties WHERE guesty_id IS NOT NULL").get() as { n: number }).n,
+    linkedBookings: (await db.prepare("SELECT COUNT(*) n FROM bookings WHERE guesty_id IS NOT NULL").get() as { n: number }).n,
+    linkedConversations: (await db.prepare("SELECT COUNT(*) n FROM conversations WHERE guesty_id IS NOT NULL").get() as { n: number }).n,
   };
 }

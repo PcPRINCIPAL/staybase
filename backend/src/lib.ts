@@ -49,7 +49,7 @@ export interface PropertyRow {
   bedrooms: number; bathrooms: number; max_guests: number; area_m2: number;
   rating: number | null; status: "live" | "onboarding"; status_label: string;
   art: string; art_bg: string; photo: string | null; description: string | null;
-  channels: string; cleaning_price: number;
+  channels: string | Channel[]; cleaning_price: number;
   base_price_week: number; base_price_weekend: number;
   lat: number | null; lng: number | null;
 }
@@ -60,7 +60,8 @@ export function mapProperty(r: PropertyRow): Property {
     bedrooms: r.bedrooms, bathrooms: r.bathrooms, maxGuests: r.max_guests, areaM2: r.area_m2,
     rating: r.rating, status: r.status, statusLabel: r.status_label,
     art: r.art, artBg: r.art_bg, photo: r.photo, description: r.description,
-    channels: JSON.parse(r.channels) as Channel[],
+    // SQLite gaf een JSON-string, Postgres (jsonb) geeft meteen een array.
+    channels: (typeof r.channels === "string" ? JSON.parse(r.channels) : r.channels) as Channel[],
     cleaningPrice: r.cleaning_price,
     basePriceWeek: r.base_price_week, basePriceWeekend: r.base_price_weekend,
     lat: r.lat, lng: r.lng,
@@ -82,23 +83,32 @@ export function mapBooking(r: BookingRow): Booking {
   };
 }
 
-export function allProperties(): PropertyRow[] {
-  return db.prepare("SELECT * FROM properties ORDER BY created_at").all() as unknown as PropertyRow[];
+export async function allProperties(): Promise<PropertyRow[]> {
+  return (await db.prepare("SELECT * FROM properties ORDER BY created_at").all()) as unknown as PropertyRow[];
 }
 
-export function propertyById(id: string): PropertyRow | undefined {
-  return db.prepare("SELECT * FROM properties WHERE id = ?").get(id) as unknown as PropertyRow | undefined;
+export async function propertyById(id: string): Promise<PropertyRow | undefined> {
+  return (await db.prepare("SELECT * FROM properties WHERE id = ?").get(id)) as unknown as PropertyRow | undefined;
+}
+
+export interface SuggestionRow {
+  property_id: string; start_date: string; end_date: string; price_to: number; status: string;
+}
+
+/** Alle niet-afgewezen prijsvoorstellen van een pand — één query, daarna per nacht rekenen. */
+export async function suggestionsFor(propertyId: string): Promise<SuggestionRow[]> {
+  return (await db.prepare(
+    "SELECT property_id, start_date, end_date, price_to, status FROM price_suggestions WHERE property_id = ? AND status != 'rejected'"
+  ).all(propertyId)) as unknown as SuggestionRow[];
 }
 
 /** Prijs voor een vrije nacht: weekend (vr/za) of week, met open/aanvaarde voorstellen verrekend. */
-export function nightPrice(prop: PropertyRow, isoDate: string): { price: number; suggested: number | null } {
+export function nightPrice(prop: PropertyRow, isoDate: string, sugs: SuggestionRow[]): { price: number; suggested: number | null } {
   const wd = weekdayMonday(isoDate);
   let price = wd === 4 || wd === 5 ? prop.base_price_weekend : prop.base_price_week;
   let suggested: number | null = null;
-  const sugs = db.prepare(
-    "SELECT * FROM price_suggestions WHERE property_id = ? AND start_date <= ? AND end_date > ? AND status != 'rejected'"
-  ).all(prop.id, isoDate, isoDate) as unknown as { price_to: number; status: string }[];
   for (const s of sugs) {
+    if (s.start_date > isoDate || s.end_date <= isoDate) continue;
     if (s.status === "accepted") price = s.price_to;
     else if (s.status === "open") suggested = s.price_to;
   }

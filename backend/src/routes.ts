@@ -3,7 +3,7 @@ import { db, getSetting, setSetting } from "./db";
 import {
   DEMO_MONTH, DOW_LABELS, MONTH_FULL, MONTH_LABELS,
   addDays, allProperties, daysInMonth, iso, mapBooking, mapProperty,
-  nightPrice, nightsBetween, pad, propertyById, shortLabel, weekdayMonday,
+  nightPrice, nightsBetween, pad, propertyById, shortLabel, suggestionsFor, weekdayMonday,
   type BookingRow, type PropertyRow,
 } from "./lib";
 import { DEMO_TODAY } from "../../shared/types";
@@ -14,7 +14,7 @@ import type {
 import { answer } from "./assistant";
 import { aiAvailable, llmAnswer, llmDraft } from "./ai";
 import { guestyAvailable, guestyStatus, resetGuestyData, syncGuesty, testGuesty } from "./guesty";
-import { currentUser, requireAdmin } from "./auth";
+import { currentUser, requireAdmin, requirePlan } from "./auth";
 
 export const routes = Router();
 
@@ -22,8 +22,8 @@ export const routes = Router();
  * Reactietijden in minuten: per gesprek de tijd tussen een (eerste onbeantwoord)
  * gastbericht en het eerstvolgende antwoord. Gebruikt door /overview en /insights.
  */
-function responseDeltasMin(): number[] {
-  const msgs = db.prepare(
+async function responseDeltasMin(): Promise<number[]> {
+  const msgs = await db.prepare(
     "SELECT conversation_id, sender, created_at FROM messages WHERE created_at IS NOT NULL ORDER BY conversation_id, created_at"
   ).all() as unknown as { conversation_id: string; sender: string; created_at: string }[];
   const deltas: number[] = [];
@@ -45,20 +45,20 @@ function responseDeltasMin(): number[] {
 }
 
 /** Publieke client-config: alleen waarden die de browser mag zien. */
-routes.get("/client-config", (_req, res) => {
+routes.get("/client-config", async (_req, res) => {
   res.json({ mapboxToken: process.env.MAPBOX_TOKEN ?? null });
 });
 
 /* =========================== Overview =========================== */
 
-routes.get("/overview", (req, res) => {
-  const props = allProperties();
+routes.get("/overview", async (req, res) => {
+  const props = await allProperties();
   const live = props.filter((p) => p.status === "live");
 
-  const inboxDrafts = (db.prepare("SELECT COUNT(*) n FROM conversations WHERE status = 'draft'").get() as { n: number }).n;
-  const guardOpen = (db.prepare("SELECT COUNT(*) n FROM conversations WHERE status = 'guard'").get() as { n: number }).n;
-  const priceOpen = (db.prepare("SELECT COUNT(*) n FROM price_suggestions WHERE status = 'open'").get() as { n: number }).n;
-  const cleaningPending = (db.prepare("SELECT COUNT(*) n FROM cleanings WHERE status = 'pending_owner'").get() as { n: number }).n;
+  const inboxDrafts = (await db.prepare("SELECT COUNT(*) n FROM conversations WHERE status = 'draft'").get() as { n: number }).n;
+  const guardOpen = (await db.prepare("SELECT COUNT(*) n FROM conversations WHERE status = 'guard'").get() as { n: number }).n;
+  const priceOpen = (await db.prepare("SELECT COUNT(*) n FROM price_suggestions WHERE status = 'open'").get() as { n: number }).n;
+  const cleaningPending = (await db.prepare("SELECT COUNT(*) n FROM cleanings WHERE status = 'pending_owner'").get() as { n: number }).n;
 
   // Bezetting & opbrengst voor de demomaand, berekend uit echte boekingen.
   const [yy, mm] = DEMO_MONTH.split("-").map(Number);
@@ -70,7 +70,7 @@ routes.get("/overview", (req, res) => {
   let payoutSum = 0;
   let paidNights = 0;
   for (const p of live) {
-    const rows = db.prepare(
+    const rows = await db.prepare(
       "SELECT * FROM bookings WHERE property_id = ? AND start_date < ? AND end_date > ?"
     ).all(p.id, monthEnd, monthStart) as unknown as BookingRow[];
     for (const b of rows) {
@@ -87,9 +87,9 @@ routes.get("/overview", (req, res) => {
 
   // Tijdlijn van "vandaag": check-outs, poetsbeurten en check-ins.
   const timeline: TimelineItem[] = [];
-  const outs = db.prepare("SELECT * FROM bookings WHERE end_date = ?").all(DEMO_TODAY) as unknown as BookingRow[];
+  const outs = await db.prepare("SELECT * FROM bookings WHERE end_date = ?").all(DEMO_TODAY) as unknown as BookingRow[];
   for (const b of outs) {
-    const p = propertyById(b.property_id)!;
+    const p = (await propertyById(b.property_id))!;
     timeline.push({
       time: "10:00", icon: "🧳", iconBg: "var(--booking-soft)",
       title: `Check-out ${b.guest}`,
@@ -97,9 +97,9 @@ routes.get("/overview", (req, res) => {
       chip: { label: "Uitgecheckt ✓", tone: "good" },
     });
   }
-  const cleans = db.prepare("SELECT * FROM cleanings WHERE date = ? AND status != 'done'").all(DEMO_TODAY) as unknown as { property_id: string; team: string; time_label: string | null; status_note: string | null }[];
+  const cleans = await db.prepare("SELECT * FROM cleanings WHERE date = ? AND status != 'done'").all(DEMO_TODAY) as unknown as { property_id: string; team: string; time_label: string | null; status_note: string | null }[];
   for (const c of cleans) {
-    const p = propertyById(c.property_id)!;
+    const p = (await propertyById(c.property_id))!;
     timeline.push({
       time: "11:00", icon: "🧽", iconBg: "var(--vrbo-soft)",
       title: `Schoonmaak door ${c.team.split(" (")[0]}`,
@@ -107,9 +107,9 @@ routes.get("/overview", (req, res) => {
       chip: { label: "Bezig", tone: "vrbo" },
     });
   }
-  const ins = db.prepare("SELECT * FROM bookings WHERE start_date = ?").all(DEMO_TODAY) as unknown as BookingRow[];
+  const ins = await db.prepare("SELECT * FROM bookings WHERE start_date = ?").all(DEMO_TODAY) as unknown as BookingRow[];
   for (const b of ins) {
-    const p = propertyById(b.property_id)!;
+    const p = (await propertyById(b.property_id))!;
     timeline.push({
       time: "16:00", icon: "🔑", iconBg: "var(--coral-soft)",
       title: `Check-in ${b.guest}`,
@@ -118,9 +118,9 @@ routes.get("/overview", (req, res) => {
     });
   }
 
-  const hostMsgs = (db.prepare("SELECT COUNT(*) n FROM messages WHERE sender = 'host'").get() as { n: number }).n;
-  const plannedCleanings = (db.prepare("SELECT COUNT(*) n FROM cleanings WHERE status != 'done'").get() as { n: number }).n;
-  const priceUpdates = (db.prepare("SELECT COUNT(*) n FROM price_suggestions WHERE status = 'accepted'").get() as { n: number }).n;
+  const hostMsgs = (await db.prepare("SELECT COUNT(*) n FROM messages WHERE sender = 'host'").get() as { n: number }).n;
+  const plannedCleanings = (await db.prepare("SELECT COUNT(*) n FROM cleanings WHERE status != 'done'").get() as { n: number }).n;
+  const priceUpdates = (await db.prepare("SELECT COUNT(*) n FROM price_suggestions WHERE status = 'accepted'").get() as { n: number }).n;
   const taskTotal = hostMsgs + plannedCleanings + priceUpdates;
 
   const d = new Date(DEMO_TODAY + "T00:00:00Z");
@@ -129,7 +129,7 @@ routes.get("/overview", (req, res) => {
 
   /* ---------- Homepage-data (alles uit echte boekingen/berichten) ---------- */
   const liveIds = new Set(live.map((p) => p.id));
-  const paid = (db.prepare("SELECT * FROM bookings WHERE payout > 0").all() as unknown as BookingRow[])
+  const paid = (await db.prepare("SELECT * FROM bookings WHERE payout > 0").all() as unknown as BookingRow[])
     .filter((b) => liveIds.has(b.property_id));
   const liveCount = live.length || 1;
 
@@ -178,11 +178,11 @@ routes.get("/overview", (req, res) => {
   const ratings = live.map((p) => p.rating).filter((r): r is number => r != null);
   const rating = ratings.length ? Math.round((ratings.reduce((a, r) => a + r, 0) / ratings.length) * 100) / 100 : null;
 
-  const deltas = responseDeltasMin();
+  const deltas = await responseDeltasMin();
   const medianResponse = deltas.length ? Math.round(deltas[Math.floor(deltas.length / 2)]) : null;
 
   // Oudste onbeantwoorde gastbericht (open gesprekken).
-  const oldest = db.prepare(`
+  const oldest = await db.prepare(`
     SELECT MIN(m.created_at) AS t FROM messages m
     JOIN conversations c ON c.id = m.conversation_id
     WHERE c.status IN ('draft','guard') AND m.sender = 'guest' AND m.created_at IS NOT NULL
@@ -199,7 +199,7 @@ routes.get("/overview", (req, res) => {
 
   const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
   const weekAgoDay = addDays(DEMO_TODAY, -7);
-  const weekMessages = (db.prepare(
+  const weekMessages = (await db.prepare(
     "SELECT COUNT(*) n FROM messages WHERE sender = 'host' AND created_at >= ?"
   ).get(weekAgo) as { n: number }).n;
   const weekNewBookings = paid.filter((b) => b.booked_at && b.booked_at >= weekAgo).length;
@@ -276,7 +276,7 @@ routes.get("/overview", (req, res) => {
     adrPrev: sparkAdr[sparkAdr.length - 2] || null,
     rating,
     medianResponseMin: medianResponse,
-    guestySyncAt: guestyStatus().lastSync?.at ?? null,
+    guestySyncAt: (await guestyStatus()).lastSync?.at ?? null,
     tomorrow,
     weekWork,
     insights: homeInsights.slice(0, 3),
@@ -284,14 +284,14 @@ routes.get("/overview", (req, res) => {
   };
 
   const overview: Overview = {
-    greetingName: currentUser(req)?.name ?? getSetting("owner_name", "Julie"),
+    greetingName: currentUser(req)?.name ?? await getSetting("owner_name", "Julie"),
     dateLabel: `${dowFull[weekdayMonday(DEMO_TODAY)]} ${d.getUTCDate()} ${MONTH_FULL[d.getUTCMonth()]} ${d.getUTCFullYear()}`,
     attention,
     kpis: {
       occupancyPct,
       monthRevenue,
       avgNight,
-      responseMinutes: Number(getSetting("response_minutes", "4")),
+      responseMinutes: Number(await getSetting("response_minutes", "4")),
     },
     timeline,
     tasksThisWeek: {
@@ -300,11 +300,11 @@ routes.get("/overview", (req, res) => {
         ? `${hostMsgs} gastenberichten beantwoord · ${plannedCleanings} poetsbeurten ingepland · ${priceUpdates} prijsupdates doorgevoerd. Jij keek enkel goed. ✨`
         : "Zodra Staybase berichten beantwoordt, poetsbeurten inplant of prijzen bijstuurt, zie je dat hier.",
     },
-    properties: allProperties().map(mapProperty),
+    properties: (await allProperties()).map(mapProperty),
     home,
     trust: {
-      count: Number(getSetting("trust_count", "13")),
-      target: Number(getSetting("trust_target", "20")),
+      count: Number(await getSetting("trust_count", "13")),
+      target: Number(await getSetting("trust_target", "20")),
     },
   };
   res.json(overview);
@@ -312,26 +312,26 @@ routes.get("/overview", (req, res) => {
 
 /* =========================== Panden =========================== */
 
-routes.get("/properties", (_req, res) => {
-  res.json(allProperties().map(mapProperty));
+routes.get("/properties", async (_req, res) => {
+  res.json((await allProperties()).map(mapProperty));
 });
 
 /** Alles voor de detailpagina van één pand. */
-routes.get("/properties/:id", (req, res) => {
-  const prop = propertyById(req.params.id);
+routes.get("/properties/:id", async (req, res) => {
+  const prop = await propertyById(req.params.id);
   if (!prop) {
     res.status(404).json({ error: "onbekend pand" });
     return;
   }
   const jaar = DEMO_TODAY.slice(0, 4);
-  const boekingen = (db.prepare(
+  const boekingen = (await db.prepare(
     "SELECT * FROM bookings WHERE property_id = ? ORDER BY start_date"
   ).all(prop.id) as unknown as BookingRow[]).map(mapBooking);
 
   const ditJaar = boekingen.filter((b) => b.startDate.startsWith(jaar));
   const nachten = ditJaar.reduce((n, b) => n + nightsBetween(b.startDate, b.endDate), 0);
   const omzetBoekingen = ditJaar.reduce((n, b) => n + b.payout, 0);
-  const historisch = (db.prepare("SELECT amount FROM property_revenue_h1 WHERE property_id = ?")
+  const historisch = (await db.prepare("SELECT amount FROM property_revenue_h1 WHERE property_id = ?")
     .get(prop.id) as { amount: number } | undefined)?.amount ?? 0;
 
   // Bezetting van de demomaand voor dit pand.
@@ -362,8 +362,8 @@ routes.get("/properties/:id", (req, res) => {
       nightsBooked: nachten,
     },
     upcomingBookings: boekingen.filter((b) => b.endDate >= DEMO_TODAY).slice(0, 6),
-    cleanings: (db.prepare("SELECT * FROM cleanings WHERE property_id = ? ORDER BY date").all(prop.id) as any[]).map(mapCleaning),
-    suggestions: (db.prepare("SELECT * FROM price_suggestions WHERE property_id = ? AND status = 'open' ORDER BY start_date").all(prop.id) as any[]).map(mapSuggestion),
+    cleanings: (await db.prepare("SELECT * FROM cleanings WHERE property_id = ? ORDER BY date").all(prop.id) as any[]).map(mapCleaning),
+    suggestions: (await db.prepare("SELECT * FROM price_suggestions WHERE property_id = ? AND status = 'open' ORDER BY start_date").all(prop.id) as any[]).map(mapSuggestion),
     revenueByChannel: ([["airbnb", "Airbnb"], ["booking", "Booking.com"], ["vrbo", "VRBO"]] as const)
       .map(([ch, label]) => ({
         channel: ch, label,
@@ -374,7 +374,7 @@ routes.get("/properties/:id", (req, res) => {
   });
 });
 
-routes.post("/properties", (req, res) => {
+routes.post("/properties", async (req, res) => {
   const input = req.body as NewPropertyInput;
   if (!input?.address || typeof input.address !== "string") {
     res.status(400).json({ error: "adres ontbreekt" });
@@ -382,15 +382,15 @@ routes.post("/properties", (req, res) => {
   }
   const street = input.address.split(",")[0].trim();
   const id = "p-" + street.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-  const exists = propertyById(id);
+  const exists = await propertyById(id);
   if (exists) {
     res.json(mapProperty(exists));
     return;
   }
   const area = Math.max(60, (input.bedrooms || 3) * 45);
-  const aantal = (db.prepare("SELECT COUNT(*) n FROM properties").get() as { n: number }).n;
+  const aantal = (await db.prepare("SELECT COUNT(*) n FROM properties").get() as { n: number }).n;
   const voorzieningen = (input.amenities ?? []).map((a) => a.replace(/^\S+\s/, "").toLowerCase());
-  db.prepare(`
+  await db.prepare(`
     INSERT INTO properties (id, name, location, type, bedrooms, bathrooms, max_guests, area_m2,
       rating, status, status_label, art, art_bg, photo, description, channels, cleaning_price,
       base_price_week, base_price_weekend)
@@ -408,15 +408,15 @@ routes.post("/properties", (req, res) => {
     JSON.stringify(input.vrbo ? ["airbnb", "booking", "vrbo"] : ["airbnb", "booking"]),
     Math.round(area * 0.5), 225, 265
   );
-  res.status(201).json(mapProperty(propertyById(id)!));
+  res.status(201).json(mapProperty((await propertyById(id))!));
 });
 
 /* =========================== Kalender =========================== */
 
-routes.get("/calendar", (req, res) => {
+routes.get("/calendar", async (req, res) => {
   const propertyId = String(req.query.property || "villa-zeewind");
   const month = String(req.query.month || DEMO_MONTH);
-  const prop = propertyById(propertyId);
+  const prop = await propertyById(propertyId);
   if (!prop || !/^\d{4}-\d{2}$/.test(month)) {
     res.status(404).json({ error: "onbekend pand of maand" });
     return;
@@ -426,14 +426,15 @@ routes.get("/calendar", (req, res) => {
   const monthStart = `${month}-01`;
   const monthEnd = addDays(iso(yy, mm, dim), 1);
 
-  const bookings = (db.prepare(
+  const bookings = (await db.prepare(
     "SELECT * FROM bookings WHERE property_id = ? AND start_date < ? AND end_date > ? ORDER BY start_date"
   ).all(propertyId, monthEnd, monthStart) as unknown as BookingRow[]).map(mapBooking);
 
   const checkoutDays = new Set(
-    (db.prepare("SELECT end_date FROM bookings WHERE property_id = ?").all(propertyId) as unknown as { end_date: string }[])
+    (await db.prepare("SELECT end_date FROM bookings WHERE property_id = ?").all(propertyId) as unknown as { end_date: string }[])
       .map((r) => r.end_date)
   );
+  const sugs = await suggestionsFor(propertyId);
 
   const days: CalendarDay[] = [];
   for (let d = 1; d <= dim; d++) {
@@ -442,7 +443,7 @@ routes.get("/calendar", (req, res) => {
     let price: number | null = null;
     let suggested: number | null = null;
     if (!b) {
-      const np = nightPrice(prop, dateIso);
+      const np = nightPrice(prop, dateIso, sugs);
       price = np.price;
       suggested = np.suggested;
     }
@@ -472,7 +473,7 @@ routes.get("/calendar", (req, res) => {
 });
 
 /** Tijdlijnweergave: alle panden met hun boekingen en bezetting voor één maand. */
-routes.get("/calendar-overview", (req, res) => {
+routes.get("/calendar-overview", async (req, res) => {
   const month = String(req.query.month || DEMO_MONTH);
   if (!/^\d{4}-\d{2}$/.test(month)) {
     res.status(400).json({ error: "ongeldige maand" });
@@ -483,8 +484,9 @@ routes.get("/calendar-overview", (req, res) => {
   const monthStart = `${month}-01`;
   const monthEnd = addDays(iso(yy, mm, dim), 1);
 
-  const rows = allProperties().map((p) => {
-    const bookings = db.prepare(
+  const rows = [];
+  for (const p of await allProperties()) {
+    const bookings = await db.prepare(
       "SELECT * FROM bookings WHERE property_id = ? AND start_date < ? AND end_date > ? ORDER BY start_date"
     ).all(p.id, monthEnd, monthStart) as unknown as BookingRow[];
     let nights = 0;
@@ -493,12 +495,12 @@ routes.get("/calendar-overview", (req, res) => {
       const to = b.end_date < monthEnd ? b.end_date : monthEnd;
       nights += nightsBetween(from, to);
     }
-    return {
+    rows.push({
       property: mapProperty(p),
       occupancyPct: Math.round((nights / dim) * 100),
       bookings: bookings.map(mapBooking),
-    };
-  });
+    });
+  }
 
   const overview: CalendarOverview = {
     month,
@@ -512,11 +514,11 @@ routes.get("/calendar-overview", (req, res) => {
 
 /* =========================== Inbox =========================== */
 
-function conversationById(id: string): Conversation | null {
-  const c = db.prepare("SELECT * FROM conversations WHERE id = ?").get(id) as any;
+async function conversationById(id: string): Promise<Conversation | null> {
+  const c = await db.prepare("SELECT * FROM conversations WHERE id = ?").get(id) as any;
   if (!c) return null;
-  const msgs = db.prepare("SELECT * FROM messages WHERE conversation_id = ? ORDER BY id").all(id) as any[];
-  const prop = propertyById(c.property_id)!;
+  const msgs = await db.prepare("SELECT * FROM messages WHERE conversation_id = ? ORDER BY id").all(id) as any[];
+  const prop = (await propertyById(c.property_id))!;
   return {
     id: c.id, propertyId: c.property_id, propertyName: prop.name,
     guest: c.guest, avatar: c.avatar, channel: c.channel, status: c.status,
@@ -528,44 +530,44 @@ function conversationById(id: string): Conversation | null {
   };
 }
 
-routes.get("/conversations", (_req, res) => {
-  const ids = db.prepare("SELECT id FROM conversations ORDER BY sort").all() as unknown as { id: string }[];
-  res.json(ids.map((r) => conversationById(r.id)));
+routes.get("/conversations", async (_req, res) => {
+  const ids = await db.prepare("SELECT id FROM conversations ORDER BY sort").all() as unknown as { id: string }[];
+  res.json(await Promise.all(ids.map((r) => conversationById(r.id))));
 });
 
-routes.post("/conversations/:id/approve", (req, res) => {
-  const c = db.prepare("SELECT * FROM conversations WHERE id = ?").get(req.params.id) as any;
+routes.post("/conversations/:id/approve", async (req, res) => {
+  const c = await db.prepare("SELECT * FROM conversations WHERE id = ?").get(req.params.id) as any;
   if (!c || c.status !== "draft" || !c.draft) {
     res.status(409).json({ error: "geen voorstel om goed te keuren" });
     return;
   }
-  db.prepare("INSERT INTO messages (conversation_id, sender, body, time_label, auto) VALUES (?, 'host', ?, 'Zonet', 0)")
+  await db.prepare("INSERT INTO messages (conversation_id, sender, body, time_label, auto) VALUES (?, 'host', ?, 'Zonet', false)")
     .run(c.id, c.draft);
-  db.prepare("UPDATE conversations SET status = 'done', snippet = ? WHERE id = ?")
+  await db.prepare("UPDATE conversations SET status = 'done', snippet = ? WHERE id = ?")
     .run(c.draft.slice(0, 60) + "…", c.id);
-  const trust = Math.min(Number(getSetting("trust_target", "20")), Number(getSetting("trust_count", "13")) + 1);
-  setSetting("trust_count", String(trust));
-  res.json(conversationById(c.id));
+  const trust = Math.min(Number(await getSetting("trust_target", "20")), Number(await getSetting("trust_count", "13")) + 1);
+  await setSetting("trust_count", String(trust));
+  res.json(await conversationById(c.id));
 });
 
-routes.post("/conversations/:id/reply", (req, res) => {
+routes.post("/conversations/:id/reply", async (req, res) => {
   const body = String(req.body?.body || "").trim();
-  const c = db.prepare("SELECT * FROM conversations WHERE id = ?").get(req.params.id) as any;
+  const c = await db.prepare("SELECT * FROM conversations WHERE id = ?").get(req.params.id) as any;
   if (!c || !body) {
     res.status(400).json({ error: "geen gesprek of leeg bericht" });
     return;
   }
-  db.prepare("INSERT INTO messages (conversation_id, sender, body, time_label, auto) VALUES (?, 'host', ?, 'Zonet', 0)")
+  await db.prepare("INSERT INTO messages (conversation_id, sender, body, time_label, auto) VALUES (?, 'host', ?, 'Zonet', false)")
     .run(c.id, body);
-  db.prepare("UPDATE conversations SET status = 'done', snippet = ? WHERE id = ?")
+  await db.prepare("UPDATE conversations SET status = 'done', snippet = ? WHERE id = ?")
     .run(body.slice(0, 60) + "…", c.id);
-  res.json(conversationById(c.id));
+  res.json(await conversationById(c.id));
 });
 
 /* =========================== Prijzen =========================== */
 
-function mapSuggestion(r: any): PriceSuggestion {
-  const prop = propertyById(r.property_id)!;
+async function mapSuggestion(r: any): Promise<PriceSuggestion> {
+  const prop = (await propertyById(r.property_id))!;
   return {
     id: r.id, propertyId: r.property_id, propertyName: prop.name,
     startDate: r.start_date, endDate: r.end_date,
@@ -575,57 +577,58 @@ function mapSuggestion(r: any): PriceSuggestion {
   };
 }
 
-routes.get("/price-suggestions", (_req, res) => {
-  const rows = db.prepare("SELECT * FROM price_suggestions ORDER BY start_date").all() as any[];
-  res.json(rows.map(mapSuggestion));
+routes.get("/price-suggestions", requirePlan("premium"), async (_req, res) => {
+  const rows = await db.prepare("SELECT * FROM price_suggestions ORDER BY start_date").all() as any[];
+  res.json(await Promise.all(rows.map(mapSuggestion)));
 });
 
-routes.post("/price-suggestions/:id/decide", (req, res) => {
+routes.post("/price-suggestions/:id/decide", requirePlan("premium"), async (req, res) => {
   const decision = req.body?.decision;
   if (decision !== "accepted" && decision !== "rejected") {
     res.status(400).json({ error: "decision moet 'accepted' of 'rejected' zijn" });
     return;
   }
-  const r = db.prepare("SELECT * FROM price_suggestions WHERE id = ?").get(req.params.id) as any;
+  const r = await db.prepare("SELECT * FROM price_suggestions WHERE id = ?").get(req.params.id) as any;
   if (!r || r.status !== "open") {
     res.status(409).json({ error: "voorstel niet open" });
     return;
   }
-  db.prepare("UPDATE price_suggestions SET status = ? WHERE id = ?").run(decision, r.id);
-  res.json(mapSuggestion(db.prepare("SELECT * FROM price_suggestions WHERE id = ?").get(r.id)));
+  await db.prepare("UPDATE price_suggestions SET status = ? WHERE id = ?").run(decision, r.id);
+  res.json(await mapSuggestion(await db.prepare("SELECT * FROM price_suggestions WHERE id = ?").get(r.id)));
 });
 
-routes.get("/price-strip", (req, res) => {
+routes.get("/price-strip", requirePlan("premium"), async (req, res) => {
   const propertyId = String(req.query.property || "villa-zeewind");
-  const prop = propertyById(propertyId);
+  const prop = await propertyById(propertyId);
   if (!prop) {
     res.status(404).json({ error: "onbekend pand" });
     return;
   }
+  const sugs = await suggestionsFor(prop.id);
   const days: PriceStripDay[] = [];
   for (let i = 1; i <= 30; i++) {
     const dateIso = addDays(DEMO_TODAY, i);
-    const np = nightPrice(prop, dateIso);
+    const np = nightPrice(prop, dateIso, sugs);
     days.push({ date: dateIso, label: shortLabel(dateIso), price: np.price, suggested: np.suggested });
   }
   res.json(days);
 });
 
-routes.get("/pricing-settings", (_req, res) => {
-  const open = (db.prepare("SELECT COUNT(*) n FROM price_suggestions WHERE status = 'open'").get() as { n: number }).n;
-  const decided = (db.prepare("SELECT COUNT(*) n FROM price_suggestions WHERE status != 'open'").get() as { n: number }).n;
-  res.json({ auto: getSetting("auto_pricing", "0") === "1", decided, reviewTarget: 10, open });
+routes.get("/pricing-settings", requirePlan("premium"), async (_req, res) => {
+  const open = (await db.prepare("SELECT COUNT(*) n FROM price_suggestions WHERE status = 'open'").get() as { n: number }).n;
+  const decided = (await db.prepare("SELECT COUNT(*) n FROM price_suggestions WHERE status != 'open'").get() as { n: number }).n;
+  res.json({ auto: await getSetting("auto_pricing", "0") === "1", decided, reviewTarget: 10, open });
 });
 
-routes.post("/pricing-settings", (req, res) => {
-  setSetting("auto_pricing", req.body?.auto ? "1" : "0");
+routes.post("/pricing-settings", requirePlan("premium"), async (req, res) => {
+  await setSetting("auto_pricing", req.body?.auto ? "1" : "0");
   res.json({ auto: req.body?.auto === true });
 });
 
 /* =========================== Schoonmaak =========================== */
 
-function mapCleaning(r: any): Cleaning {
-  const prop = propertyById(r.property_id)!;
+async function mapCleaning(r: any): Promise<Cleaning> {
+  const prop = (await propertyById(r.property_id))!;
   const d = new Date(r.date + "T00:00:00Z");
   return {
     id: r.id, propertyId: r.property_id, propertyName: prop.name,
@@ -639,31 +642,31 @@ function mapCleaning(r: any): Cleaning {
   };
 }
 
-routes.get("/cleanings", (_req, res) => {
-  const rows = db.prepare("SELECT * FROM cleanings ORDER BY date").all() as any[];
-  res.json(rows.map(mapCleaning));
+routes.get("/cleanings", async (_req, res) => {
+  const rows = await db.prepare("SELECT * FROM cleanings ORDER BY date").all() as any[];
+  res.json(await Promise.all(rows.map(mapCleaning)));
 });
 
-routes.post("/cleanings/:id/confirm", (req, res) => {
-  const r = db.prepare("SELECT * FROM cleanings WHERE id = ?").get(req.params.id) as any;
+routes.post("/cleanings/:id/confirm", async (req, res) => {
+  const r = await db.prepare("SELECT * FROM cleanings WHERE id = ?").get(req.params.id) as any;
   if (!r || r.status !== "pending_owner") {
     res.status(409).json({ error: "geen bevestiging nodig" });
     return;
   }
-  db.prepare("UPDATE cleanings SET status = 'confirmed' WHERE id = ?").run(r.id);
-  res.json(mapCleaning(db.prepare("SELECT * FROM cleanings WHERE id = ?").get(r.id)));
+  await db.prepare("UPDATE cleanings SET status = 'confirmed' WHERE id = ?").run(r.id);
+  res.json(await mapCleaning(await db.prepare("SELECT * FROM cleanings WHERE id = ?").get(r.id)));
 });
 
 /* =========================== Opbrengsten =========================== */
 
-export function revenueData(): RevenueData {
-  const months = db.prepare("SELECT * FROM revenue_months ORDER BY month").all() as unknown as
+export async function revenueData(): Promise<RevenueData> {
+  const months = await db.prepare("SELECT * FROM revenue_months ORDER BY month").all() as unknown as
     { month: string; airbnb: number; booking: number; vrbo: number }[];
 
   // Lopende maand live uit de boekingen.
   const cur = { month: DEMO_MONTH, airbnb: 0, booking: 0, vrbo: 0 };
-  const curBookings = db.prepare(
-    "SELECT channel, payout, property_id FROM bookings WHERE start_date LIKE ?"
+  const curBookings = await db.prepare(
+    "SELECT channel, payout, property_id FROM bookings WHERE start_date::text LIKE ?"
   ).all(DEMO_MONTH + "%") as unknown as { channel: "airbnb" | "booking" | "vrbo"; payout: number; property_id: string }[];
   for (const b of curBookings) cur[b.channel] += b.payout;
 
@@ -687,14 +690,16 @@ export function revenueData(): RevenueData {
     pct: Math.round((chAmounts[ch] / totalDiv) * 100),
   }));
 
-  const perProperty = allProperties().map((p) => {
+  const perProperty = [];
+  for (const p of await allProperties()) {
     if (p.status !== "live") {
-      return { propertyId: p.id, name: p.name, art: p.art, amount: null, badge: "in onboarding" };
+      perProperty.push({ propertyId: p.id, name: p.name, art: p.art, amount: null as number | null, badge: "in onboarding" as string | null });
+      continue;
     }
-    const h1 = (db.prepare("SELECT amount FROM property_revenue_h1 WHERE property_id = ?").get(p.id) as { amount: number } | undefined)?.amount ?? 0;
+    const h1 = (await db.prepare("SELECT amount FROM property_revenue_h1 WHERE property_id = ?").get(p.id) as { amount: number } | undefined)?.amount ?? 0;
     const july = curBookings.filter((b) => b.property_id === p.id).reduce((a, b) => a + b.payout, 0);
-    return { propertyId: p.id, name: p.name, art: p.art, amount: h1 + july, badge: null };
-  });
+    perProperty.push({ propertyId: p.id, name: p.name, art: p.art, amount: (h1 + july) as number | null, badge: null as string | null });
+  }
 
   return {
     totalYear,
@@ -710,8 +715,8 @@ export function revenueData(): RevenueData {
   };
 }
 
-routes.get("/revenue", (_req, res) => {
-  res.json(revenueData());
+routes.get("/revenue", requirePlan("premium"), async (_req, res) => {
+  res.json(await revenueData());
 });
 
 /* =========================== Adres-lookup =========================== */
@@ -762,66 +767,82 @@ routes.get("/geocode", async (req, res) => {
 
 /* =========================== Onboarding-analytics =========================== */
 
-routes.post("/onboarding/track", (req, res) => {
+routes.post("/onboarding/track", async (req, res) => {
   const { sessionId, step, stepTitle, durationMs, completed } = req.body ?? {};
   if (typeof sessionId !== "string" || typeof step !== "number" || typeof durationMs !== "number") {
     res.status(400).json({ error: "sessionId, step en durationMs zijn verplicht" });
     return;
   }
-  db.prepare(
+  await db.prepare(
     "INSERT INTO onboarding_events (session_id, step, step_title, duration_ms, completed, user_id) VALUES (?, ?, ?, ?, ?, ?)"
   ).run(
     sessionId, step, String(stepTitle ?? ""),
-    Math.max(0, Math.round(durationMs)), completed ? 1 : 0,
+    Math.max(0, Math.round(durationMs)), Boolean(completed),
     currentUser(req)?.id ?? null
   );
   res.status(201).json({ ok: true });
 });
 
 /** Alleen voor admins — eigenaars zien hun eigen onboarding-tijden bewust niet. */
-routes.get("/onboarding/stats", requireAdmin, (_req, res) => {
-  const perStep = db.prepare(`
-    SELECT step, step_title AS stepTitle,
+routes.get("/onboarding/stats", requireAdmin, async (_req, res) => {
+  const perStep = await db.prepare(`
+    SELECT step, step_title AS "stepTitle",
            COUNT(*) AS visits,
-           ROUND(AVG(duration_ms)) AS avgMs,
-           ROUND(SUM(duration_ms) / 1000.0) AS totalSec
+           ROUND(AVG(duration_ms)) AS "avgMs",
+           ROUND(SUM(duration_ms) / 1000.0) AS "totalSec"
     FROM onboarding_events GROUP BY step, step_title ORDER BY step
   `).all();
-  const sessions = db.prepare("SELECT COUNT(DISTINCT session_id) AS n FROM onboarding_events").get() as { n: number };
-  const completed = db.prepare("SELECT COUNT(DISTINCT session_id) AS n FROM onboarding_events WHERE completed = 1").get() as { n: number };
-  const recent = db.prepare(`
-    SELECT e.session_id AS sessionId,
-           COALESCE(u.name, 'Onbekend') AS userName,
-           MIN(e.created_at) AS startedAt,
-           SUM(e.duration_ms) AS totalMs,
+  const sessions = await db.prepare("SELECT COUNT(DISTINCT session_id) AS n FROM onboarding_events").get() as { n: number };
+  const completed = await db.prepare("SELECT COUNT(DISTINCT session_id) AS n FROM onboarding_events WHERE completed = true").get() as { n: number };
+  const recent = await db.prepare(`
+    SELECT e.session_id AS "sessionId",
+           COALESCE(MIN(u.name), 'Onbekend') AS "userName",
+           MIN(e.created_at) AS "startedAt",
+           SUM(e.duration_ms) AS "totalMs",
            COUNT(*) AS steps,
-           MAX(e.completed) AS completed
+           (bool_or(e.completed))::int AS completed
     FROM onboarding_events e LEFT JOIN users u ON u.id = e.user_id
     GROUP BY e.session_id ORDER BY MIN(e.created_at) DESC LIMIT 12
   `).all();
   res.json({ sessionsStarted: sessions.n, sessionsCompleted: completed.n, perStep, recent });
 });
 
-routes.get("/admin/users", requireAdmin, (_req, res) => {
-  const users = db.prepare(`
-    SELECT u.id, u.name, u.email, u.role, u.created_at AS createdAt,
+routes.get("/admin/users", requireAdmin, async (_req, res) => {
+  const users = await db.prepare(`
+    SELECT u.id, u.name, u.email, u.role, u.plan, u.created_at AS "createdAt",
            (SELECT COUNT(*) FROM properties) AS _ignore,
            (SELECT COUNT(DISTINCT session_id) FROM onboarding_events e WHERE e.user_id = u.id) AS onboardings,
-           (SELECT MAX(s.created_at) FROM auth_sessions s WHERE s.user_id = u.id) AS lastLogin
+           (SELECT MAX(s.created_at) FROM auth_sessions s WHERE s.user_id = u.id) AS "lastLogin"
     FROM users u ORDER BY u.created_at
   `).all() as Record<string, unknown>[];
-  const roles = db.prepare("SELECT role, COUNT(*) AS n FROM users GROUP BY role").all();
+  const roles = await db.prepare("SELECT role, COUNT(*) AS n FROM users GROUP BY role").all();
   res.json({ users: users.map(({ _ignore, ...u }) => u), roles });
+});
+
+/** Formule van een gebruiker aanpassen (simuleert de aankoop van een formule). */
+routes.patch("/admin/users/:id/plan", requireAdmin, async (req, res) => {
+  const plan = String(req.body?.plan || "");
+  if (!["basic", "premium", "super"].includes(plan)) {
+    res.status(400).json({ error: "plan moet basic, premium of super zijn" });
+    return;
+  }
+  const user = await db.prepare("SELECT id FROM users WHERE id = ?").get(req.params.id);
+  if (!user) {
+    res.status(404).json({ error: "onbekende gebruiker" });
+    return;
+  }
+  await db.prepare("UPDATE users SET plan = ? WHERE id = ?").run(plan, req.params.id);
+  res.json({ ok: true, plan });
 });
 
 /* =========================== Insights (admin) =========================== */
 
-routes.get("/insights", requireAdmin, (_req, res) => {
-  const live = allProperties().filter((p) => p.status === "live");
+routes.get("/insights", requirePlan("super"), async (_req, res) => {
+  const live = (await allProperties()).filter((p) => p.status === "live");
   const liveCount = live.length || 1;
   const liveIds = new Set(live.map((p) => p.id));
   // Alleen echte gastverblijven: eigenaarsblokkades staan op € 0 payout.
-  const paid = (db.prepare("SELECT * FROM bookings WHERE payout > 0").all() as unknown as BookingRow[])
+  const paid = (await db.prepare("SELECT * FROM bookings WHERE payout > 0").all() as unknown as BookingRow[])
     .filter((b) => liveIds.has(b.property_id));
 
   const nightsInWindow = (from: string, toEx: string, propertyId?: string) => {
@@ -855,7 +876,7 @@ routes.get("/insights", requireAdmin, (_req, res) => {
   }
 
   // Reactietijd: per gesprek de tijd tussen een gastbericht en het eerstvolgende antwoord.
-  const deltasMin = responseDeltasMin();
+  const deltasMin = await responseDeltasMin();
   const medianResponseMin = deltasMin.length
     ? Math.round(deltasMin[Math.floor(deltasMin.length / 2)])
     : null;
@@ -924,8 +945,8 @@ routes.get("/insights", requireAdmin, (_req, res) => {
 
 /* =========================== Guesty-koppeling =========================== */
 
-routes.get("/integrations/guesty", (_req, res) => {
-  res.json(guestyStatus());
+routes.get("/integrations/guesty", async (_req, res) => {
+  res.json(await guestyStatus());
 });
 
 routes.post("/integrations/guesty/test", requireAdmin, async (_req, res) => {
@@ -954,13 +975,13 @@ routes.post("/integrations/guesty/sync", requireAdmin, async (_req, res) => {
   }
 });
 
-routes.post("/integrations/guesty/reset", requireAdmin, (_req, res) => {
-  res.json(resetGuestyData());
+routes.post("/integrations/guesty/reset", requireAdmin, async (_req, res) => {
+  res.json(await resetGuestyData());
 });
 
 /* =========================== Assistent & AI =========================== */
 
-routes.get("/ai-status", (_req, res) => {
+routes.get("/ai-status", async (_req, res) => {
   res.json({ llm: aiAvailable() });
 });
 
@@ -974,7 +995,7 @@ routes.post("/assistant", async (req, res) => {
       console.warn("LLM-antwoord mislukt, val terug op regels:", err);
     }
   }
-  res.json({ answer: answer(q), source: "rules" });
+  res.json({ answer: await answer(q), source: "rules" });
 });
 
 /** Herschrijf het AI-voorstel van een gesprek met het echte model (vereist een API-key). */
@@ -983,15 +1004,15 @@ routes.post("/conversations/:id/regenerate", async (req, res) => {
     res.status(409).json({ error: "Geen AI-key geconfigureerd — zie backend/.env.example" });
     return;
   }
-  const c = db.prepare("SELECT * FROM conversations WHERE id = ?").get(req.params.id) as any;
+  const c = await db.prepare("SELECT * FROM conversations WHERE id = ?").get(req.params.id) as any;
   // 'draft' = bestaand voorstel herschrijven; 'guard' = onbeantwoord gastbericht
   // waarvoor Staybase alsnog een voorstel schrijft (wordt daarna 'draft').
   if (!c || (c.status !== "draft" && c.status !== "guard")) {
     res.status(409).json({ error: "alleen open gesprekken kunnen een voorstel krijgen" });
     return;
   }
-  const prop = propertyById(c.property_id)!;
-  const msgs = db.prepare("SELECT sender, body FROM messages WHERE conversation_id = ? ORDER BY id").all(c.id) as any[];
+  const prop = (await propertyById(c.property_id))!;
+  const msgs = await db.prepare("SELECT sender, body FROM messages WHERE conversation_id = ? ORDER BY id").all(c.id) as any[];
   try {
     const draft = await llmDraft({
       propertyName: prop.name,
@@ -1000,8 +1021,8 @@ routes.post("/conversations/:id/regenerate", async (req, res) => {
       messages: msgs,
       note: c.draft_note,
     });
-    db.prepare("UPDATE conversations SET draft = ?, status = 'draft', guard_reason = NULL WHERE id = ?").run(draft, c.id);
-    res.json(conversationById(c.id));
+    await db.prepare("UPDATE conversations SET draft = ?, status = 'draft', guard_reason = NULL WHERE id = ?").run(draft, c.id);
+    res.json(await conversationById(c.id));
   } catch (err) {
     console.warn("LLM-draft mislukt:", err);
     res.status(502).json({ error: "AI-voorstel genereren mislukte — probeer opnieuw" });

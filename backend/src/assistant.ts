@@ -10,14 +10,14 @@ const eur = (n: number) => "€ " + n.toLocaleString("nl-BE");
  * In een latere fase vervangt de AI-gateway (ORQ.AI) deze logica; de
  * data-toegang hieronder blijft dan de "tools" van het model.
  */
-export function answer(question: string): string {
+export async function answer(question: string): Promise<string> {
   const q = question.toLowerCase();
 
   if (q.includes("juni") || q.includes("verdiende")) {
-    const jun = db.prepare("SELECT * FROM revenue_months WHERE month = '2026-06'").get() as
+    const jun = await db.prepare("SELECT * FROM revenue_months WHERE month = '2026-06'").get() as
       | { airbnb: number; booking: number; vrbo: number }
       | undefined;
-    const mei = db.prepare("SELECT * FROM revenue_months WHERE month = '2026-05'").get() as
+    const mei = await db.prepare("SELECT * FROM revenue_months WHERE month = '2026-05'").get() as
       | { airbnb: number; booking: number; vrbo: number }
       | undefined;
     if (jun) {
@@ -30,11 +30,11 @@ export function answer(question: string): string {
   }
 
   if (q.includes("gast") || q.includes("check")) {
-    const next = db.prepare(
+    const next = await db.prepare(
       "SELECT * FROM bookings WHERE start_date >= ? ORDER BY start_date LIMIT 1"
     ).get(DEMO_TODAY) as unknown as BookingRow | undefined;
     if (next) {
-      const p = propertyById(next.property_id)!;
+      const p = (await propertyById(next.property_id))!;
       const when = next.start_date === DEMO_TODAY
         ? "Vandaag om <b>16:00</b>"
         : `Op <b>${Number(next.start_date.slice(8))} ${MONTH_FULL[Number(next.start_date.slice(5, 7)) - 1]}</b>`;
@@ -43,11 +43,11 @@ export function answer(question: string): string {
   }
 
   if (q.includes("best") || q.includes("presteert") || q.includes("topper")) {
-    const per = revenueData().perProperty.filter((p) => p.amount !== null);
+    const per = (await revenueData()).perProperty.filter((p) => p.amount !== null);
     per.sort((a, b) => (b.amount ?? 0) - (a.amount ?? 0));
     const top = per[0];
-    const prop = allProperties().find((p) => p.id === top.propertyId)!;
-    const openSug = (db.prepare("SELECT COUNT(*) n FROM price_suggestions WHERE status = 'open' AND property_id = ?").get(top.propertyId) as { n: number }).n;
+    const prop = (await allProperties()).find((p) => p.id === top.propertyId)!;
+    const openSug = (await db.prepare("SELECT COUNT(*) n FROM price_suggestions WHERE status = 'open' AND property_id = ?").get(top.propertyId) as { n: number }).n;
     const tip = openSug ? ` Tip: er ${openSug === 1 ? "staat nog 1 prijsvoorstel" : `staan nog ${openSug} prijsvoorstellen`} open — snel goedgekeurd, snel verdiend.` : "";
     return `<b>${top.name}</b> is je topper: ${eur(top.amount!)} dit jaar en een score van ★ ${prop.rating?.toFixed(2).replace(".", ",")}.${tip}`;
   }

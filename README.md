@@ -7,14 +7,15 @@ Dit is de werkende fase 1-app: een React-frontend met een echte API en database 
 
 ```
 ├── frontend/   React + TypeScript + Vite · React Router · TanStack Query
-├── backend/    Node + Express + TypeScript · SQLite (node:sqlite, ingebouwd in Node)
+├── backend/    Node + Express + TypeScript · Supabase Postgres (pg)
 ├── shared/     Gedeelde types tussen front- en backend
+├── supabase/   Postgres-schema (migrations) voor het Supabase-project
 └── staybase-demo.html   De oorspronkelijke klikbare demo (statisch, zelfstandig)
 ```
 
 ## Starten
 
-Vereist Node 22.5+ (gebruikt de ingebouwde `node:sqlite`).
+Vereist Node 20+ en een Supabase-project (zie `backend/.env.example`).
 
 ```bash
 npm install
@@ -27,19 +28,17 @@ npm run dev
   - **julie@staybase.be** — beheerder: alles van een eigenaar, plus de Beheer-pagina (gebruikers & rollen, tijd per onboarding-stap, recente onboardings)
   - **maxime@staybase.be** — eigenaar: beheert panden en kan panden toevoegen; ziet de beheer-inzichten niet (ook de API geeft daar 403)
 
-Bij de eerste start wordt `backend/data/staybase.db` leeg aangemaakt — er is
-geen demodata meer. Panden en boekingen komen binnen via de Guesty-koppeling
-(zie hieronder); "vandaag" is gewoon de echte datum. Helemaal opnieuw beginnen:
-
-```bash
-npm run db:reset
-```
-
-herstart daarna de dev-server en draai een nieuwe Guesty-sync.
+De backend draait volledig op **Supabase Postgres** — `SUPABASE_DB_URL` in
+`backend/.env` is verplicht. Bij het opstarten maakt de app de eigen
+auth-tabellen aan (users/auth_sessions) en de demo-accounts; de rest van het
+schema komt uit `supabase/migrations/0002_volledig_schema.sql`. Panden en
+boekingen komen binnen via de Guesty-koppeling; "vandaag" is de echte datum.
+Het oude SQLite-bestand (`backend/data/staybase.db`) is enkel nog een backup
+van vóór de migratie.
 
 ## Wat werkt er echt
 
-Alle flows lopen via de API en worden bewaard in SQLite:
+Alle flows lopen via de API en worden bewaard in Supabase Postgres:
 
 - **Vandaag (home)** — begroeting op dagdeel, actiebanner met het oudste onbeantwoorde bericht, vier KPI-tegels met sparklines en deltas t.o.v. vorige maand (bezetting, omzet, nachtprijs, nieuwe boekingen), vandaag/morgen-planning, pandkaarten met bezettingsbadge, en een rechterkolom met assistent-invoer, berekende inzichtkaarten en "Staybase werkte deze week" — alles live uit de boekingen en berichten.
 - **Panden** — aparte pagina met tegel-, lijst- en kaartweergave. De kaart gebruikt de Mapbox-huisstijl (streets-v12 als raster-tegels via Leaflet — bewust geen mapbox-gl/WebGL, dat liep vast; `MAPBOX_TOKEN` in `backend/.env`, de frontend haalt hem op via `/api/client-config`). Coördinaten komen uit Guesty.
@@ -49,8 +48,9 @@ Alle flows lopen via de API en worden bewaard in SQLite:
 - **Schoonmaak** — marktplaats-beurt bevestigen; watervalsysteem als uitleg.
 - **Opbrengsten** — historiek (geseed) + lopende maand (live uit boekingen), per kanaal en per pand — alles telt kloppend op.
 - **Onboarding-wizard** — maakt echt een pand aan (status "onboarding") dat overal verschijnt. Het adresveld checkt automatisch echte adressen (OpenStreetMap, gratis) met een dropdown; de tijd per stap wordt geregistreerd in `onboarding_events` voor de onboarding-analytics uit de analyse (`GET /api/onboarding/stats`).
-- **Login & sessies** — echte authenticatie (scrypt-hashing, httpOnly-cookie); de hele API zit erachter.
+- **Login, registratie & sessies** — echte authenticatie (scrypt-hashing, httpOnly-cookie); de hele API zit erachter. Registreren kan op `/registreer` (naam, e-mail, wachtwoord ≥ 8 tekens; nieuwe accounts krijgen rol `owner` en zijn meteen ingelogd) — alle "Gratis proberen"-knoppen op de website leiden erheen. ⚠️ Multi-tenancy komt pas met de Supabase-fase: elke gebruiker ziet nu nog dezelfde panden.
 - **Insights** (alleen admin) — dashboard met échte cijfers uit de boekingen en gesprekken: bezetting komende 30 dagen, mediane reactietijd op gastberichten, gemiddelde verblijfsduur, boekingsvenster (boeking → check-in) en gemiddelde nachtprijs, plus grafieken voor bezetting per maand/pand, reactietijd-verdeling, verblijfsduur, boekingsvenster en kanaalmix (`GET /api/insights`).
+- **Formules** — eigenaars hebben een `plan` (basic / premium / super) dat bepaalt welke schermen ze zien: Prijzen en Opbrengsten vragen **Premium**, Insights vraagt **Super**; vergrendelde items tonen een 🔒 in de sidebar en een upgrade-uitnodiging in plaats van de pagina. De API dwingt dit ook af (`requirePlan`). Admins zien alles en zetten formules om op de Beheer-pagina (`PATCH /api/admin/users/:id/plan`). Nieuwe registraties starten op basic.
 - **Rollen** — `admin` en `owner` op de gebruiker; admin-endpoints (`/api/admin/*`, `/api/onboarding/stats`) zijn server-side afgeschermd met een aparte middleware, en de Beheer-pagina verschijnt alleen voor admins.
 - **Assistent** — beantwoordt ook vrij getypte vragen; regelgebaseerd, of via Claude als er een key is.
 
@@ -90,15 +90,17 @@ vraagt er nooit onnodig een aan.
 
 ## Supabase
 
-Het Postgres-schema staat klaar in `supabase/migrations/0001_init.sql` — plakken en
-runnen in de Supabase SQL Editor. De projectconfig (`SUPABASE_URL`,
-`SUPABASE_PUBLISHABLE_KEY`) staat in `backend/.env`. Om de backend echt op
-Supabase te laten draaien is nog de **database-connectiestring** nodig
-(dashboard → Settings → Database) of de service-role key — dat is de volgende stap.
+De backend praat rechtstreeks met Supabase Postgres via `SUPABASE_DB_URL`.
+Het volledige schema staat in `supabase/migrations/0002_volledig_schema.sql`
+(idempotent; in de SQL Editor uitgevoerd). De `profiles`-tabel + signup-trigger
+staan klaar voor de latere overstap naar Supabase Auth; tot dan gebruikt de app
+haar eigen `users`/`auth_sessions`-tabellen (aangemaakt bij het opstarten).
+De data uit de SQLite-fase (panden, boekingen, gesprekken, gebruikers met
+formules) is op 18 aug 2026 gemigreerd.
 
 ## Volgende stappen (roadmap)
 
-- Backend omschakelen naar Supabase Postgres (schema staat klaar, connectiestring nodig) en Supabase Auth i.p.v. de eigen sessielaag
+- Supabase Auth i.p.v. de eigen sessielaag (profiles-tabel + trigger staan klaar) en multi-tenancy via owner_id op panden
 - ORQ.AI-gateway ertussen via `STAYBASE_AI_BASE_URL` (code blijft ongewijzigd)
 - Guesty-koppeling uitbreiden: antwoorden uit de inbox terugsturen naar Guesty (POST op de conversation), webhooks voor realtime boekingen & berichten, kalender/prijzen terugschrijven (nu puur lezend), een eigen 'direct'-kanaal voor handmatige boekingen
 - Deploy: frontend op Vercel, backend op Railway (accounts + secrets nodig)
