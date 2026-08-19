@@ -6,8 +6,8 @@ import { login } from "../lib/api";
 import { useAuth } from "../auth";
 
 export function Login() {
-  const [email, setEmail] = useState("julie@staybase.be");
-  const [password, setPassword] = useState("staybase2026");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const { setUser } = useAuth();
@@ -50,11 +50,8 @@ export function Login() {
         <button className="btn coral" type="submit" disabled={busy} style={{ width: "100%", justifyContent: "center", marginTop: 20, padding: "13px 16px" }}>
           {busy ? "Aanmelden…" : "Log in"}
         </button>
-        <p className="login-hint" style={{ marginBottom: 6 }}>
-          Nog geen account? <Link to="/registreer" style={{ fontWeight: 700, color: "var(--coral-deep)" }}>Registreer gratis</Link>
-        </p>
         <p className="login-hint">
-          Demo: <b>julie@staybase.be</b> (beheerder) of <b>maxime@staybase.be</b> (eigenaar) · wachtwoord <b>staybase2026</b>
+          Nog geen account? <Link to="/registreer" style={{ fontWeight: 700, color: "var(--coral-deep)" }}>Registreer gratis</Link>
         </p>
       </form>
       <p className="foot" style={{ padding: 0, marginTop: 18 }}>
