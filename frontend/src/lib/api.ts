@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   AssistantReply, CalendarData, CalendarOverview, Cleaning, Conversation, InsightsData,
-  NewPropertyInput, Overview, PriceStripDay, PriceSuggestion, Property, PropertyDetail,
-  RevenueData, UserPlan,
+  NewPropertyInput, OwnerHomeData, Overview, PriceStripDay, PriceSuggestion, Property,
+  PropertyDetail, RevenueData, UserPlan,
 } from "@shared/types";
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
@@ -201,6 +201,34 @@ export interface OnboardingStats {
   perStep: { step: number; stepTitle: string; visits: number; avgMs: number; totalSec: number }[];
   recent: { sessionId: string; userName: string; startedAt: string; totalMs: number; steps: number; completed: number }[];
 }
+
+export const useMyProperty = (propertyId?: string) =>
+  useQuery({
+    queryKey: ["my-property", propertyId ?? ""],
+    queryFn: () => api<OwnerHomeData>(`/my-property${propertyId ? `?property=${propertyId}` : ""}`),
+  });
+
+export interface AdminProperty {
+  id: string;
+  name: string;
+  location: string;
+  photo: string | null;
+  status: "live" | "onboarding";
+  ownerId: string | null;
+}
+
+export const useAdminProperties = () =>
+  useQuery({ queryKey: ["admin-properties"], queryFn: () => api<AdminProperty[]>("/admin/properties") });
+
+export const useAssignPropertyOwner = () =>
+  useInvalidating(
+    (propertyId: string, userId: string | null) =>
+      api<{ ok: boolean; ownerId: string | null }>(`/admin/properties/${propertyId}/owner`, {
+        method: "PATCH",
+        body: JSON.stringify({ userId }),
+      }),
+    [["admin-properties"], ["properties"], ["overview"], ["my-property"]]
+  );
 
 export const useInsights = () =>
   useQuery({ queryKey: ["insights"], queryFn: () => api<InsightsData>("/insights") });

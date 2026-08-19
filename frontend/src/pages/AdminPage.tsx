@@ -1,6 +1,6 @@
 import { Navigate } from "react-router-dom";
 import { PLAN_LABEL, type UserPlan } from "@shared/types";
-import { useAdminUsers, useOnboardingStats, useSetUserPlan } from "../lib/api";
+import { useAdminProperties, useAdminUsers, useAssignPropertyOwner, useOnboardingStats, useSetUserPlan } from "../lib/api";
 import { useAuth } from "../auth";
 import { useToast } from "../components/Toast";
 
@@ -18,6 +18,8 @@ export function AdminPage() {
   const { data: usersData, isLoading: usersLoading } = useAdminUsers();
   const { data: stats, isLoading: statsLoading } = useOnboardingStats();
   const setPlan = useSetUserPlan();
+  const { data: adminProps } = useAdminProperties();
+  const assignOwner = useAssignPropertyOwner();
   const toast = useToast();
 
   if (user?.role !== "admin") return <Navigate to="/" replace />;
@@ -105,6 +107,56 @@ export function AdminPage() {
                 </td>
                 <td className="num" style={{ color: "var(--muted)", fontWeight: 500 }}>
                   {u.lastLogin ? `laatst actief ${u.lastLogin.slice(0, 16)}` : "nog niet ingelogd"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <h2 className="sec-title"><span className="em">🏘️</span> Panden per eigenaar</h2>
+      <p className="sub" style={{ marginTop: -6 }}>
+        Wijs panden toe aan een eigenaar — die ziet vanaf dan alléén zijn eigen panden, boekingen en berichten.
+      </p>
+      <div className="card">
+        <table className="mini">
+          <tbody>
+            {(adminProps ?? []).map((p) => (
+              <tr key={p.id}>
+                <td>
+                  <div className="cell-prop">
+                    <span className="thumb" style={{ background: "var(--soft)" }}>
+                      {p.photo ? <img src={p.photo} alt="" loading="lazy" /> : "🏠"}
+                    </span>
+                    <b>{p.name}</b>
+                    <span style={{ color: "var(--muted)", fontSize: 13 }}>{p.location}</span>
+                  </div>
+                </td>
+                <td>
+                  <span className={`chip ${p.status === "live" ? "coral" : "warn"}`}>
+                    {p.status === "live" ? "live" : "onboarding"}
+                  </span>
+                </td>
+                <td>
+                  <select
+                    className="plan-select"
+                    value={p.ownerId ?? ""}
+                    onChange={(e) => {
+                      const userId = e.target.value || null;
+                      const owner = usersData.users.find((u) => u.id === userId);
+                      assignOwner.mutate([p.id, userId], {
+                        onSuccess: () => toast(userId
+                          ? `${p.name} toegewezen aan ${owner?.name ?? "eigenaar"} ✓`
+                          : `${p.name} losgekoppeld`),
+                        onError: () => toast("Toewijzen mislukte"),
+                      });
+                    }}
+                  >
+                    <option value="">— geen eigenaar —</option>
+                    {usersData.users.filter((u) => u.role === "owner").map((u) => (
+                      <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                    ))}
+                  </select>
                 </td>
               </tr>
             ))}
