@@ -111,6 +111,23 @@ export type UserPlan = "basic" | "premium" | "super";
 export const PLAN_RANK: Record<UserPlan, number> = { basic: 0, premium: 1, super: 2 };
 export const PLAN_LABEL: Record<UserPlan, string> = { basic: "Basic", premium: "Premium", super: "Super" };
 
+/** Eigenaar-dashboard: één pand centraal (of een selectie bij meerdere panden). */
+export interface OwnerHomeData {
+  properties: { id: string; name: string }[];  // toegewezen panden (voor de switcher)
+  property: Property | null;                    // het getoonde pand
+  kpis: {
+    occupancyPct: number;        // deze maand
+    occupancyPrevPct: number;
+    monthRevenue: number;
+    prevMonthRevenue: number;
+    rating: number | null;
+  };
+  nextBooking: (Booking & { nights: number; daysUntil: number }) | null;
+  upcoming: Booking[];           // boekingen in de komende 8 weken
+  recent: { id: string; guest: string; avatar: string; snippet: string; timeLabel: string; status: ConversationStatus }[];
+  contactName: string;           // property manager (eerste admin)
+}
+
 /** Homepage: alles server-side berekend uit echte data. */
 export interface HomeInsightCard {
   icon: string;

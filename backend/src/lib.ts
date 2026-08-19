@@ -52,6 +52,7 @@ export interface PropertyRow {
   channels: string | Channel[]; cleaning_price: number;
   base_price_week: number; base_price_weekend: number;
   lat: number | null; lng: number | null;
+  owner_id: string | null;
 }
 
 export function mapProperty(r: PropertyRow): Property {

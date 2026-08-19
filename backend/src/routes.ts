@@ -9,7 +9,7 @@ import {
 import { DEMO_TODAY } from "../../shared/types";
 import type {
   CalendarData, CalendarDay, CalendarOverview, Cleaning, Conversation, InsightsData, Message,
-  NewPropertyInput, Overview, PriceStripDay, PriceSuggestion, RevenueData, TimelineItem,
+  NewPropertyInput, OwnerHomeData, Overview, PriceStripDay, PriceSuggestion, RevenueData, TimelineItem,
 } from "../../shared/types";
 import { answer } from "./assistant";
 import { aiAvailable, llmAnswer, llmDraft } from "./ai";
@@ -49,16 +49,39 @@ routes.get("/client-config", async (_req, res) => {
   res.json({ mapboxToken: process.env.MAPBOX_TOKEN ?? null });
 });
 
+/**
+ * Multi-tenancy: admins zien alle panden, eigenaars alleen de panden die het
+ * team aan hen heeft toegewezen (Beheer → Panden per eigenaar). Een eigenaar
+ * zonder toewijzing ziet dus een lege omgeving — dat is bewust.
+ */
+async function scopedProperties(req: import("express").Request): Promise<PropertyRow[]> {
+  const user = currentUser(req);
+  const props = await allProperties();
+  if (!user || user.role === "admin") return props;
+  return props.filter((p) => p.owner_id === user.id);
+}
+
 /* =========================== Overview =========================== */
 
 routes.get("/overview", async (req, res) => {
-  const props = await allProperties();
+  const props = await scopedProperties(req);
   const live = props.filter((p) => p.status === "live");
+  const scopeIds = new Set(props.map((p) => p.id));
 
-  const inboxDrafts = (await db.prepare("SELECT COUNT(*) n FROM conversations WHERE status = 'draft'").get() as { n: number }).n;
-  const guardOpen = (await db.prepare("SELECT COUNT(*) n FROM conversations WHERE status = 'guard'").get() as { n: number }).n;
-  const priceOpen = (await db.prepare("SELECT COUNT(*) n FROM price_suggestions WHERE status = 'open'").get() as { n: number }).n;
-  const cleaningPending = (await db.prepare("SELECT COUNT(*) n FROM cleanings WHERE status = 'pending_owner'").get() as { n: number }).n;
+  // Tellingen binnen de eigen scope (rijen zijn klein genoeg om in JS te filteren).
+  const allConvs = (await db.prepare("SELECT id, property_id, status FROM conversations").all()) as unknown as
+    { id: string; property_id: string; status: string }[];
+  const convs = allConvs.filter((c) => scopeIds.has(c.property_id));
+  const inboxDrafts = convs.filter((c) => c.status === "draft").length;
+  const guardOpen = convs.filter((c) => c.status === "guard").length;
+  const sugRows = (await db.prepare("SELECT property_id, status FROM price_suggestions").all()) as unknown as
+    { property_id: string; status: string }[];
+  const scopedSugs = sugRows.filter((s) => scopeIds.has(s.property_id));
+  const priceOpen = scopedSugs.filter((s) => s.status === "open").length;
+  const cleanRows = (await db.prepare("SELECT property_id, status FROM cleanings").all()) as unknown as
+    { property_id: string; status: string }[];
+  const scopedCleans = cleanRows.filter((c) => scopeIds.has(c.property_id));
+  const cleaningPending = scopedCleans.filter((c) => c.status === "pending_owner").length;
 
   // Bezetting & opbrengst voor de demomaand, berekend uit echte boekingen.
   const [yy, mm] = DEMO_MONTH.split("-").map(Number);
@@ -87,7 +110,8 @@ routes.get("/overview", async (req, res) => {
 
   // Tijdlijn van "vandaag": check-outs, poetsbeurten en check-ins.
   const timeline: TimelineItem[] = [];
-  const outs = await db.prepare("SELECT * FROM bookings WHERE end_date = ?").all(DEMO_TODAY) as unknown as BookingRow[];
+  const outs = (await db.prepare("SELECT * FROM bookings WHERE end_date = ?").all(DEMO_TODAY) as unknown as BookingRow[])
+    .filter((b) => scopeIds.has(b.property_id));
   for (const b of outs) {
     const p = (await propertyById(b.property_id))!;
     timeline.push({
@@ -97,7 +121,8 @@ routes.get("/overview", async (req, res) => {
       chip: { label: "Uitgecheckt ✓", tone: "good" },
     });
   }
-  const cleans = await db.prepare("SELECT * FROM cleanings WHERE date = ? AND status != 'done'").all(DEMO_TODAY) as unknown as { property_id: string; team: string; time_label: string | null; status_note: string | null }[];
+  const cleans = (await db.prepare("SELECT * FROM cleanings WHERE date = ? AND status != 'done'").all(DEMO_TODAY) as unknown as { property_id: string; team: string; time_label: string | null; status_note: string | null }[])
+    .filter((c) => scopeIds.has(c.property_id));
   for (const c of cleans) {
     const p = (await propertyById(c.property_id))!;
     timeline.push({
@@ -107,7 +132,8 @@ routes.get("/overview", async (req, res) => {
       chip: { label: "Bezig", tone: "vrbo" },
     });
   }
-  const ins = await db.prepare("SELECT * FROM bookings WHERE start_date = ?").all(DEMO_TODAY) as unknown as BookingRow[];
+  const ins = (await db.prepare("SELECT * FROM bookings WHERE start_date = ?").all(DEMO_TODAY) as unknown as BookingRow[])
+    .filter((b) => scopeIds.has(b.property_id));
   for (const b of ins) {
     const p = (await propertyById(b.property_id))!;
     timeline.push({
@@ -118,9 +144,12 @@ routes.get("/overview", async (req, res) => {
     });
   }
 
-  const hostMsgs = (await db.prepare("SELECT COUNT(*) n FROM messages WHERE sender = 'host'").get() as { n: number }).n;
-  const plannedCleanings = (await db.prepare("SELECT COUNT(*) n FROM cleanings WHERE status != 'done'").get() as { n: number }).n;
-  const priceUpdates = (await db.prepare("SELECT COUNT(*) n FROM price_suggestions WHERE status = 'accepted'").get() as { n: number }).n;
+  const scopeConvIds = new Set(convs.map((c) => c.id));
+  const hostMsgRows = (await db.prepare("SELECT conversation_id, created_at FROM messages WHERE sender = 'host'").all()) as unknown as
+    { conversation_id: string; created_at: string | null }[];
+  const hostMsgs = hostMsgRows.filter((m) => scopeConvIds.has(m.conversation_id)).length;
+  const plannedCleanings = scopedCleans.filter((c) => c.status !== "done").length;
+  const priceUpdates = scopedSugs.filter((s2) => s2.status === "accepted").length;
   const taskTotal = hostMsgs + plannedCleanings + priceUpdates;
 
   const d = new Date(DEMO_TODAY + "T00:00:00Z");
@@ -182,12 +211,15 @@ routes.get("/overview", async (req, res) => {
   const medianResponse = deltas.length ? Math.round(deltas[Math.floor(deltas.length / 2)]) : null;
 
   // Oudste onbeantwoorde gastbericht (open gesprekken).
-  const oldest = await db.prepare(`
-    SELECT MIN(m.created_at) AS t FROM messages m
-    JOIN conversations c ON c.id = m.conversation_id
-    WHERE c.status IN ('draft','guard') AND m.sender = 'guest' AND m.created_at IS NOT NULL
-  `).get() as { t: string | null };
-  const oldestInboxMinutes = oldest.t ? Math.max(1, Math.round((Date.now() - Date.parse(oldest.t)) / 60000)) : null;
+  const openConvIds = new Set(convs.filter((c) => c.status === "draft" || c.status === "guard").map((c) => c.id));
+  const guestTimes = ((await db.prepare(
+    "SELECT conversation_id, created_at FROM messages WHERE sender = 'guest' AND created_at IS NOT NULL"
+  ).all()) as unknown as { conversation_id: string; created_at: string }[])
+    .filter((m) => openConvIds.has(m.conversation_id))
+    .map((m) => Date.parse(m.created_at));
+  const oldestInboxMinutes = guestTimes.length
+    ? Math.max(1, Math.round((Date.now() - Math.min(...guestTimes)) / 60000))
+    : null;
 
   const tomorrowIso = addDays(DEMO_TODAY, 1);
   const tomorrow = {
@@ -199,9 +231,7 @@ routes.get("/overview", async (req, res) => {
 
   const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
   const weekAgoDay = addDays(DEMO_TODAY, -7);
-  const weekMessages = (await db.prepare(
-    "SELECT COUNT(*) n FROM messages WHERE sender = 'host' AND created_at >= ?"
-  ).get(weekAgo) as { n: number }).n;
+  const weekMessages = hostMsgRows.filter((m) => scopeConvIds.has(m.conversation_id) && m.created_at != null && m.created_at >= weekAgo).length;
   const weekNewBookings = paid.filter((b) => b.booked_at && b.booked_at >= weekAgo).length;
   const weekCheckIns = paid.filter((b) => b.start_date >= weekAgoDay && b.start_date <= DEMO_TODAY).length;
   const weekWork = {
@@ -300,7 +330,7 @@ routes.get("/overview", async (req, res) => {
         ? `${hostMsgs} gastenberichten beantwoord · ${plannedCleanings} poetsbeurten ingepland · ${priceUpdates} prijsupdates doorgevoerd. Jij keek enkel goed. ✨`
         : "Zodra Staybase berichten beantwoordt, poetsbeurten inplant of prijzen bijstuurt, zie je dat hier.",
     },
-    properties: (await allProperties()).map(mapProperty),
+    properties: props.map(mapProperty),
     home,
     trust: {
       count: Number(await getSetting("trust_count", "13")),
@@ -312,8 +342,8 @@ routes.get("/overview", async (req, res) => {
 
 /* =========================== Panden =========================== */
 
-routes.get("/properties", async (_req, res) => {
-  res.json((await allProperties()).map(mapProperty));
+routes.get("/properties", async (req, res) => {
+  res.json((await scopedProperties(req)).map(mapProperty));
 });
 
 /** Alles voor de detailpagina van één pand. */
@@ -485,7 +515,7 @@ routes.get("/calendar-overview", async (req, res) => {
   const monthEnd = addDays(iso(yy, mm, dim), 1);
 
   const rows = [];
-  for (const p of await allProperties()) {
+  for (const p of await scopedProperties(req)) {
     const bookings = await db.prepare(
       "SELECT * FROM bookings WHERE property_id = ? AND start_date < ? AND end_date > ? ORDER BY start_date"
     ).all(p.id, monthEnd, monthStart) as unknown as BookingRow[];
@@ -530,9 +560,11 @@ async function conversationById(id: string): Promise<Conversation | null> {
   };
 }
 
-routes.get("/conversations", async (_req, res) => {
-  const ids = await db.prepare("SELECT id FROM conversations ORDER BY sort").all() as unknown as { id: string }[];
-  res.json(await Promise.all(ids.map((r) => conversationById(r.id))));
+routes.get("/conversations", async (req, res) => {
+  const scopeIds = new Set((await scopedProperties(req)).map((p) => p.id));
+  const rows = await db.prepare("SELECT id, property_id FROM conversations ORDER BY sort").all() as unknown as { id: string; property_id: string }[];
+  const own = rows.filter((r) => scopeIds.has(r.property_id));
+  res.json(await Promise.all(own.map((r) => conversationById(r.id))));
 });
 
 routes.post("/conversations/:id/approve", async (req, res) => {
@@ -577,8 +609,10 @@ async function mapSuggestion(r: any): Promise<PriceSuggestion> {
   };
 }
 
-routes.get("/price-suggestions", requirePlan("premium"), async (_req, res) => {
-  const rows = await db.prepare("SELECT * FROM price_suggestions ORDER BY start_date").all() as any[];
+routes.get("/price-suggestions", requirePlan("premium"), async (req, res) => {
+  const scopeIds = new Set((await scopedProperties(req)).map((p) => p.id));
+  const rows = (await db.prepare("SELECT * FROM price_suggestions ORDER BY start_date").all() as any[])
+    .filter((r) => scopeIds.has(r.property_id));
   res.json(await Promise.all(rows.map(mapSuggestion)));
 });
 
@@ -642,8 +676,10 @@ async function mapCleaning(r: any): Promise<Cleaning> {
   };
 }
 
-routes.get("/cleanings", async (_req, res) => {
-  const rows = await db.prepare("SELECT * FROM cleanings ORDER BY date").all() as any[];
+routes.get("/cleanings", async (req, res) => {
+  const scopeIds = new Set((await scopedProperties(req)).map((p) => p.id));
+  const rows = (await db.prepare("SELECT * FROM cleanings ORDER BY date").all() as any[])
+    .filter((r) => scopeIds.has(r.property_id));
   res.json(await Promise.all(rows.map(mapCleaning)));
 });
 
@@ -659,15 +695,16 @@ routes.post("/cleanings/:id/confirm", async (req, res) => {
 
 /* =========================== Opbrengsten =========================== */
 
-export async function revenueData(): Promise<RevenueData> {
+export async function revenueData(scopeIds?: Set<string>): Promise<RevenueData> {
   const months = await db.prepare("SELECT * FROM revenue_months ORDER BY month").all() as unknown as
     { month: string; airbnb: number; booking: number; vrbo: number }[];
 
   // Lopende maand live uit de boekingen.
   const cur = { month: DEMO_MONTH, airbnb: 0, booking: 0, vrbo: 0 };
-  const curBookings = await db.prepare(
+  const curBookings = ((await db.prepare(
     "SELECT channel, payout, property_id FROM bookings WHERE start_date::text LIKE ?"
-  ).all(DEMO_MONTH + "%") as unknown as { channel: "airbnb" | "booking" | "vrbo"; payout: number; property_id: string }[];
+  ).all(DEMO_MONTH + "%")) as unknown as { channel: "airbnb" | "booking" | "vrbo"; payout: number; property_id: string }[])
+    .filter((b) => !scopeIds || scopeIds.has(b.property_id));
   for (const b of curBookings) cur[b.channel] += b.payout;
 
   const all = [...months, cur];
@@ -691,7 +728,7 @@ export async function revenueData(): Promise<RevenueData> {
   }));
 
   const perProperty = [];
-  for (const p of await allProperties()) {
+  for (const p of (await allProperties()).filter((pp) => !scopeIds || scopeIds.has(pp.id))) {
     if (p.status !== "live") {
       perProperty.push({ propertyId: p.id, name: p.name, art: p.art, amount: null as number | null, badge: "in onboarding" as string | null });
       continue;
@@ -715,8 +752,10 @@ export async function revenueData(): Promise<RevenueData> {
   };
 }
 
-routes.get("/revenue", requirePlan("premium"), async (_req, res) => {
-  res.json(await revenueData());
+routes.get("/revenue", requirePlan("premium"), async (req, res) => {
+  const user = currentUser(req);
+  const scope = user?.role === "admin" ? undefined : new Set((await scopedProperties(req)).map((p) => p.id));
+  res.json(await revenueData(scope));
 });
 
 /* =========================== Adres-lookup =========================== */
@@ -819,6 +858,33 @@ routes.get("/admin/users", requireAdmin, async (_req, res) => {
   res.json({ users: users.map(({ _ignore, ...u }) => u), roles });
 });
 
+/** Panden met hun eigenaar — voor de toewijzings-sectie op Beheer. */
+routes.get("/admin/properties", requireAdmin, async (_req, res) => {
+  const props = await allProperties();
+  res.json(props.map((p) => ({
+    id: p.id, name: p.name, location: p.location, photo: p.photo, status: p.status, ownerId: p.owner_id,
+  })));
+});
+
+/** Een pand toewijzen aan een eigenaar (of loskoppelen met userId null). */
+routes.patch("/admin/properties/:id/owner", requireAdmin, async (req, res) => {
+  const userId = req.body?.userId === null ? null : String(req.body?.userId || "");
+  if (userId) {
+    const user = await db.prepare("SELECT id, role FROM users WHERE id = ?").get(userId) as { id: string; role: string } | undefined;
+    if (!user) {
+      res.status(404).json({ error: "onbekende gebruiker" });
+      return;
+    }
+  }
+  const prop = await propertyById(req.params.id);
+  if (!prop) {
+    res.status(404).json({ error: "onbekend pand" });
+    return;
+  }
+  await db.prepare("UPDATE properties SET owner_id = ? WHERE id = ?").run(userId || null, req.params.id);
+  res.json({ ok: true, ownerId: userId || null });
+});
+
 /** Formule van een gebruiker aanpassen (simuleert de aankoop van een formule). */
 routes.patch("/admin/users/:id/plan", requireAdmin, async (req, res) => {
   const plan = String(req.body?.plan || "");
@@ -835,10 +901,93 @@ routes.patch("/admin/users/:id/plan", requireAdmin, async (req, res) => {
   res.json({ ok: true, plan });
 });
 
+/* =========================== Eigenaar-dashboard =========================== */
+
+routes.get("/my-property", async (req, res) => {
+  const own = await scopedProperties(req);
+  const contact = await db.prepare("SELECT name FROM users WHERE role = 'admin' ORDER BY created_at LIMIT 1").get() as { name: string } | undefined;
+
+  if (own.length === 0) {
+    const empty: OwnerHomeData = {
+      properties: [], property: null,
+      kpis: { occupancyPct: 0, occupancyPrevPct: 0, monthRevenue: 0, prevMonthRevenue: 0, rating: null },
+      nextBooking: null, upcoming: [], recent: [], contactName: contact?.name ?? "Staybase",
+    };
+    res.json(empty);
+    return;
+  }
+
+  const requested = String(req.query.property || own[0].id);
+  const prop = own.find((p) => p.id === requested) ?? own[0];
+  const bookings = ((await db.prepare(
+    "SELECT * FROM bookings WHERE property_id = ? AND payout > 0 ORDER BY start_date"
+  ).all(prop.id)) as unknown as BookingRow[]);
+
+  const [yy2, mm2] = DEMO_MONTH.split("-").map(Number);
+  const monthWindow = (off: number) => {
+    const dt = new Date(Date.UTC(yy2, mm2 - 1 + off, 1));
+    const dd = daysInMonth(dt.getUTCFullYear(), dt.getUTCMonth() + 1);
+    const from = `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-01`;
+    return { from, toEx: addDays(iso(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dd), 1), dim: dd };
+  };
+  const occupancy = (w: { from: string; toEx: string; dim: number }) => {
+    let n = 0;
+    for (const b of bookings) {
+      if (b.start_date < w.toEx && b.end_date > w.from) {
+        const f = b.start_date > w.from ? b.start_date : w.from;
+        const t = b.end_date < w.toEx ? b.end_date : w.toEx;
+        n += nightsBetween(f, t);
+      }
+    }
+    return Math.round((n / w.dim) * 100);
+  };
+  const revenueIn = (w: { from: string; toEx: string }) =>
+    bookings.filter((b) => b.start_date >= w.from && b.start_date < w.toEx).reduce((a, b) => a + b.payout, 0);
+
+  const cur = monthWindow(0);
+  const prev = monthWindow(-1);
+
+  // Eerstvolgende relevante boeking: een verblijf dat nog bezig is telt ook mee,
+  // zodat de eigenaar zijn huidige gast ziet in plaats van "geen boekingen".
+  const next = bookings.find((b) => b.end_date > DEMO_TODAY) ?? null;
+  const in8w = addDays(DEMO_TODAY, 56);
+  const upcoming = bookings
+    .filter((b) => b.start_date < in8w && b.end_date > DEMO_TODAY)
+    .map(mapBooking);
+
+  const recent = ((await db.prepare(
+    "SELECT id, guest, avatar, snippet, time_label, status FROM conversations WHERE property_id = ? ORDER BY sort LIMIT 3"
+  ).all(prop.id)) as unknown as { id: string; guest: string; avatar: string; snippet: string; time_label: string; status: "draft" | "guard" | "done" }[])
+    .map((c) => ({ id: c.id, guest: c.guest, avatar: c.avatar, snippet: c.snippet, timeLabel: c.time_label, status: c.status }));
+
+  const data: OwnerHomeData = {
+    properties: own.map((p) => ({ id: p.id, name: p.name })),
+    property: mapProperty(prop),
+    kpis: {
+      occupancyPct: occupancy(cur),
+      occupancyPrevPct: occupancy(prev),
+      monthRevenue: revenueIn(cur),
+      prevMonthRevenue: revenueIn(prev),
+      rating: prop.rating,
+    },
+    nextBooking: next
+      ? {
+          ...mapBooking(next),
+          nights: nightsBetween(next.start_date, next.end_date),
+          daysUntil: Math.max(0, nightsBetween(DEMO_TODAY, next.start_date)),
+        }
+      : null,
+    upcoming,
+    recent,
+    contactName: contact?.name ?? "Staybase",
+  };
+  res.json(data);
+});
+
 /* =========================== Insights (admin) =========================== */
 
-routes.get("/insights", requirePlan("super"), async (_req, res) => {
-  const live = (await allProperties()).filter((p) => p.status === "live");
+routes.get("/insights", requirePlan("super"), async (req, res) => {
+  const live = (await scopedProperties(req)).filter((p) => p.status === "live");
   const liveCount = live.length || 1;
   const liveIds = new Set(live.map((p) => p.id));
   // Alleen echte gastverblijven: eigenaarsblokkades staan op € 0 payout.

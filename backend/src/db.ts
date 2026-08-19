@@ -108,8 +108,9 @@ export async function bootstrap(): Promise<void> {
       expires_at timestamptz NOT NULL
     );
   `);
-  // onboarding_events.user_id is in het Supabase-script een uuid → profiles;
-  // zolang de eigen auth draait, gebruiken we tekst-ids zonder foreign key.
+  // onboarding_events.user_id en properties.owner_id zijn in het Supabase-script
+  // uuid's → profiles; zolang de eigen auth draait, gebruiken we tekst-ids
+  // zonder foreign key.
   await pool.query(`
     DO $$
     BEGIN
@@ -119,6 +120,13 @@ export async function bootstrap(): Promise<void> {
       ) THEN
         ALTER TABLE onboarding_events DROP CONSTRAINT IF EXISTS onboarding_events_user_id_fkey;
         ALTER TABLE onboarding_events ALTER COLUMN user_id TYPE text USING user_id::text;
+      END IF;
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'properties' AND column_name = 'owner_id' AND data_type = 'uuid'
+      ) THEN
+        ALTER TABLE properties DROP CONSTRAINT IF EXISTS properties_owner_id_fkey;
+        ALTER TABLE properties ALTER COLUMN owner_id TYPE text USING owner_id::text;
       END IF;
     END $$;
   `);
