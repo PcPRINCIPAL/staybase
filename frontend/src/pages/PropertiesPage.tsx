@@ -121,7 +121,7 @@ export function PropertiesPage() {
       <div className="page-head">
         <div>
           <h1>Panden</h1>
-          <p className="sub">{properties.length} panden · {live} live · {properties.length - live} in onboarding</p>
+          <p className="sub">{properties.length} {properties.length === 1 ? "pand" : "panden"} · {live} live · {properties.length - live} in onboarding</p>
         </div>
         <div className="seg" role="tablist" aria-label="Weergave">
           {([["grid", "Tegels"], ["list", "Lijst"], ["map", "Kaart"]] as const).map(([v, label]) => (

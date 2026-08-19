@@ -47,7 +47,7 @@ export function Assistant() {
     }
   };
 
-  // De homepage kan een vraag insturen via een globaal event (sb:ask).
+  // De homepage kan een vraag insturen (sb:ask) of het paneel openen (sb:open).
   useEffect(() => {
     const onAsk = (e: Event) => {
       const q = (e as CustomEvent<string>).detail?.trim();
@@ -55,8 +55,13 @@ export function Assistant() {
       setOpen(true);
       ask(q);
     };
+    const onOpen = () => setOpen(true);
     window.addEventListener("sb:ask", onAsk);
-    return () => window.removeEventListener("sb:ask", onAsk);
+    window.addEventListener("sb:open", onOpen);
+    return () => {
+      window.removeEventListener("sb:ask", onAsk);
+      window.removeEventListener("sb:open", onOpen);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

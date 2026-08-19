@@ -4,6 +4,8 @@ import { DEMO_TODAY } from "@shared/types";
 import { useOverview } from "../lib/api";
 import { eur, monthName } from "../lib/format";
 import { Icon } from "../components/Icon";
+import { OwnerHome } from "./OwnerHome";
+import { useAuth } from "../auth";
 
 /** Mini-sparkline: 2px koraallijn met een eindmarker (witte ring). */
 function Spark({ points }: { points: number[] }) {
@@ -49,6 +51,13 @@ function fmtDuration(min: number): string {
 }
 
 export function Dashboard() {
+  const { user } = useAuth();
+  // Eigenaars krijgen het pand-gerichte dashboard; het team ziet het portfolio-overzicht.
+  if (user?.role === "owner") return <OwnerHome />;
+  return <TeamHome />;
+}
+
+function TeamHome() {
   const { data, isLoading } = useOverview();
   const nav = useNavigate();
   const [q, setQ] = useState("");
