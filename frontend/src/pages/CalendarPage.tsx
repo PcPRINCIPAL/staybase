@@ -5,6 +5,7 @@ import { useCalendar, useCalendarOverview, useProperties } from "../lib/api";
 import { CHANNEL_META, addMonths, eur, monthName, nightsBetween } from "../lib/format";
 import { Icon } from "../components/Icon";
 import { useToast } from "../components/Toast";
+import { useView } from "../components/OriginGate";
 
 /** Compacte pandkaart in de lijst links — klikken selecteert het pand. */
 function CalProp({ p, on, onSelect }: { p: Property; on: boolean; onSelect: () => void }) {
@@ -93,7 +94,7 @@ function GanttView({ month, sort }: { month: string; sort: "name" | "occupancy" 
         ))}
       </div>
       <div className="cal-legend" style={{ padding: "12px 16px" }}>
-        <span><span className="dot" style={{ background: "var(--coral)" }} />Airbnb</span>
+        <span><span className="dot" style={{ background: "var(--airbnb)" }} />Airbnb</span>
         <span><span className="dot" style={{ background: "var(--booking)" }} />Booking.com</span>
         <span><span className="dot" style={{ background: "var(--vrbo)" }} />VRBO</span>
       </div>
@@ -107,6 +108,7 @@ export function CalendarPage() {
   const [selected, setSelected] = useState<string>(DEMO_TODAY);
   const [view, setView] = useState<"maand" | "lijst">("maand");
   const [sort, setSort] = useState<"name" | "occupancy">("occupancy");
+  const platform = useView();
   const { data: rawProperties } = useProperties();
   const { data, isLoading } = useCalendar(view === "maand" ? propertyId : "", month);
   const toast = useToast();
@@ -244,7 +246,7 @@ export function CalendarPage() {
                     <span className={`period-ring ${d.day === selFrom && !selOpenStart ? "first" : ""} ${d.day === selTo && !selOpenEnd ? "last" : ""}`} />
                   )}
                   <span className="d num">{d.day}</span>
-                  {!b && d.price != null && (
+                  {!b && platform.prices && d.price != null && (
                     <span className={`p num ${d.suggested ? "sug" : ""}`}>
                       € {d.suggested ?? d.price}{d.suggested ? " ✨" : ""}
                     </span>
@@ -263,7 +265,7 @@ export function CalendarPage() {
             })}
           </div>
           <div className="cal-legend">
-            <span><span className="dot" style={{ background: "var(--coral)" }} />Airbnb</span>
+            <span><span className="dot" style={{ background: "var(--airbnb)" }} />Airbnb</span>
             <span><span className="dot" style={{ background: "var(--booking)" }} />Booking.com</span>
             <span><span className="dot" style={{ background: "var(--vrbo)" }} />VRBO</span>
             <span><span className="dot" style={{ background: "var(--soft)", border: "1px solid var(--line)" }} />Vrij</span>
@@ -317,10 +319,17 @@ export function CalendarPage() {
                   <span className="chip gray">Nog boekbaar</span>
                 </div>
               </div>
-              <dl>
-                <dt>Huidige nachtprijs</dt><dd className="num">€ {selDay.price}</dd>
-              </dl>
-              {selDay.suggested ? (
+              {platform.prices && (
+                <dl>
+                  <dt>Huidige nachtprijs</dt><dd className="num">€ {selDay.price}</dd>
+                </dl>
+              )}
+              {!platform.prices ? (
+                <p style={{ fontSize: 13, color: "var(--muted)" }}>
+                  Deze nacht is nog vrij. Linnois bepaalt de prijs en zet het pand in de markt —
+                  vragen over een bepaalde week? Stel ze via Chat met Julie.
+                </p>
+              ) : selDay.suggested ? (
                 <>
                   <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>
                     ✨ Staybase stelt <b>€ {selDay.suggested}</b> voor: laatste vrije nachten tussen twee boekingen.
@@ -338,7 +347,7 @@ export function CalendarPage() {
             </>
           ) : (
             <p style={{ fontSize: 13.5, color: "var(--muted)" }}>
-              Klik op een dag om de boeking of prijs te bekijken. 👈
+              Klik op een dag om {platform.prices ? "de boeking of prijs" : "de boeking"} te bekijken. 👈
             </p>
           )}
           {selDay && !selBooking && !selDay.suggested && selDay.price == null && (

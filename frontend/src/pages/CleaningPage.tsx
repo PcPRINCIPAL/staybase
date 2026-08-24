@@ -2,6 +2,7 @@ import { useCleanings, useConfirmCleaning, useOverview } from "../lib/api";
 import { eur } from "../lib/format";
 import { Icon } from "../components/Icon";
 import { useToast } from "../components/Toast";
+import { useView } from "../components/OriginGate";
 import type { Cleaning } from "@shared/types";
 
 function statusEnd(c: Cleaning, onConfirm: (id: string) => void, busy: boolean) {
@@ -25,6 +26,7 @@ function statusEnd(c: Cleaning, onConfirm: (id: string) => void, busy: boolean) 
 }
 
 export function CleaningPage() {
+  const platform = useView();
   const { data: cleanings, isLoading } = useCleanings();
   const { data: overview } = useOverview();
   const confirm = useConfirmCleaning();
@@ -43,8 +45,13 @@ export function CleaningPage() {
   return (
     <section className="page">
       <h1>Schoonmaak</h1>
-      <p className="sub">Na elke check-out plant Staybase automatisch een poetsbeurt in. Jij hoeft niets te doen.</p>
+      <p className="sub">
+        {platform.cleaningDetails
+          ? "Na elke check-out plant Staybase automatisch een poetsbeurt in. Jij hoeft niets te doen."
+          : "Linnois plant de schoonmaak na elke check-out. Hier zie je wanneer je pand gepoetst wordt."}
+      </p>
 
+      {platform.cleaningDetails && (
       <div className="card waterfall" style={{ marginTop: 24 }}>
         <div className="wf-step">
           <span className="em">👋</span>
@@ -64,6 +71,7 @@ export function CleaningPage() {
           <span>Gescreende teams, faire prijs op basis van je pand</span>
         </div>
       </div>
+      )}
 
       <h2 className="sec-title"><span className="em">📋</span> Geplande beurten</h2>
       <div className="card">
@@ -75,9 +83,15 @@ export function CleaningPage() {
             </span>
             <span className="who">
               <b>{c.propertyName}{c.timeLabel ? ` · ${c.timeLabel}` : ""}</b>
-              <span>{c.team}{c.statusNote && c.status !== "awaiting_team" ? ` · ${c.statusNote}` : ""}</span>
+              <span>{platform.cleaningDetails
+                ? `${c.team}${c.statusNote && c.status !== "awaiting_team" ? ` · ${c.statusNote}` : ""}`
+                : "Schoonmaak ingepland"}</span>
             </span>
-            <span className="end">{statusEnd(c, onConfirm, confirm.isPending)}</span>
+            <span className="end">
+              {platform.cleaningDetails
+                ? statusEnd(c, onConfirm, confirm.isPending)
+                : <span className="chip good">✓ Ingepland</span>}
+            </span>
           </div>
         ))}
       </div>
@@ -92,18 +106,23 @@ export function CleaningPage() {
             </span>
             <span className="who">
               <b>{c.propertyName}</b>
-              <span>{c.team} · {c.photos} foto's na afloop</span>
+              <span>{platform.cleaningDetails ? `${c.team} · ${c.photos} foto's na afloop` : "Schoonmaak uitgevoerd"}</span>
             </span>
             <span className="end">
-              {statusEnd(c, onConfirm, confirm.isPending)}
-              <button className="btn ghost sm" onClick={() => toast("Foto's openen — in een volgende fase zie je hier alle foto's")}>
-                Bekijk foto's
-              </button>
+              {platform.cleaningDetails ? (
+                <>
+                  {statusEnd(c, onConfirm, confirm.isPending)}
+                  <button className="btn ghost sm" onClick={() => toast("Foto's openen — in een volgende fase zie je hier alle foto's")}>
+                    Bekijk foto's
+                  </button>
+                </>
+              ) : <span className="chip good">✓ Afgerond</span>}
             </span>
           </div>
         ))}
       </div>
 
+      {platform.cleaningDetails && (<>
       <h2 className="sec-title"><span className="em">💶</span> Hoe de prijs bepaald wordt</h2>
       <div className="card" style={{ padding: "18px 20px", fontSize: 14, color: "var(--muted)", lineHeight: 1.6 }}>
         Eén faire, vaste prijs per pand — berekend op oppervlakte en uitrusting, geen verrassingen.<br />
@@ -114,6 +133,7 @@ export function CleaningPage() {
           </span>
         ))}
       </div>
+      </>)}
     </section>
   );
 }

@@ -6,15 +6,15 @@ import {
   nightPrice, nightsBetween, pad, propertyById, shortLabel, suggestionsFor, weekdayMonday,
   type BookingRow, type PropertyRow,
 } from "./lib";
-import { DEMO_TODAY } from "../../shared/types";
+import { COMMISSION_MAX_PCT, COMMISSION_MIN_PCT, DEMO_TODAY, isLanguage, viewFor } from "../../shared/types";
 import type {
   CalendarData, CalendarDay, CalendarOverview, Cleaning, Conversation, InsightsData, Message,
   NewPropertyInput, OwnerHomeData, Overview, PriceStripDay, PriceSuggestion, RevenueData, TimelineItem,
 } from "../../shared/types";
 import { answer } from "./assistant";
-import { aiAvailable, llmAnswer, llmDraft } from "./ai";
+import { aiAvailable, llmAnswer, llmDraft, llmTranslate } from "./ai";
 import { guestyAvailable, guestyStatus, resetGuestyData, syncGuesty, testGuesty } from "./guesty";
-import { currentUser, requireAdmin, requirePlan } from "./auth";
+import { currentUser, requireAdmin, requirePlan, requireView } from "./auth";
 
 export const routes = Router();
 
@@ -382,6 +382,10 @@ routes.get("/properties/:id", async (req, res) => {
   for (const b of ditJaar) perKanaal[b.channel] += b.payout;
   const totaalKanaal = perKanaal.airbnb + perKanaal.booking + perKanaal.vrbo || 1;
 
+  const view = viewFor(currentUser(req));
+  const cleanings = (await db.prepare("SELECT * FROM cleanings WHERE property_id = ? ORDER BY date").all(prop.id) as any[])
+    .map(mapCleaning);
+
   res.json({
     property: mapProperty(prop),
     kpis: {
@@ -392,8 +396,12 @@ routes.get("/properties/:id", async (req, res) => {
       nightsBooked: nachten,
     },
     upcomingBookings: boekingen.filter((b) => b.endDate >= DEMO_TODAY).slice(0, 6),
-    cleanings: (await db.prepare("SELECT * FROM cleanings WHERE property_id = ? ORDER BY date").all(prop.id) as any[]).map(mapCleaning),
-    suggestions: (await db.prepare("SELECT * FROM price_suggestions WHERE property_id = ? AND status = 'open' ORDER BY start_date").all(prop.id) as any[]).map(mapSuggestion),
+    cleanings: view.cleaningDetails
+      ? await Promise.all(cleanings)
+      : (await Promise.all(cleanings)).map(stripCleaning),
+    suggestions: view.prices
+      ? await Promise.all((await db.prepare("SELECT * FROM price_suggestions WHERE property_id = ? AND status = 'open' ORDER BY start_date").all(prop.id) as any[]).map(mapSuggestion))
+      : [],
     revenueByChannel: ([["airbnb", "Airbnb"], ["booking", "Booking.com"], ["vrbo", "VRBO"]] as const)
       .map(([ch, label]) => ({
         channel: ch, label,
@@ -465,6 +473,9 @@ routes.get("/calendar", async (req, res) => {
       .map((r) => r.end_date)
   );
   const sugs = await suggestionsFor(propertyId);
+  // Linnois bepaalt de prijzen voor zijn eigenaars — die krijgen ze hier dus
+  // niet mee, ook niet als de frontend erom zou vragen.
+  const showPrices = viewFor(currentUser(req)).prices;
 
   const days: CalendarDay[] = [];
   for (let d = 1; d <= dim; d++) {
@@ -472,7 +483,7 @@ routes.get("/calendar", async (req, res) => {
     const b = bookings.find((x) => x.startDate <= dateIso && dateIso < x.endDate);
     let price: number | null = null;
     let suggested: number | null = null;
-    if (!b) {
+    if (!b && showPrices) {
       const np = nightPrice(prop, dateIso, sugs);
       price = np.price;
       suggested = np.suggested;
@@ -560,14 +571,14 @@ async function conversationById(id: string): Promise<Conversation | null> {
   };
 }
 
-routes.get("/conversations", async (req, res) => {
+routes.get("/conversations", requireView("inbox"), async (req, res) => {
   const scopeIds = new Set((await scopedProperties(req)).map((p) => p.id));
   const rows = await db.prepare("SELECT id, property_id FROM conversations ORDER BY sort").all() as unknown as { id: string; property_id: string }[];
   const own = rows.filter((r) => scopeIds.has(r.property_id));
   res.json(await Promise.all(own.map((r) => conversationById(r.id))));
 });
 
-routes.post("/conversations/:id/approve", async (req, res) => {
+routes.post("/conversations/:id/approve", requireView("inbox"), async (req, res) => {
   const c = await db.prepare("SELECT * FROM conversations WHERE id = ?").get(req.params.id) as any;
   if (!c || c.status !== "draft" || !c.draft) {
     res.status(409).json({ error: "geen voorstel om goed te keuren" });
@@ -582,7 +593,7 @@ routes.post("/conversations/:id/approve", async (req, res) => {
   res.json(await conversationById(c.id));
 });
 
-routes.post("/conversations/:id/reply", async (req, res) => {
+routes.post("/conversations/:id/reply", requireView("inbox"), async (req, res) => {
   const body = String(req.body?.body || "").trim();
   const c = await db.prepare("SELECT * FROM conversations WHERE id = ?").get(req.params.id) as any;
   if (!c || !body) {
@@ -609,14 +620,14 @@ async function mapSuggestion(r: any): Promise<PriceSuggestion> {
   };
 }
 
-routes.get("/price-suggestions", requirePlan("premium"), async (req, res) => {
+routes.get("/price-suggestions", requireView("prices"), requirePlan("premium"), async (req, res) => {
   const scopeIds = new Set((await scopedProperties(req)).map((p) => p.id));
   const rows = (await db.prepare("SELECT * FROM price_suggestions ORDER BY start_date").all() as any[])
     .filter((r) => scopeIds.has(r.property_id));
   res.json(await Promise.all(rows.map(mapSuggestion)));
 });
 
-routes.post("/price-suggestions/:id/decide", requirePlan("premium"), async (req, res) => {
+routes.post("/price-suggestions/:id/decide", requireView("prices"), requirePlan("premium"), async (req, res) => {
   const decision = req.body?.decision;
   if (decision !== "accepted" && decision !== "rejected") {
     res.status(400).json({ error: "decision moet 'accepted' of 'rejected' zijn" });
@@ -631,7 +642,7 @@ routes.post("/price-suggestions/:id/decide", requirePlan("premium"), async (req,
   res.json(await mapSuggestion(await db.prepare("SELECT * FROM price_suggestions WHERE id = ?").get(r.id)));
 });
 
-routes.get("/price-strip", requirePlan("premium"), async (req, res) => {
+routes.get("/price-strip", requireView("prices"), requirePlan("premium"), async (req, res) => {
   const propertyId = String(req.query.property || "villa-zeewind");
   const prop = await propertyById(propertyId);
   if (!prop) {
@@ -648,18 +659,31 @@ routes.get("/price-strip", requirePlan("premium"), async (req, res) => {
   res.json(days);
 });
 
-routes.get("/pricing-settings", requirePlan("premium"), async (_req, res) => {
+routes.get("/pricing-settings", requireView("prices"), requirePlan("premium"), async (_req, res) => {
   const open = (await db.prepare("SELECT COUNT(*) n FROM price_suggestions WHERE status = 'open'").get() as { n: number }).n;
   const decided = (await db.prepare("SELECT COUNT(*) n FROM price_suggestions WHERE status != 'open'").get() as { n: number }).n;
   res.json({ auto: await getSetting("auto_pricing", "0") === "1", decided, reviewTarget: 10, open });
 });
 
-routes.post("/pricing-settings", requirePlan("premium"), async (req, res) => {
+routes.post("/pricing-settings", requireView("prices"), requirePlan("premium"), async (req, res) => {
   await setSetting("auto_pricing", req.body?.auto ? "1" : "0");
   res.json({ auto: req.body?.auto === true });
 });
 
 /* =========================== Schoonmaak =========================== */
+
+/**
+ * Een Linnois-eigenaar ziet enkel wanneer er gepoetst wordt; team, kost en
+ * opvolging zijn interne info van het beheerteam.
+ */
+function stripCleaning(c: Cleaning): Cleaning {
+  return {
+    ...c,
+    timeLabel: null, team: "Ingepland door Linnois", source: "own", price: 0,
+    status: c.status === "done" ? "done" : "confirmed",
+    statusNote: null, photos: null, aiCheck: null,
+  };
+}
 
 async function mapCleaning(r: any): Promise<Cleaning> {
   const prop = (await propertyById(r.property_id))!;
@@ -680,7 +704,9 @@ routes.get("/cleanings", async (req, res) => {
   const scopeIds = new Set((await scopedProperties(req)).map((p) => p.id));
   const rows = (await db.prepare("SELECT * FROM cleanings ORDER BY date").all() as any[])
     .filter((r) => scopeIds.has(r.property_id));
-  res.json(await Promise.all(rows.map(mapCleaning)));
+  const full = viewFor(currentUser(req)).cleaningDetails;
+  const out = await Promise.all(rows.map(mapCleaning));
+  res.json(full ? out : out.map(stripCleaning));
 });
 
 routes.post("/cleanings/:id/confirm", async (req, res) => {
@@ -848,7 +874,9 @@ routes.get("/onboarding/stats", requireAdmin, async (_req, res) => {
 
 routes.get("/admin/users", requireAdmin, async (_req, res) => {
   const users = await db.prepare(`
-    SELECT u.id, u.name, u.email, u.role, u.plan, u.created_at AS "createdAt",
+    SELECT u.id, u.name, u.email, u.role, u.plan, u.origin,
+           u.commission_pct AS "commissionPct", u.commission_basis AS "commissionBasis",
+           u.created_at AS "createdAt",
            (SELECT COUNT(*) FROM properties) AS _ignore,
            (SELECT COUNT(DISTINCT session_id) FROM onboarding_events e WHERE e.user_id = u.id) AS onboardings,
            (SELECT MAX(s.created_at) FROM auth_sessions s WHERE s.user_id = u.id) AS "lastLogin"
@@ -899,6 +927,53 @@ routes.patch("/admin/users/:id/plan", requireAdmin, async (req, res) => {
   }
   await db.prepare("UPDATE users SET plan = ? WHERE id = ?").run(plan, req.params.id);
   res.json({ ok: true, plan });
+});
+
+/**
+ * Herkomst van een gebruiker aanpassen: Staybase- of Linnois-gebruiker.
+ * Bepaalt welke variant van het platform hij te zien krijgt (zie viewFor).
+ */
+routes.patch("/admin/users/:id/origin", requireAdmin, async (req, res) => {
+  const origin = String(req.body?.origin || "");
+  if (!["staybase", "linnois"].includes(origin)) {
+    res.status(400).json({ error: "origin moet staybase of linnois zijn" });
+    return;
+  }
+  const user = await db.prepare("SELECT id FROM users WHERE id = ?").get(req.params.id);
+  if (!user) {
+    res.status(404).json({ error: "onbekende gebruiker" });
+    return;
+  }
+  await db.prepare("UPDATE users SET origin = ? WHERE id = ?").run(origin, req.params.id);
+  res.json({ ok: true, origin });
+});
+
+/**
+ * Commissieafspraak van een gebruiker: percentage en de basis waarop het
+ * gerekend wordt. Wordt per klant onderhandeld, dus vrij instelbaar binnen
+ * een redelijke marge.
+ */
+routes.patch("/admin/users/:id/commission", requireAdmin, async (req, res) => {
+  const pct = Number(req.body?.pct);
+  const basis = String(req.body?.basis || "");
+  if (!Number.isFinite(pct) || pct < COMMISSION_MIN_PCT || pct > COMMISSION_MAX_PCT) {
+    res.status(400).json({ error: `percentage moet tussen ${COMMISSION_MIN_PCT} en ${COMMISSION_MAX_PCT} liggen` });
+    return;
+  }
+  if (!["bruto", "netto"].includes(basis)) {
+    res.status(400).json({ error: "basis moet bruto of netto zijn" });
+    return;
+  }
+  const user = await db.prepare("SELECT id FROM users WHERE id = ?").get(req.params.id);
+  if (!user) {
+    res.status(404).json({ error: "onbekende gebruiker" });
+    return;
+  }
+  // Halve procenten volstaan; meer precisie helpt niemand bij het onderhandelen.
+  const rounded = Math.round(pct * 2) / 2;
+  await db.prepare("UPDATE users SET commission_pct = ?, commission_basis = ? WHERE id = ?")
+    .run(rounded, basis, req.params.id);
+  res.json({ ok: true, pct: rounded, basis });
 });
 
 /* =========================== Eigenaar-dashboard =========================== */
@@ -1130,6 +1205,38 @@ routes.post("/integrations/guesty/reset", requireAdmin, async (_req, res) => {
 
 /* =========================== Assistent & AI =========================== */
 
+/**
+ * Vertaalt één stuk tekst — een gastbericht of een AI-voorstel — naar de
+ * gevraagde taal. Het origineel blijft altijd staan in de interface; dit
+ * levert enkel de vertaling erbij.
+ */
+routes.post("/translate", async (req, res) => {
+  const text = String(req.body?.text || "").trim();
+  const to = req.body?.to;
+  if (!text) {
+    res.status(400).json({ error: "geen tekst om te vertalen" });
+    return;
+  }
+  if (!isLanguage(to)) {
+    res.status(400).json({ error: "doeltaal moet nl, fr of en zijn" });
+    return;
+  }
+  if (text.length > 5000) {
+    res.status(413).json({ error: "bericht is te lang om te vertalen" });
+    return;
+  }
+  if (!aiAvailable()) {
+    res.status(503).json({ error: "Vertalen vraagt een AI-sleutel — zet ANTHROPIC_API_KEY in backend/.env." });
+    return;
+  }
+  try {
+    res.json({ text: await llmTranslate(text, to), language: to });
+  } catch (err) {
+    console.error("Vertalen mislukte:", err);
+    res.status(502).json({ error: "Vertalen lukte even niet — probeer opnieuw." });
+  }
+});
+
 routes.get("/ai-status", async (_req, res) => {
   res.json({ llm: aiAvailable() });
 });
@@ -1148,7 +1255,7 @@ routes.post("/assistant", async (req, res) => {
 });
 
 /** Herschrijf het AI-voorstel van een gesprek met het echte model (vereist een API-key). */
-routes.post("/conversations/:id/regenerate", async (req, res) => {
+routes.post("/conversations/:id/regenerate", requireView("inbox"), async (req, res) => {
   if (!aiAvailable()) {
     res.status(409).json({ error: "Geen AI-key geconfigureerd — zie backend/.env.example" });
     return;

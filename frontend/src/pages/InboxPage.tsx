@@ -7,16 +7,22 @@ import {
 import { CHANNEL_META } from "../lib/format";
 import { Icon } from "../components/Icon";
 import { useToast } from "../components/Toast";
+import { Translatable } from "../components/TranslateButton";
+import { useT } from "../i18n";
+import { useBrand } from "../components/OriginGate";
+import { BRAND_LABEL } from "@shared/types";
 
-function statusChip(c: Conversation) {
-  if (c.status === "draft") return <span className="chip coral">✨ Antwoord klaar</span>;
-  if (c.status === "guard") return <span className="chip warn">Voor jou</span>;
-  return <span className="chip good">✓ Beantwoord</span>;
+function StatusChip({ c }: { c: Conversation }) {
+  const t = useT();
+  if (c.status === "draft") return <span className="chip coral">{t("inbox.status.draft")}</span>;
+  if (c.status === "guard") return <span className="chip warn">{t("inbox.status.guard")}</span>;
+  return <span className="chip good">{t("inbox.status.done")}</span>;
 }
 
 export function InboxPage() {
   const { data: convos, isLoading } = useConversations();
   const { data: overview } = useOverview();
+  const [propertyId, setPropertyId] = useState("");   // "" = alle panden
   const [activeId, setActiveId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [showReply, setShowReply] = useState(false);
@@ -25,33 +31,85 @@ export function InboxPage() {
   const regenerate = useRegenerateDraft();
   const { data: aiStatus } = useAiStatus();
   const toast = useToast();
+  const t = useT();
+  const brand = BRAND_LABEL[useBrand()];
 
-  if (isLoading || !convos) return <div className="loading">Inbox laden…</div>;
+  if (isLoading || !convos) return <div className="loading">{t("inbox.title")}…</div>;
 
   if (convos.length === 0) {
     return (
       <section className="page">
-        <h1>Inbox</h1>
-        <p className="sub">
-          Alle gastenberichten van elk kanaal, in één plek. Staybase schrijft het antwoord — in jouw stijl. Jij keurt goed.
-        </p>
+        <h1>{t("inbox.title")}</h1>
+        <p className="sub">{t("inbox.sub", { brand })}</p>
         <div className="card" style={{ marginTop: 24, padding: "28px 24px", textAlign: "center", color: "var(--muted)" }}>
           <div style={{ fontSize: 34, marginBottom: 10 }}>📭</div>
-          <b style={{ color: "var(--ink)" }}>Nog geen gesprekken</b>
-          <p style={{ fontSize: 14, margin: "6px auto 0", maxWidth: 420 }}>
-            Synchroniseer met Guesty via <b>Koppelingen</b> om de gastenberichten van Airbnb en Booking.com hier binnen te halen.
-          </p>
+          <b style={{ color: "var(--ink)" }}>{t("inbox.empty.title")}</b>
+          <p style={{ fontSize: 14, margin: "6px auto 0", maxWidth: 420 }}>{t("inbox.empty.body")}</p>
         </div>
       </section>
     );
   }
 
-  const active = convos.find((c) => c.id === activeId) ?? convos.find((c) => c.status === "draft") ?? convos[0];
+  // Panden met gesprekken, met hoeveel er nog op antwoord wachten. Alleen
+  // panden die echt berichten hebben komen in de filter — een leeg pand
+  // kiezen levert toch niets op.
+  const perProperty = new Map<string, { name: string; total: number; open: number }>();
+  for (const c of convos) {
+    const e = perProperty.get(c.propertyId) ?? { name: c.propertyName, total: 0, open: 0 };
+    e.total += 1;
+    if (c.status !== "done") e.open += 1;
+    perProperty.set(c.propertyId, e);
+  }
+  const properties = [...perProperty.entries()].sort((a, b) => a[1].name.localeCompare(b[1].name, "nl"));
+  const openAll = convos.filter((c) => c.status !== "done").length;
+
+  const shown = propertyId ? convos.filter((c) => c.propertyId === propertyId) : convos;
+  // Het actieve gesprek moet in de filter passen; anders valt de keuze terug
+  // op het eerste gesprek dat nog een antwoord nodig heeft.
+  const active =
+    shown.find((c) => c.id === activeId) ?? shown.find((c) => c.status === "draft") ?? shown[0] ?? null;
   const trust = overview?.trust ?? { count: 13, target: 20 };
+
+  const filterBar = (
+    <div className="inbox-filter">
+      <label htmlFor="inbox-pand">{t("common.property")}</label>
+      <select id="inbox-pand" className="plan-select" value={propertyId}
+        onChange={(e) => { setPropertyId(e.target.value); setActiveId(null); setShowReply(false); }}>
+        <option value="">{t("inbox.filter.all", { n: convos.length })}</option>
+        {properties.map(([id, p]) => (
+          <option key={id} value={id}>{p.name} ({p.total})</option>
+        ))}
+      </select>
+      <span className="inbox-filter-count">
+        {t(shown.length === 1 ? "inbox.filter.count" : "inbox.filter.countPlural", { n: shown.length })}
+        {(propertyId ? shown.filter((c) => c.status !== "done").length : openAll) > 0 && (
+          <> · <b>{propertyId ? shown.filter((c) => c.status !== "done").length : openAll}</b> {t("inbox.filter.waiting")}</>
+        )}
+      </span>
+      {propertyId && (
+        <button className="btn ghost sm" onClick={() => { setPropertyId(""); setActiveId(null); }}>
+          {t("inbox.filter.showAll")}
+        </button>
+      )}
+    </div>
+  );
+
+  if (!active) {
+    return (
+      <section className="page inbox-page">
+        <h1>{t("inbox.title")}</h1>
+        <p className="sub">{t("inbox.sub", { brand })}</p>
+        {filterBar}
+        <div className="card" style={{ padding: "28px 24px", textAlign: "center", color: "var(--muted)" }}>
+          {t("inbox.filter.noneForProperty")}
+        </div>
+      </section>
+    );
+  }
 
   const onApprove = () => {
     approve.mutate([active.id], {
-      onSuccess: () => toast(`Verstuurd via ${CHANNEL_META[active.channel].name} ✓`),
+      onSuccess: () => toast(t("inbox.sentVia", { channel: CHANNEL_META[active.channel].name })),
     });
   };
 
@@ -62,22 +120,22 @@ export function InboxPage() {
       onSuccess: () => {
         setReplyText("");
         setShowReply(false);
-        toast(`Verstuurd via ${CHANNEL_META[active.channel].name} ✓`);
+        toast(t("inbox.sentVia", { channel: CHANNEL_META[active.channel].name }));
       },
     });
   };
 
   return (
     <section className="page inbox-page">
-      <h1>Inbox</h1>
-      <p className="sub">
-        Alle gastenberichten van elk kanaal, in één plek. Staybase schrijft het antwoord — in jouw stijl. Jij keurt goed.
-      </p>
+      <h1>{t("inbox.title")}</h1>
+      <p className="sub">{t("inbox.sub", { brand })}</p>
+
+      {filterBar}
 
       <div className="inbox-grid">
         <div className="inbox-left">
           <div className="card convo-list">
-            {convos.map((c) => (
+            {shown.map((c) => (
               <button
                 key={c.id}
                 className={`convo ${c.id === active.id ? "on" : ""}`}
@@ -86,11 +144,12 @@ export function InboxPage() {
                 <span className="avat">{c.avatar}</span>
                 <span style={{ minWidth: 0 }}>
                   <b>{c.guest}</b>
+                  {!propertyId && <span className="snip convo-prop">{c.propertyName}</span>}
                   <span className="snip">{c.snippet}</span>
                 </span>
                 <span className="meta">
                   <time>{c.timeLabel}</time>
-                  {statusChip(c)}
+                  <StatusChip c={c} />
                 </span>
               </button>
             ))}
@@ -98,13 +157,12 @@ export function InboxPage() {
           <div className="card trust">
             <span style={{ fontSize: 20 }}>🎓</span>
             <div style={{ flex: 1 }}>
-              <b style={{ fontSize: 13.5 }}>Staybase leert jouw stem · <span className="num">{trust.count}</span>/{trust.target}</b>
+              <b style={{ fontSize: 13.5 }}>{t("inbox.trust", { brand })} · <span className="num">{trust.count}</span>/{trust.target}</b>
               <div className="bar-track" style={{ marginTop: 6 }}>
                 <div className="bar-fill" style={{ width: `${(trust.count / trust.target) * 100}%` }} />
               </div>
               <span style={{ fontSize: 12.5, color: "var(--muted)" }}>
-                Na {trust.target} goedkeuringen kan Staybase eenvoudige vragen zelf beantwoorden.
-                Kortingen en voorwaarden blijven áltijd bij jou.
+                {t("inbox.trustBody", { brand, target: trust.target })}
               </span>
             </div>
           </div>
@@ -126,8 +184,10 @@ export function InboxPage() {
             {active.messages.map((m) => (
               <div key={m.id} className={`msg ${m.sender}`}>
                 {m.body}
+                {/* Het origineel blijft staan; de vertaling komt eronder. */}
+                <Translatable key={`${active.id}-${m.id}`} text={m.body} tone={m.sender === "guest" ? "guest" : "host"} />
                 <span className="mt">
-                  {m.timeLabel}{m.auto ? " · automatisch verstuurd, in jouw stijl ✨" : ""}
+                  {m.timeLabel}{m.auto ? t("inbox.autoSent") : ""}
                 </span>
               </div>
             ))}
@@ -135,15 +195,16 @@ export function InboxPage() {
 
           {active.status === "draft" && active.draft && (
             <div className="ai-card">
-              <div className="ai-top"><Icon name="sparkle" /> Voorstel van Staybase</div>
+              <div className="ai-top"><Icon name="sparkle" /> {t("inbox.proposal", { brand })}</div>
               <p>{active.draft}</p>
+              <Translatable key={`draft-${active.id}`} text={active.draft} tone="ai" />
               {active.draftNote && <div className="ai-note">💡 {active.draftNote}</div>}
               <div className="ai-actions">
                 <button className="btn coral sm" onClick={onApprove} disabled={approve.isPending}>
-                  <Icon name="check" /> {approve.isPending ? "Versturen…" : "Goedkeuren & versturen"}
+                  <Icon name="check" /> {approve.isPending ? t("inbox.approving") : t("inbox.approve")}
                 </button>
                 <button className="btn ghost sm" onClick={() => { setShowReply(true); setReplyText(active.draft ?? ""); }}>
-                  ✎ Aanpassen
+                  {t("inbox.edit")}
                 </button>
                 {aiStatus?.llm && (
                   <button
@@ -151,12 +212,12 @@ export function InboxPage() {
                     disabled={regenerate.isPending}
                     onClick={() =>
                       regenerate.mutate([active.id], {
-                        onSuccess: () => toast("Nieuw voorstel geschreven ✨"),
-                        onError: () => toast("Herschrijven mislukte — probeer opnieuw"),
+                        onSuccess: () => toast(t("inbox.rewritten")),
+                        onError: () => toast(t("inbox.rewriteFailed")),
                       })
                     }
                   >
-                    {regenerate.isPending ? "Schrijven…" : "↻ Herschrijf met AI"}
+                    {regenerate.isPending ? t("inbox.rewriting") : t("inbox.rewrite")}
                   </button>
                 )}
               </div>
@@ -165,11 +226,11 @@ export function InboxPage() {
 
           {active.status === "guard" && (
             <div className="ai-card guard">
-              <div className="ai-top">💬 Wacht op jouw antwoord</div>
-              <p>{active.guardReason ?? "De gast stuurde een bericht dat nog niet beantwoord is."}</p>
+              <div className="ai-top">{t("inbox.waitingTitle")}</div>
+              <p>{active.guardReason ?? t("inbox.waitingBody")}</p>
               <div className="ai-actions">
                 <button className="btn primary sm" onClick={() => { setShowReply(true); setReplyText(""); }}>
-                  Zelf antwoorden
+                  {t("inbox.answerSelf")}
                 </button>
                 {aiStatus?.llm && (
                   <button
@@ -177,12 +238,12 @@ export function InboxPage() {
                     disabled={regenerate.isPending}
                     onClick={() =>
                       regenerate.mutate([active.id], {
-                        onSuccess: () => toast("Voorstel geschreven — kijk het na ✨"),
-                        onError: () => toast("Voorstel schrijven mislukte — probeer opnieuw"),
+                        onSuccess: () => toast(t("inbox.drafted")),
+                        onError: () => toast(t("inbox.draftFailed")),
                       })
                     }
                   >
-                    {regenerate.isPending ? "Schrijven…" : "✨ Laat Staybase een voorstel schrijven"}
+                    {regenerate.isPending ? t("inbox.rewriting") : t("inbox.letAiWrite", { brand })}
                   </button>
                 )}
               </div>
@@ -191,7 +252,7 @@ export function InboxPage() {
 
           {active.status === "done" && !showReply && (
             <div style={{ padding: "0 20px 20px" }}>
-              <span className="chip good">✓ Beantwoord</span>
+              <span className="chip good">{t("inbox.status.done")}</span>
             </div>
           )}
 
@@ -202,11 +263,11 @@ export function InboxPage() {
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && onReply()}
-                placeholder="Schrijf je antwoord…"
+                placeholder={t("inbox.replyPlaceholder")}
                 autoFocus
               />
               <button className="btn primary sm" onClick={onReply} disabled={reply.isPending || !replyText.trim()}>
-                {reply.isPending ? "…" : "Verstuur"}
+                {reply.isPending ? "…" : t("common.send")}
               </button>
             </div>
           )}

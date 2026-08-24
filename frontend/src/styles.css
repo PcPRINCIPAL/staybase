@@ -1,6 +1,12 @@
 :root{
   color-scheme: light;
+  /* Merkkleur (Staybase). Een Linnois-gebruiker krijgt hier andere waarden —
+     zie de [data-brand="linnois"]-blok onderaan. */
   --coral:#FF385C; --coral-deep:#E31C5F; --coral-soft:#FFF0F3; --coral-line:#FFD9E0;
+  --coral-tint:#FFE3E9; --coral-glow:rgba(227,28,95,.3); --coral-glow-strong:rgba(227,28,95,.4);
+  --coral-ring:rgba(255,56,92,.4);
+  /* Kanaalkleur Airbnb — hangt níét aan het merk en blijft dus altijd rood. */
+  --airbnb:#FF385C; --airbnb-deep:#E31C5F; --airbnb-soft:#FFF0F3;
   --ink:#232323; --muted:#71706C; --faint:#9C9A94;
   --line:#ECEAE6; --bg:#F9F8F6; --card:#FFFFFF; --soft:#F5F4F1;
   --booking:#2B6CDF; --booking-soft:#EDF3FE;
@@ -37,14 +43,16 @@ svg{display:block}
 .side-toggle:hover{background:var(--soft); color:var(--ink)}
 .side-toggle:disabled{opacity:.4}
 .side-nav{display:flex; flex-direction:column; gap:2px; flex:1; overflow-y:auto}
-.side-nav a{display:flex; align-items:center; gap:11px; padding:11px 13px; border-radius:12px; font-size:14px; font-weight:600; color:var(--muted); white-space:nowrap; transition:background .15s,color .15s}
-.side-nav a:hover{background:var(--soft); color:var(--ink)}
+.side-nav a,.side-nav .side-chat{display:flex; align-items:center; gap:11px; padding:11px 13px; border-radius:12px; font-size:14px; font-weight:600; color:var(--muted); white-space:nowrap; transition:background .15s,color .15s}
+.side-nav a:hover,.side-nav .side-chat:hover{background:var(--soft); color:var(--ink)}
 .side-nav a.on{background:var(--coral-soft); color:var(--coral-deep)}
-.side-nav a svg{flex-shrink:0}
+.side-nav a svg,.side-nav .side-chat svg{flex-shrink:0}
+/* 'Chat met Julie' vervangt de inbox bij een Linnois-gebruiker. */
+.side-nav .side-chat{width:100%; text-align:left; background:none; border:0; cursor:pointer; font-family:inherit}
 .side-nav .badge{margin-left:auto; background:var(--coral); color:#fff; font-size:11px; font-weight:700; min-width:18px; height:18px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; padding:0 5px}
 .side-bottom{display:flex; flex-direction:column; gap:10px; padding-top:14px; border-top:1px solid var(--line)}
-.btn-new{display:flex; align-items:center; justify-content:center; gap:7px; padding:11px 18px; border-radius:999px; font-size:14px; font-weight:700; color:#fff; background:linear-gradient(95deg,#FF385C,#E31C5F); box-shadow:0 2px 8px rgba(227,28,95,.3); transition:transform .15s, box-shadow .15s}
-.btn-new:hover{transform:translateY(-1px); box-shadow:0 4px 14px rgba(227,28,95,.4)}
+.btn-new{display:flex; align-items:center; justify-content:center; gap:7px; padding:11px 18px; border-radius:999px; font-size:14px; font-weight:700; color:#fff; background:linear-gradient(95deg,var(--coral),var(--coral-deep)); box-shadow:0 2px 8px var(--coral-glow); transition:transform .15s, box-shadow .15s}
+.btn-new:hover{transform:translateY(-1px); box-shadow:0 4px 14px var(--coral-glow-strong)}
 .avatar{width:36px; height:36px; border-radius:50%; background:var(--navy); color:#fff; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; flex-shrink:0}
 .avatar-wrap{position:relative}
 .side-user{display:flex; align-items:center; gap:10px; width:100%; padding:6px 8px; border-radius:12px; text-align:left}
@@ -59,7 +67,7 @@ svg{display:block}
 .sidebar.rail .side-top{flex-direction:column; gap:10px; padding:0 0 14px}
 .sidebar.rail .logo{padding:0}
 .sidebar.rail .side-nav{width:100%; align-items:stretch}
-.sidebar.rail .side-nav a{position:relative; justify-content:center; padding:11px 0}
+.sidebar.rail .side-nav a,.sidebar.rail .side-nav .side-chat{position:relative; justify-content:center; padding:11px 0}
 .sidebar.rail .side-nav .badge{position:absolute; margin:0; transform:translate(14px,-10px)}
 .sidebar.rail .side-bottom{width:100%; align-items:center}
 .sidebar.rail .btn-new{padding:11px 12px}
@@ -74,10 +82,11 @@ h1{font-size:28px; font-weight:800; letter-spacing:-.02em; text-wrap:balance}
 .sec-title .em{font-size:19px}
 
 .card{background:var(--card); border:1px solid var(--line); border-radius:var(--r-md); box-shadow:var(--shadow)}
-.chip{display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:700; padding:4px 10px; border-radius:999px}
+.chip{display:inline-flex; align-items:center; gap:5px; white-space:nowrap; font-size:12px; font-weight:700; padding:4px 10px; border-radius:999px}
 .chip.good{background:var(--good-soft); color:var(--good)}
 .chip.warn{background:var(--warn-soft); color:var(--warn)}
 .chip.coral{background:var(--coral-soft); color:var(--coral-deep)}
+.chip.airbnb{background:var(--airbnb-soft); color:var(--airbnb-deep)}
 .chip.gray{background:var(--soft); color:var(--muted)}
 .chip.booking{background:var(--booking-soft); color:var(--booking)}
 .chip.vrbo{background:var(--vrbo-soft); color:var(--vrbo)}
@@ -85,7 +94,7 @@ h1{font-size:28px; font-weight:800; letter-spacing:-.02em; text-wrap:balance}
 .btn{display:inline-flex; align-items:center; gap:7px; padding:9px 16px; border-radius:999px; font-size:14px; font-weight:700; transition:background .15s, transform .12s}
 .btn.primary{background:var(--ink); color:#fff}
 .btn.primary:hover{background:#000}
-.btn.coral{background:linear-gradient(95deg,#FF385C,#E31C5F); color:#fff}
+.btn.coral{background:linear-gradient(95deg,var(--coral),var(--coral-deep)); color:#fff}
 .btn.coral:hover{transform:translateY(-1px)}
 .btn.ghost{border:1px solid var(--line); background:var(--card); color:var(--ink)}
 .btn.ghost:hover{background:var(--soft)}
@@ -120,7 +129,7 @@ h1{font-size:28px; font-weight:800; letter-spacing:-.02em; text-wrap:balance}
 .resp-card{padding:20px; display:flex; flex-direction:column; gap:10px}
 .resp-card .big{font-size:30px; font-weight:800; letter-spacing:-.02em}
 .bar-track{height:8px; border-radius:4px; background:var(--soft); overflow:hidden}
-.bar-fill{height:100%; border-radius:4px; background:linear-gradient(90deg,#FF385C,#E31C5F); transition:width .3s}
+.bar-fill{height:100%; border-radius:4px; background:linear-gradient(90deg,var(--coral),var(--coral-deep)); transition:width .3s}
 
 .props{display:grid; grid-template-columns:repeat(4,1fr); gap:14px}
 .prop{overflow:hidden; border-radius:var(--r-md); background:var(--card); border:1px solid var(--line); box-shadow:var(--shadow); transition:transform .15s, box-shadow .15s; cursor:pointer}
@@ -168,7 +177,7 @@ h1{font-size:28px; font-weight:800; letter-spacing:-.02em; text-wrap:balance}
 .gantt-name-txt b{font-size:13px; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .gantt-name-txt small{font-size:11.5px; color:var(--muted)}
 .gantt-bar{position:absolute; top:50%; transform:translateY(-50%); height:44px; border-radius:10px; display:flex; align-items:center; padding:0 12px; font-size:12.5px; font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; z-index:1; min-width:0; box-shadow:inset 0 0 0 1.5px var(--card)}
-.gantt-bar.airbnb{background:var(--coral)}
+.gantt-bar.airbnb{background:var(--airbnb)}
 .gantt-bar.booking{background:var(--booking)}
 .gantt-bar.vrbo{background:var(--vrbo)}
 .cal-props{display:flex; flex-direction:column; gap:10px; position:sticky; top:20px; max-height:calc(100vh - 40px); overflow-y:auto; padding-right:2px}
@@ -233,7 +242,7 @@ h1{font-size:28px; font-weight:800; letter-spacing:-.02em; text-wrap:balance}
 .cal-cells > *:nth-child(7n+1) .bseg-end,
 .cal-cells > *:nth-child(7n+1) .bseg-cover.full{left:0}
 .cal-cells > *:nth-child(7n) .bseg-cover{right:0}
-.cell .bseg.airbnb{background:var(--coral)}
+.cell .bseg.airbnb{background:var(--airbnb)}
 .cell .bseg.booking{background:var(--booking)}
 .cell .bseg.vrbo{background:var(--vrbo)}
 .cell .guest{position:absolute; left:9px; bottom:8px; right:6px; font-size:11.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#fff; z-index:1}
@@ -260,7 +269,7 @@ h1{font-size:28px; font-weight:800; letter-spacing:-.02em; text-wrap:balance}
 .wrap:has(.inbox-page){max-width:none; height:100vh; padding-bottom:22px; display:flex; flex-direction:column; overflow:hidden}
 .shell-main:has(.inbox-page) .foot{display:none}
 .inbox-page{display:flex; flex-direction:column; flex:1; min-height:0}
-.inbox-grid{display:grid; grid-template-columns:340px minmax(0,1fr); gap:14px; margin-top:18px; align-items:stretch; flex:1; min-height:0}
+.inbox-grid{display:grid; grid-template-columns:340px minmax(0,1fr); gap:14px; margin-top:14px; align-items:stretch; flex:1; min-height:0}
 .inbox-left{display:flex; flex-direction:column; gap:14px; min-height:0}
 .convo-list{flex:1; min-height:0; overflow-y:auto}
 
@@ -272,6 +281,14 @@ h1{font-size:28px; font-weight:800; letter-spacing:-.02em; text-wrap:balance}
 .gantt-scroll::-webkit-scrollbar-track:horizontal{margin:0 14px}
 .convo-list::-webkit-scrollbar-thumb, .thread-body::-webkit-scrollbar-thumb, .gantt-scroll::-webkit-scrollbar-thumb{background:rgba(34,30,31,.18); border-radius:99px; border:3px solid transparent; background-clip:content-box}
 .convo-list::-webkit-scrollbar-thumb:hover, .thread-body::-webkit-scrollbar-thumb:hover, .gantt-scroll::-webkit-scrollbar-thumb:hover{background:rgba(34,30,31,.32); border:3px solid transparent; background-clip:content-box}
+/* Filterbalk boven de inbox: op één pand filteren, of alles tonen. */
+.inbox-filter{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:16px}
+.inbox-filter label{font-size:12px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:var(--faint)}
+.inbox-filter .plan-select{max-width:320px}
+.inbox-filter-count{font-size:13px; color:var(--muted)}
+.inbox-filter-count b{color:var(--ink)}
+/* Toont bij 'alle panden' bij welk pand een gesprek hoort. */
+.convo .convo-prop{font-size:12px; font-weight:600; color:var(--faint)}
 .convo{display:flex; gap:12px; width:100%; text-align:left; padding:15px 16px; border-bottom:1px solid var(--line); transition:background .12s; align-items:flex-start}
 .convo:last-child{border-bottom:none}
 .convo:hover{background:var(--soft)}
@@ -359,9 +376,17 @@ h1{font-size:28px; font-weight:800; letter-spacing:-.02em; text-wrap:balance}
 .doc-row span{font-size:12.5px; color:var(--muted)}
 .doc-row .end{margin-left:auto; display:flex; align-items:center; gap:10px}
 table.mini{width:100%; border-collapse:collapse; font-size:14px}
-table.mini td{padding:11px 20px; border-top:1px solid var(--line)}
+table.mini td{padding:11px 20px; border-top:1px solid var(--line); vertical-align:middle}
 table.mini tr:first-child td{border-top:none}
 table.mini td:last-child{text-align:right; font-weight:700; white-space:nowrap}
+/* Kolomkoppen — enkel tabellen met een <thead> krijgen ze. */
+table.mini th{padding:13px 20px 9px; text-align:left; font-size:11.5px; font-weight:800;
+  letter-spacing:.05em; text-transform:uppercase; color:var(--faint); white-space:nowrap}
+table.mini th:last-child{text-align:right}
+table.mini thead tr{border-bottom:1px solid var(--line)}
+/* Naam boven, e-mailadres eronder. */
+.cell-stack b{display:block; line-height:1.35}
+.cell-stack .cell-sub{display:block; color:var(--muted); font-size:13px; line-height:1.35}
 
 /* ===== Wizard ===== */
 .wizard{position:fixed; inset:0; z-index:100; background:var(--bg); display:flex; flex-direction:column; overflow-y:auto}
@@ -408,9 +433,9 @@ table.mini td:last-child{text-align:right; font-weight:700; white-space:nowrap}
 .banner.warn{background:var(--warn-soft); color:#7A5200}
 .banner.good{background:var(--good-soft); color:#14603F}
 .mic-wrap{text-align:center; padding:36px 0 32px}
-.mic{width:96px; height:96px; margin:0 auto; border-radius:50%; background:linear-gradient(135deg,#FF385C,#E31C5F); color:#fff; display:flex; align-items:center; justify-content:center; position:relative}
+.mic{width:96px; height:96px; margin:0 auto; border-radius:50%; background:linear-gradient(135deg,var(--coral),var(--coral-deep)); color:#fff; display:flex; align-items:center; justify-content:center; position:relative}
 .mic.done-mic{background:var(--good)}
-.mic.live::before, .mic.live::after{content:""; position:absolute; inset:-12px; border-radius:50%; border:2px solid rgba(255,56,92,.4); animation:pulse 1.6s ease-out infinite}
+.mic.live::before, .mic.live::after{content:""; position:absolute; inset:-12px; border-radius:50%; border:2px solid var(--coral-ring); animation:pulse 1.6s ease-out infinite}
 .mic.live::after{animation-delay:.8s}
 @keyframes pulse{from{transform:scale(.85); opacity:1} to{transform:scale(1.35); opacity:0}}
 .mic-q{margin-top:22px; font-size:16px; font-weight:700; min-height:26px}
@@ -508,6 +533,25 @@ table.mini td:last-child{text-align:right; font-weight:700; white-space:nowrap}
 .upsell p{color:var(--muted); font-size:14.5px; line-height:1.55}
 .upsell ul{list-style:none; padding:0; margin:18px auto; max-width:380px; text-align:left; display:flex; flex-direction:column; gap:9px; font-size:14px}
 .upsell-note{font-size:13px !important; color:var(--faint) !important; margin-top:16px}
+/* Commissie per gebruiker: schuifknop, exact cijfer en de basis ernaast. */
+.comm-slider-cell{width:38%; min-width:150px}
+.comm-slider{-webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:99px;
+  background:var(--soft); outline:none; cursor:pointer; display:block}
+.comm-slider::-webkit-slider-thumb{-webkit-appearance:none; appearance:none; width:20px; height:20px;
+  border-radius:50%; background:var(--coral); border:2px solid var(--card);
+  box-shadow:0 1px 5px rgba(0,0,0,.22); cursor:grab}
+.comm-slider::-webkit-slider-thumb:active{cursor:grabbing}
+.comm-slider::-moz-range-thumb{width:18px; height:18px; border-radius:50%; background:var(--coral);
+  border:2px solid var(--card); box-shadow:0 1px 5px rgba(0,0,0,.22); cursor:grab}
+.comm-slider:focus-visible{outline:2px solid var(--coral); outline-offset:4px}
+.comm-value{display:inline-flex; align-items:center; gap:3px; font-weight:800; font-size:15px}
+.comm-value input{width:56px; padding:6px 2px 6px 8px; border:1.5px solid var(--line); border-radius:9px;
+  font-size:15px; font-weight:800; font-family:inherit; background:var(--card); color:var(--ink);
+  text-align:right; -moz-appearance:textfield}
+.comm-value input::-webkit-outer-spin-button, .comm-value input::-webkit-inner-spin-button{
+  -webkit-appearance:none; margin:0}
+.comm-value input:focus{border-color:var(--ink); outline:none}
+.comm-hint{color:var(--faint); font-size:12.5px; font-weight:500 !important}
 .plan-select{padding:7px 10px; border:1.5px solid var(--line); border-radius:9px; font-size:13px; font-weight:600; background:var(--card)}
 .plan-select:focus{border-color:var(--ink); outline:none}
 
@@ -580,7 +624,7 @@ table.mini td:last-child{text-align:right; font-weight:700; white-space:nowrap}
 .rail-insight-ico{width:34px; height:34px; border-radius:10px; background:var(--card); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0}
 .rail-insight b{font-size:13px}
 .rail-insight p{font-size:12.5px; color:var(--muted); margin:3px 0 0; line-height:1.45}
-.week-card{background:linear-gradient(150deg,#FFF0F3,#FFE3E9)}
+.week-card{background:linear-gradient(150deg,var(--coral-soft),var(--coral-tint))}
 .week-card > b{font-size:15px; line-height:1.35}
 .week-big{margin-top:10px; font-size:14px}
 .week-big .num{font-size:24px; font-weight:800; color:var(--coral-deep)}
@@ -645,7 +689,7 @@ table.mini td:last-child{text-align:right; font-weight:700; white-space:nowrap}
 .oh-day.today small{color:var(--coral-deep); font-weight:800}
 .oh-day small{position:absolute; top:3px; left:50%; transform:translateX(-50%); font-size:9.5px; color:var(--faint)}
 .oh-bar{position:absolute; top:50%; transform:translateY(-50%); height:34px; border-radius:9px; display:flex; align-items:center; padding:0 10px; font-size:12px; font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; box-shadow:inset 0 0 0 1.5px var(--card)}
-.oh-bar.airbnb{background:var(--coral)}
+.oh-bar.airbnb{background:var(--airbnb)}
 .oh-bar.booking{background:var(--booking)}
 .oh-bar.vrbo{background:var(--vrbo)}
 .oh-contact-row{display:flex; align-items:center; gap:11px; margin-top:4px}
@@ -760,3 +804,68 @@ table.mini td:last-child{text-align:right; font-weight:700; white-space:nowrap}
   .rev-hero .big{font-size:34px}
   .sug .delta{margin-left:0}
 }
+
+/* ===================== Merkomslag: Linnois ======================
+   Een gebruiker met herkomst 'linnois' krijgt de huisstijl van Linnois:
+   het koraalrood van Staybase wordt het diepblauw #100551 uit hun logo.
+   De kanaalkleuren (--airbnb, --booking, --vrbo) blijven ongemoeid, zodat
+   Airbnb rood en Booking.com blauw blijft in kalender en grafieken. */
+[data-brand="linnois"]{
+  --coral:#100551;
+  --coral-deep:#0B0338;
+  --coral-soft:#EEEDF6;
+  --coral-line:#D3D0E4;
+  --coral-tint:#E0DEEE;
+  --coral-glow:rgba(16,5,81,.28);
+  --coral-glow-strong:rgba(16,5,81,.4);
+  --coral-ring:rgba(16,5,81,.4);
+}
+/* Het Linnois-logo vervangt woordmerk + icoon; ingeklapt blijft de L over. */
+.logo-img{height:30px; width:auto; display:block}
+.sidebar.rail .logo-img{height:34px}
+
+/* ===================== Taal & vertalen ===================== */
+.lang-picker{position:relative}
+.lang-btn{display:inline-flex; align-items:center; gap:6px; padding:7px 10px; border-radius:10px;
+  border:1px solid var(--line); background:var(--card); color:var(--muted);
+  font-size:13px; font-weight:700; font-family:inherit; cursor:pointer; transition:background .15s,color .15s}
+.lang-btn:hover{background:var(--soft); color:var(--ink)}
+.lang-code{letter-spacing:.04em}
+.lang-chev{display:flex; color:var(--faint)}
+.lang-menu{position:absolute; z-index:60; bottom:calc(100% + 6px); left:0; min-width:190px;
+  background:var(--card); border:1px solid var(--line); border-radius:12px; padding:6px;
+  box-shadow:0 10px 30px rgba(0,0,0,.13); display:flex; flex-direction:column; gap:2px}
+.lang-picker.bar .lang-menu{top:calc(100% + 6px); bottom:auto}
+/* Uiterst rechts in de websitebalk: uitklappen naar links, anders valt het
+   menu buiten het scherm. */
+.lp-nav-cta .lang-menu{left:auto; right:0}
+.lang-menu button{display:flex; align-items:center; gap:8px; width:100%; text-align:left;
+  padding:9px 11px; border-radius:9px; font-size:13.5px; font-weight:600; color:var(--ink);
+  background:none; border:0; font-family:inherit; cursor:pointer}
+.lang-menu button:hover{background:var(--soft)}
+.lang-menu button.on{background:var(--coral-soft); color:var(--coral-deep)}
+.lang-menu button b{font-size:12px; letter-spacing:.05em; color:var(--faint); min-width:20px}
+.lang-menu button.on b{color:var(--coral-deep)}
+.lang-check{margin-left:auto; font-size:12px}
+/* Taalkiezer in het avatarmenu van de zijbalk. */
+.menu-lang{padding:6px 8px 8px; border-bottom:1px solid var(--line); margin-bottom:4px}
+.menu-lang .lang-btn{width:100%; justify-content:flex-start}
+.menu-lang .lang-chev{margin-left:auto}
+/* Taalkiezer op de login- en registratiepagina. */
+.login-lang{width:100%; max-width:420px; display:flex; justify-content:flex-end; margin-bottom:10px}
+
+/* Vertaalknop: klein en terughoudend, want het origineel is de hoofdzaak. */
+.translate-btn{display:inline-flex; align-items:center; gap:5px; margin-top:8px; padding:3px 8px;
+  border-radius:999px; border:1px solid transparent; background:rgba(0,0,0,.05); color:inherit;
+  font-size:11.5px; font-weight:700; font-family:inherit; cursor:pointer; opacity:.75; transition:opacity .15s, background .15s}
+.translate-btn:hover{opacity:1; background:rgba(0,0,0,.09)}
+.translate-btn:disabled{cursor:default; opacity:.5}
+.msg.host .translate-btn, .msg.host .translate-btn:hover{background:rgba(255,255,255,.18)}
+.translate-btn.ai{background:var(--card); border-color:var(--coral-line); color:var(--coral-deep)}
+/* De vertaling zelf: duidelijk apart van het origineel erboven. */
+.translation{margin-top:8px; padding:9px 11px; border-radius:10px; font-size:inherit; line-height:1.5;
+  border-left:3px solid var(--coral); background:rgba(0,0,0,.045)}
+.msg.host .translation{background:rgba(255,255,255,.14); border-left-color:rgba(255,255,255,.55)}
+.translation.ai{background:var(--card); border-left-color:var(--coral)}
+.translation-lbl{display:block; font-size:10.5px; font-weight:800; letter-spacing:.06em;
+  text-transform:uppercase; opacity:.6; margin-bottom:4px}

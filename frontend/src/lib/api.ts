@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   AssistantReply, CalendarData, CalendarOverview, Cleaning, Conversation, InsightsData,
   NewPropertyInput, OwnerHomeData, Overview, PriceStripDay, PriceSuggestion, Property,
-  PropertyDetail, RevenueData, UserPlan,
+  CommissionBasis, Language, PropertyDetail, RevenueData, UserOrigin, UserPlan,
 } from "@shared/types";
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
@@ -27,13 +27,31 @@ export interface AuthUser {
   name: string;
   role: "admin" | "owner";
   plan: UserPlan;
+  /** Staybase- of Linnois-gebruiker — bepaalt de variant van het platform. */
+  origin: UserOrigin;
+  /** Voorkeurstaal van de interface. */
+  language: Language;
 }
 
 export const login = (email: string, password: string) =>
   api<AuthUser>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
 
-export const register = (name: string, email: string, password: string) =>
-  api<AuthUser>("/auth/register", { method: "POST", body: JSON.stringify({ name, email, password }) });
+export const register = (name: string, email: string, password: string, language: Language) =>
+  api<AuthUser>("/auth/register", { method: "POST", body: JSON.stringify({ name, email, password, language }) });
+
+/** Eigen voorkeurstaal bewaren. */
+export const setMyLanguage = (language: Language) =>
+  api<{ ok: boolean; language: Language }>("/auth/me/language", {
+    method: "PATCH",
+    body: JSON.stringify({ language }),
+  });
+
+/** Vertaalt één bericht of voorstel naar de gevraagde taal. */
+export const translateText = (text: string, to: Language) =>
+  api<{ text: string; language: Language }>("/translate", {
+    method: "POST",
+    body: JSON.stringify({ text, to }),
+  });
 
 export const logout = () => api<{ ok: boolean }>("/auth/logout", { method: "POST" });
 
@@ -190,6 +208,9 @@ export interface AdminUser {
   email: string;
   role: "admin" | "owner";
   plan: UserPlan;
+  origin: UserOrigin;
+  commissionPct: number;
+  commissionBasis: CommissionBasis;
   createdAt: string;
   onboardings: number;
   lastLogin: string | null;
@@ -237,6 +258,23 @@ export const useSetUserPlan = () =>
   useInvalidating(
     (id: string, plan: UserPlan) =>
       api<{ ok: boolean; plan: UserPlan }>(`/admin/users/${id}/plan`, { method: "PATCH", body: JSON.stringify({ plan }) }),
+    [["admin-users"]]
+  );
+
+export const useSetUserOrigin = () =>
+  useInvalidating(
+    (id: string, origin: UserOrigin) =>
+      api<{ ok: boolean; origin: UserOrigin }>(`/admin/users/${id}/origin`, { method: "PATCH", body: JSON.stringify({ origin }) }),
+    [["admin-users"]]
+  );
+
+export const useSetUserCommission = () =>
+  useInvalidating(
+    (id: string, pct: number, basis: CommissionBasis) =>
+      api<{ ok: boolean; pct: number; basis: CommissionBasis }>(`/admin/users/${id}/commission`, {
+        method: "PATCH",
+        body: JSON.stringify({ pct, basis }),
+      }),
     [["admin-users"]]
   );
 

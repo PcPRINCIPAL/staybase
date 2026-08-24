@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
-import { PLAN_LABEL, PLAN_RANK, type UserPlan } from "@shared/types";
+import { BRAND_LABEL, PLAN_LABEL, PLAN_RANK, brandFor, type UserPlan } from "@shared/types";
 import { useAuth } from "../auth";
+import { useT } from "../i18n";
 
 /** Heeft deze gebruiker toegang tot een onderdeel van deze formule? Admins altijd. */
 export function hasPlan(user: { role: string; plan?: UserPlan } | null, min: UserPlan): boolean {
@@ -11,8 +12,8 @@ export function hasPlan(user: { role: string; plan?: UserPlan } | null, min: Use
 
 const PERKS: Record<UserPlan, string[]> = {
   basic: [],
-  premium: ["Prijsvoorstellen bekijken en toepassen", "Opbrengsten per kanaal en per pand", "Documenten voor je boekhouder"],
-  super: ["Alles uit Premium", "Insights: bezettingsgraad, reactietijd en boekingsvenster", "Vergelijk je panden en vind de gaten in je kalender"],
+  premium: ["gate.perk.prices", "gate.perk.revenue", "gate.perk.docs"],
+  super: ["gate.perk.allPremium", "gate.perk.insights", "gate.perk.compare"],
 };
 
 /**
@@ -21,22 +22,20 @@ const PERKS: Record<UserPlan, string[]> = {
  */
 export function PlanGate({ min, children }: { min: UserPlan; children: ReactNode }) {
   const { user } = useAuth();
+  const t = useT();
   if (hasPlan(user, min)) return <>{children}</>;
 
   return (
     <section className="page">
       <div className="card upsell">
         <span className="upsell-badge">{PLAN_LABEL[min]}</span>
-        <h1>Dit onderdeel zit in de {PLAN_LABEL[min]}-formule</h1>
-        <p>
-          Je gebruikt nu de <b>{PLAN_LABEL[user?.plan ?? "basic"]}</b>-formule. Upgrade naar{" "}
-          <b>{PLAN_LABEL[min]}</b> om dit scherm te ontgrendelen:
-        </p>
+        <h1>{t("gate.planTitle", { plan: PLAN_LABEL[min] })}</h1>
+        <p>{t("gate.planBody", { current: PLAN_LABEL[user?.plan ?? "basic"], plan: PLAN_LABEL[min] })}</p>
         <ul>
-          {PERKS[min].map((p) => <li key={p}>✓ {p}</li>)}
+          {PERKS[min].map((p) => <li key={p}>✓ {t(p)}</li>)}
         </ul>
         <p className="upsell-note">
-          Vraag je upgrade aan via je Staybase-beheerder — die zet je formule meteen om.
+          {t("gate.planNote", { brand: BRAND_LABEL[brandFor(user)] })}
         </p>
       </div>
     </section>

@@ -4,6 +4,8 @@ import { Icon, Logo } from "../components/Icon";
 import { Calculator } from "./Calculator";
 import { KennisEnInspiratie, UitgelichteReview, WatJeKrijgt } from "./LandingSections";
 import { useFadeIn } from "../lib/useFadeIn";
+import { useT } from "../i18n";
+import { LanguagePicker } from "../components/LanguagePicker";
 import "./landing.css";
 
 /**
@@ -14,16 +16,16 @@ import "./landing.css";
 const DEMO_VIDEO_URL = "";
 
 const NAV = [
-  { href: "#hoe", label: "Hoe het werkt" },
-  { href: "#calculator", label: "Bereken je waarde" },
-  { href: "#prijzen", label: "Prijzen" },
-  { href: "#verhalen", label: "Verhalen" },
+  { href: "#hoe", key: "lp.nav.how" },
+  { href: "#calculator", key: "lp.nav.calc" },
+  { href: "#prijzen", key: "lp.nav.prices" },
+  { href: "#verhalen", key: "lp.nav.stories" },
 ];
 
 const USPS = [
-  { icon: "tag" as const, h: "Slimme prijzen", p: "Maximaliseer je bezetting en opbrengst." },
-  { icon: "chat" as const, h: "Gasten op 1 plek", p: "Van boeking tot review, alles geregeld." },
-  { icon: "chart" as const, h: "Overzicht & controle", p: "Inzichten die je helpen slimmer te verhuren." },
+  { icon: "tag" as const, h: "lp.usp.pricesH", p: "lp.usp.pricesP" },
+  { icon: "chat" as const, h: "lp.usp.guestsH", p: "lp.usp.guestsP" },
+  { icon: "chart" as const, h: "lp.usp.overviewH", p: "lp.usp.overviewP" },
 ];
 
 const PIJN = [
@@ -117,6 +119,7 @@ function VideoModal({ onClose }: { onClose: () => void }) {
 
 export function LandingPage() {
   const nav = useNavigate();
+  const t = useT();
   const [menuOpen, setMenuOpen] = useState(false);
   const [videoOpen, setVideoOpen] = useState(false);
   const [faqOpen, setFaqOpen] = useState<number | null>(0);
@@ -136,25 +139,26 @@ export function LandingPage() {
             <Logo /> staybase
           </a>
           <nav className="lp-nav-links">
-            {NAV.map((n) => <a key={n.href} href={n.href}>{n.label}</a>)}
+            {NAV.map((n) => <a key={n.href} href={n.href}>{t(n.key)}</a>)}
           </nav>
           <div className="lp-nav-cta">
-            <button className="btn ghost sm" onClick={naarLogin}>Log in</button>
-            <button className="btn coral sm" onClick={naarRegistreer}>Gratis proberen</button>
+            <button className="btn ghost sm" onClick={naarLogin}>{t("lp.login")}</button>
+            <button className="btn coral sm" onClick={naarRegistreer}>{t("lp.tryFree")}</button>
+            <LanguagePicker />
           </div>
-          <button className="lp-burger" onClick={() => setMenuOpen((o) => !o)} aria-label="Menu">
+          <button className="lp-burger" onClick={() => setMenuOpen((o) => !o)} aria-label={t("lp.menu")}>
             <Icon name={menuOpen ? "x" : "menu"} size={22} />
           </button>
         </div>
         <div className={`lp-mobile ${menuOpen ? "open" : ""}`}>
           {NAV.map((n) => (
-            <a key={n.href} href={n.href} onClick={() => setMenuOpen(false)}>{n.label}</a>
+            <a key={n.href} href={n.href} onClick={() => setMenuOpen(false)}>{t(n.key)}</a>
           ))}
           <button className="btn ghost" style={{ justifyContent: "center", marginTop: 8 }} onClick={naarLogin}>
-            Log in
+            {t("lp.login")}
           </button>
           <button className="btn coral" style={{ justifyContent: "center" }} onClick={naarRegistreer}>
-            Gratis proberen
+            {t("lp.tryFree")}
           </button>
         </div>
       </header>
@@ -166,28 +170,25 @@ export function LandingPage() {
           <div className="lp-container">
             <div className="lp-hero-grid">
               <div>
-                <p className="lp-label lp-fade">Verhuur als een professional</p>
-                <h1 className="lp-fade">Meer rendement. <em>Minder gedoe.</em></h1>
-                <p className="lp-hero-sub lp-fade">
-                  Staybase is het alles-in-één platform voor verhuurders die meer uit hun
-                  vakantiewoning willen halen — zonder de controle uit handen te geven.
-                </p>
+                <p className="lp-label lp-fade">{t("lp.hero.label")}</p>
+                <h1 className="lp-fade">{t("lp.hero.title")} <em>{t("lp.hero.titleEm")}</em></h1>
+                <p className="lp-hero-sub lp-fade">{t("lp.hero.sub")}</p>
                 <div className="lp-usps lp-fade">
                   {USPS.map((u) => (
                     <div className="lp-usp" key={u.h}>
                       <span className="ico"><Icon name={u.icon} size={19} /></span>
                       <div>
-                        <b>{u.h}</b>
-                        <span>{u.p}</span>
+                        <b>{t(u.h)}</b>
+                        <span>{t(u.p)}</span>
                       </div>
                     </div>
                   ))}
                 </div>
                 <div className="lp-hero-ctas lp-fade">
-                  <button className="btn coral lp-btn-lg" onClick={naarRegistreer}>Gratis proberen</button>
-                  <button className="btn ghost lp-btn-lg" onClick={() => setVideoOpen(true)}>▶︎ Bekijk de demo (2 min)</button>
+                  <button className="btn coral lp-btn-lg" onClick={naarRegistreer}>{t("lp.tryFree")}</button>
+                  <button className="btn ghost lp-btn-lg" onClick={() => setVideoOpen(true)}>{t("lp.hero.demo")}</button>
                 </div>
-                <p className="lp-hero-trust lp-fade">Geen contract. Geen opstartkosten. Maandelijks opzegbaar.</p>
+                <p className="lp-hero-trust lp-fade">{t("lp.hero.trust")}</p>
               </div>
 
               <div className="lp-hero-art lp-fade">
@@ -363,7 +364,7 @@ export function LandingPage() {
                 <li className="locked"><span>🔒</span>Eigen boekingspagina — enkel Craft</li>
               </ul>
               <div className="lp-plan-note">Op dag 30 zie je als Host-klant wat dynamische prijzen je vorige maand hadden opgeleverd.</div>
-              <button className="btn ghost" onClick={naarRegistreer}>Gratis proberen</button>
+              <button className="btn ghost" onClick={naarRegistreer}>{t("lp.tryFree")}</button>
             </div>
 
             <div className="lp-plan top lp-fade">
@@ -381,7 +382,7 @@ export function LandingPage() {
                 <li><span className="tick">✓</span>Reviewantwoorden in jouw stem</li>
                 <li><span className="tick">✓</span>Persoonlijk onboardinggesprek (30 min)</li>
               </ul>
-              <button className="btn coral" onClick={naarRegistreer}>Gratis proberen</button>
+              <button className="btn coral" onClick={naarRegistreer}>{t("lp.tryFree")}</button>
             </div>
           </div>
 
@@ -531,7 +532,7 @@ export function LandingPage() {
           <h2 className="lp-fade">Je pand is meer waard dan een spreadsheet kan meten.</h2>
           <p className="sub lp-fade">Start met Host, upgrade wanneer je meer wil verdienen. Koppel je Airbnb in acht minuten.</p>
           <div className="lp-final-ctas lp-fade">
-            <button className="btn coral lp-btn-lg" onClick={naarRegistreer}>Gratis proberen</button>
+            <button className="btn coral lp-btn-lg" onClick={naarRegistreer}>{t("lp.tryFree")}</button>
             <a className="lp-final-link" href="#hoe">Bekijk hoe het werkt →</a>
           </div>
           <p style={{ fontSize: 13, color: "var(--faint)" }}>Geen kaartgegevens. Geen contract. Maandelijks opzegbaar.</p>

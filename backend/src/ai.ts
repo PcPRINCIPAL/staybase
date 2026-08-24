@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { db } from "./db";
-import { DEMO_TODAY } from "../../shared/types";
+import { DEMO_TODAY, LANGUAGE_LABEL, type Language } from "../../shared/types";
 
 /**
  * AI-laag van Staybase.
@@ -116,4 +116,36 @@ export async function llmDraft(input: {
   const text = response.content.find((b) => b.type === "text");
   if (!text || text.type !== "text") throw new Error("leeg antwoord");
   return text.text.trim();
+}
+
+const TRANSLATE_SYSTEM = `Je bent een vertaler binnen een platform voor vakantieverhuur.
+Je krijgt één bericht uit een gesprek tussen een gast en een verhuurder.
+Vertaal het naar de gevraagde taal en geef uitsluitend de vertaling terug.
+Behoud de toon, de aanspreekvorm en de emoji's. Laat namen, adressen, bedragen,
+data, reserveringsnummers en links ongewijzigd staan.
+Voeg niets toe: geen uitleg, geen aanhalingstekens, geen "Vertaling:" ervoor.
+Staat de tekst al in de gevraagde taal, geef hem dan ongewijzigd terug.`;
+
+/** Vertaalt één bericht naar de gevraagde taal. Vereist een AI-key. */
+export async function llmTranslate(text: string, to: Language): Promise<string> {
+  const response = await getClient().messages.create({
+    model: MODEL,
+    max_tokens: 2048,
+    output_config: { effort: "low" },
+    system: [
+      { type: "text", text: TRANSLATE_SYSTEM, cache_control: { type: "ephemeral" } },
+    ],
+    messages: [
+      {
+        role: "user",
+        content: `Doeltaal: ${LANGUAGE_LABEL[to]}\n\nBericht:\n${text}`,
+      },
+    ],
+  });
+  if (response.stop_reason === "refusal") {
+    throw new Error("model weigerde de vertaling");
+  }
+  const out = response.content.find((b) => b.type === "text");
+  if (!out || out.type !== "text") throw new Error("leeg antwoord");
+  return out.text.trim();
 }

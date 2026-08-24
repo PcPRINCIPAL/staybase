@@ -1,19 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { DEMO_TODAY, type Booking } from "@shared/types";
+import { BRAND_LABEL, DEMO_TODAY, type Booking } from "@shared/types";
 import { useMyProperty } from "../lib/api";
-import { eur, monthName, nightsBetween, CHANNEL_META } from "../lib/format";
+import { eur, monthName, nightsBetween, shortDate, CHANNEL_META } from "../lib/format";
 import { Icon } from "../components/Icon";
 import { useAuth } from "../auth";
 import { useUI } from "../ui";
-
-const DOW = ["ma", "di", "wo", "do", "vr", "za", "zo"];
-
-function dayLabel(iso: string): string {
-  const d = new Date(iso + "T00:00:00Z");
-  const dow = DOW[(d.getUTCDay() + 6) % 7];
-  return `${dow[0].toUpperCase()}${dow[1]} ${d.getUTCDate()} ${monthName(iso).slice(0, 3)}`;
-}
+import { useBrand, useView } from "../components/OriginGate";
 
 function addDays(iso: string, days: number): string {
   const d = new Date(iso + "T00:00:00Z");
@@ -72,6 +65,8 @@ function WeeksStrip({ bookings }: { bookings: Booking[] }) {
 
 export function OwnerHome() {
   const { user } = useAuth();
+  const platform = useView();
+  const brandName = BRAND_LABEL[useBrand()];
   const { openWizard } = useUI();
   const nav = useNavigate();
   const [selected, setSelected] = useState<string | undefined>(undefined);
@@ -92,7 +87,7 @@ export function OwnerHome() {
           <div style={{ fontSize: 36, marginBottom: 10 }}>🏡</div>
           <b style={{ fontSize: 17 }}>Er is nog geen pand aan je account gekoppeld</b>
           <p style={{ color: "var(--muted)", fontSize: 14.5, maxWidth: 460, margin: "8px auto 18px" }}>
-            Voeg je pand toe via de onboarding — het Staybase-team koppelt het daarna aan
+            Voeg je pand toe via de onboarding — het {brandName}-team koppelt het daarna aan
             jouw account en dan verschijnt hier je volledige overzicht.
           </p>
           <button className="btn coral" onClick={openWizard}>+ Pand toevoegen</button>
@@ -120,7 +115,7 @@ export function OwnerHome() {
             Fijn dat je er bent. Hier is het overzicht van jouw {data.properties.length > 1 ? "panden" : "pand"}.
           </p>
         </div>
-        <span className="date-pill">📅 {dayLabel(DEMO_TODAY)} {DEMO_TODAY.slice(0, 4)}</span>
+        <span className="date-pill">📅 {shortDate(DEMO_TODAY)} {DEMO_TODAY.slice(0, 4)}</span>
       </div>
 
       {data.properties.length > 1 && (
@@ -150,7 +145,7 @@ export function OwnerHome() {
           </div>
         </div>
         <div className="card rail-card oh-assist">
-          <h3>✨ Staybase Assistent</h3>
+          <h3>✨ {brandName} Assistent</h3>
           <p className="hint">Vragen over je boekingen, onderhoud of iets anders? Wij helpen je graag.</p>
           <button className="btn coral" style={{ width: "100%", justifyContent: "center" }}
             onClick={() => window.dispatchEvent(new Event("sb:open"))}>
@@ -162,7 +157,7 @@ export function OwnerHome() {
       <div className="hkpis oh-kpis">
         <div className="card hkpi">
           <span className="lbl">{nbCurrent ? "🔑 Huidige gast" : "📅 Aankomende boeking"}</span>
-          <span className="val">{nb ? (nbCurrent ? `t.e.m. ${dayLabel(nb.endDate)}` : dayLabel(nb.startDate)) : "—"}</span>
+          <span className="val">{nb ? (nbCurrent ? `t.e.m. ${shortDate(nb.endDate)}` : shortDate(nb.startDate)) : "—"}</span>
           <span className="cmp">
             {!nb
               ? "Geen aankomende boeking"
@@ -179,12 +174,15 @@ export function OwnerHome() {
           </span>
         </div>
         <div className="card hkpi">
-          <span className="lbl">💶 Opbrengsten ({maand})</span>
+          {/* Een Linnois-eigenaar ziet wat er naar hem gaat, niet de totale
+              gastbetaling. De volledige berekening (− OTA-commissie − commissie
+              Linnois − schoonmaak) komt met de opbrengsten-rework. */}
+          <span className="lbl">💶 {platform.grossRevenue ? "Opbrengsten" : "Netto-uitbetaling"} ({maand})</span>
           <span className="val num">{eur(k.monthRevenue)}</span>
           <span className="cmp">
             {revDelta != null
               ? <><span className={`hkpi-delta ${revDelta >= 0 ? "up" : "down"}`}>{revDelta >= 0 ? "↑" : "↓"} {Math.abs(revDelta)}%</span> t.o.v. vorige maand</>
-              : "Boekingen met check-in deze maand"}
+              : platform.grossRevenue ? "Boekingen met check-in deze maand" : "Wat er voor deze maand naar jou gaat"}
           </span>
         </div>
         <div className="card hkpi">
@@ -217,7 +215,7 @@ export function OwnerHome() {
                   <span className="avat">{nb.avatar}</span>
                   <div>
                     <b>{nb.guest}</b><br />
-                    <span>{dayLabel(nb.startDate)} – {dayLabel(nb.endDate)} {nb.endDate.slice(0, 4)} ({nb.nights} {nb.nights === 1 ? "nacht" : "nachten"})</span>
+                    <span>{shortDate(nb.startDate)} – {shortDate(nb.endDate)} {nb.endDate.slice(0, 4)} ({nb.nights} {nb.nights === 1 ? "nacht" : "nachten"})</span>
                   </div>
                   <span className="chip good" style={{ marginLeft: "auto" }}>{nbCurrent ? "Ingecheckt" : "Bevestigd"}</span>
                 </div>
@@ -227,7 +225,9 @@ export function OwnerHome() {
                   <div><b>Check-out</b><span>{nb.checkOutTime ? `tot ${nb.checkOutTime}` : "—"}</span></div>
                 </div>
                 <div className="oh-next-actions">
-                  <button className="btn ghost sm" onClick={() => nav("/inbox")}>💬 Bericht sturen</button>
+                  {platform.inbox
+                    ? <button className="btn ghost sm" onClick={() => nav("/inbox")}>💬 Bericht sturen</button>
+                    : <button className="btn ghost sm" onClick={() => window.dispatchEvent(new Event("sb:open"))}>💬 Chat met Julie</button>}
                   <button className="btn ghost sm" onClick={() => nav("/kalender")}>Boeking bekijken <Icon name="arrow" size={13} /></button>
                 </div>
               </>
@@ -270,7 +270,7 @@ export function OwnerHome() {
             <div className="oh-contact-row">
               <span className="avatar" style={{ width: 44, height: 44, fontSize: 17 }}>{data.contactName.slice(0, 1)}</span>
               <div>
-                <b>{data.contactName} van Staybase</b><br />
+                <b>{data.contactName} van {brandName}</b><br />
                 <small>Property manager</small>
               </div>
             </div>
@@ -282,6 +282,7 @@ export function OwnerHome() {
             <small className="oh-contact-hours">Bereikbaar ma – za, 9:00 – 18:00</small>
           </div>
 
+          {platform.inbox ? (
           <div className="card rail-card">
             <div className="oh-card-head" style={{ marginBottom: 10 }}>
               <h3>Recente berichten</h3>
@@ -302,6 +303,21 @@ export function OwnerHome() {
               </button>
             ))}
           </div>
+          ) : (
+            <div className="card rail-card">
+              <div className="oh-card-head" style={{ marginBottom: 10 }}>
+                <h3>Chat met Julie</h3>
+              </div>
+              <p style={{ color: "var(--muted)", fontSize: 13.5, marginBottom: 12 }}>
+                Linnois beantwoordt je gasten voor jou. Heb je zelf een vraag over een boeking,
+                de planning of je uitbetaling? Stel ze hier.
+              </p>
+              <button className="btn coral sm" style={{ width: "100%", justifyContent: "center" }}
+                onClick={() => window.dispatchEvent(new Event("sb:open"))}>
+                💬 Stel je vraag
+              </button>
+            </div>
+          )}
         </aside>
       </div>
 

@@ -4,10 +4,11 @@ loadEnv();
 import express from "express";
 import cors from "cors";
 import { routes } from "./routes";
-import { bootstrap } from "./db";
+import { bootstrap, pool } from "./db";
 import { authRoutes, requireAuth } from "./auth";
 
 const app = express();
+let server: import("node:http").Server | undefined;
 // Lokaal wint API_PORT (PORT botst met Vite); op Railway e.d. komt PORT binnen.
 const PORT = Number(process.env.API_PORT || process.env.PORT || 4000);
 
@@ -44,8 +45,26 @@ async function start(): Promise<void> {
       await wait(delay);
     }
   }
-  app.listen(PORT, () => {
+  server = app.listen(PORT, () => {
     console.log(`Staybase API draait op http://localhost:${PORT} (Supabase Postgres)`);
+  });
+}
+
+/**
+ * Netjes afsluiten bij Ctrl-C en bij een herstart van `tsx watch`. Zonder dit
+ * blijft het proces hangen op de open Postgres-verbindingen: je terminal
+ * reageert dan niet meer op Ctrl-C en tsx blijft "Process didn't exit in 5s.
+ * Force killing..." herhalen.
+ */
+let shuttingDown = false;
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  process.on(signal, () => {
+    if (shuttingDown) process.exit(0); // tweede Ctrl-C: meteen weg
+    shuttingDown = true;
+    server?.close();
+    void pool.end().then(() => process.exit(0), () => process.exit(0));
+    // Vangnet als een verbinding blijft plakken — nooit langer dan 3s wachten.
+    setTimeout(() => process.exit(0), 3000).unref();
   });
 }
 

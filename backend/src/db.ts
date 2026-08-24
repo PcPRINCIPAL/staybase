@@ -99,6 +99,10 @@ export async function bootstrap(): Promise<void> {
       password_hash text NOT NULL,
       role text NOT NULL DEFAULT 'owner' CHECK (role IN ('admin', 'owner')),
       plan text NOT NULL DEFAULT 'basic' CHECK (plan IN ('basic', 'premium', 'super')),
+      origin text NOT NULL DEFAULT 'staybase' CHECK (origin IN ('staybase', 'linnois')),
+      commission_pct numeric NOT NULL DEFAULT 15,
+      commission_basis text NOT NULL DEFAULT 'bruto' CHECK (commission_basis IN ('bruto', 'netto')),
+      language text NOT NULL DEFAULT 'nl' CHECK (language IN ('nl', 'fr', 'en')),
       created_at timestamptz NOT NULL DEFAULT now()
     );
     CREATE TABLE IF NOT EXISTS auth_sessions (
@@ -108,6 +112,44 @@ export async function bootstrap(): Promise<void> {
       expires_at timestamptz NOT NULL
     );
   `);
+  // Herkomst (Staybase- of Linnois-gebruiker) is later bijgekomen — bestaande
+  // databases krijgen de kolom hier alsnog, met 'staybase' als vertrekpunt.
+  await pool.query(`
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS origin text NOT NULL DEFAULT 'staybase';
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'users_origin_check') THEN
+        ALTER TABLE users ADD CONSTRAINT users_origin_check CHECK (origin IN ('staybase', 'linnois'));
+      END IF;
+    END $$;
+  `);
+
+  // De commissieafspraak wordt per klant onderhandeld: een percentage en de
+  // basis waarop het gerekend wordt. Bestaande databases krijgen de kolommen
+  // hier alsnog, op de standaardafspraak (15% op bruto).
+  await pool.query(`
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS commission_pct numeric NOT NULL DEFAULT 15;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS commission_basis text NOT NULL DEFAULT 'bruto';
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'users_commission_basis_check') THEN
+        ALTER TABLE users ADD CONSTRAINT users_commission_basis_check
+          CHECK (commission_basis IN ('bruto', 'netto'));
+      END IF;
+    END $$;
+  `);
+
+  // Voorkeurstaal van de gebruiker; bepaalt in welke taal het platform opent.
+  await pool.query(`
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS language text NOT NULL DEFAULT 'nl';
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'users_language_check') THEN
+        ALTER TABLE users ADD CONSTRAINT users_language_check CHECK (language IN ('nl', 'fr', 'en'));
+      END IF;
+    END $$;
+  `);
+
   // onboarding_events.user_id en properties.owner_id zijn in het Supabase-script
   // uuid's → profiles; zolang de eigen auth draait, gebruiken we tekst-ids
   // zonder foreign key.
@@ -133,14 +175,20 @@ export async function bootstrap(): Promise<void> {
 
   // Demogebruikers (idempotent): Julie beheert het platform, Maxime is eigenaar.
   const { hashPassword } = require("./auth") as typeof import("./auth");
-  const ensureUser = async (id: string, email: string, name: string, role: "admin" | "owner", plan: string) => {
+  const ensureUser = async (
+    id: string, email: string, name: string,
+    role: "admin" | "owner", plan: string, origin: "staybase" | "linnois" = "staybase",
+  ) => {
     const exists = await db.prepare("SELECT 1 FROM users WHERE id = ?").get(id);
     if (!exists) {
-      await db.prepare("INSERT INTO users (id, email, name, password_hash, role, plan) VALUES (?, ?, ?, ?, ?, ?)")
-        .run(id, email, name, hashPassword("staybase2026"), role, plan);
-      console.log(`Demogebruiker aangemaakt: ${email} / staybase2026 (${role}, ${plan})`);
+      await db.prepare("INSERT INTO users (id, email, name, password_hash, role, plan, origin) VALUES (?, ?, ?, ?, ?, ?, ?)")
+        .run(id, email, name, hashPassword("staybase2026"), role, plan, origin);
+      console.log(`Demogebruiker aangemaakt: ${email} / staybase2026 (${role}, ${plan}, ${origin})`);
     }
   };
   await ensureUser("u-julie", "julie@staybase.be", "Julie", "admin", "super");
   await ensureUser("u-maxime", "maxime@staybase.be", "Maxime", "owner", "super");
+  // Derde demo-account om de Linnois-variant te tonen: geen inbox, geen prijzen,
+  // netto-uitbetaling in plaats van omzet. Panden toewijzen kan via Beheer.
+  await ensureUser("u-bram", "bram@linnois.be", "Bram", "owner", "super", "linnois");
 }

@@ -106,6 +106,105 @@ export interface CalendarOverview {
   properties: CalendarOverviewRow[];
 }
 
+/**
+ * Herkomst: van waar komt deze gebruiker? Linnois doet het volledige beheer
+ * voor zijn eigenaars (gastcommunicatie, prijzen, schoonmaak), dus die
+ * eigenaars krijgen een uitgeklede variant van het platform te zien.
+ * Staybase-gebruikers zijn externe eigenaars/property managers die het
+ * platform zelf bedienen en dus alles zien.
+ */
+export type UserOrigin = "staybase" | "linnois";
+export const ORIGIN_LABEL: Record<UserOrigin, string> = {
+  staybase: "Staybase-gebruiker",
+  linnois: "Linnois-gebruiker",
+};
+
+/** Wat een gebruiker mag zien op basis van zijn herkomst. */
+export interface PlatformView {
+  /** Eigen gastcommunicatie. Bij Linnois doet Julie dat — zij zien enkel "Chat met Julie". */
+  inbox: boolean;
+  /** Prijzen, prijssetting en nachtprijzen in de kalender. */
+  prices: boolean;
+  /** Totale omzet. Zonder dit ziet de eigenaar enkel zijn netto-uitbetaling. */
+  grossRevenue: boolean;
+  /** Schoonmaakdetails (team, kost, status). Zonder dit blijft enkel de datum over. */
+  cleaningDetails: boolean;
+}
+
+const STAYBASE_VIEW: PlatformView = { inbox: true, prices: true, grossRevenue: true, cleaningDetails: true };
+const LINNOIS_VIEW: PlatformView = { inbox: false, prices: false, grossRevenue: false, cleaningDetails: false };
+
+/**
+ * De variant van het platform voor deze gebruiker. Beheerders (het Staybase-
+ * en Linnois-team zelf) zien altijd alles — de beperking geldt enkel voor
+ * eigenaars van wie Linnois het beheer doet.
+ */
+export function viewFor(user: { role?: string; origin?: UserOrigin | null } | null | undefined): PlatformView {
+  if (!user) return LINNOIS_VIEW;
+  if (user.role === "admin") return STAYBASE_VIEW;
+  return user.origin === "linnois" ? LINNOIS_VIEW : STAYBASE_VIEW;
+}
+
+/**
+ * Huisstijl. Enkel de omgeving van een Linnois-*eigenaar* draagt de branding
+ * van Linnois: hun logo in de zijbalk en het diepblauw #100551 als accentkleur.
+ * De beheeromgeving is het gereedschap van het platform zelf en blijft altijd
+ * Staybase — net als de uitgelogde website.
+ */
+export type Brand = "staybase" | "linnois";
+/** Naam die de gebruiker ziet staan in de app-schil (assistent, footer, …). */
+export const BRAND_LABEL: Record<Brand, string> = { staybase: "Staybase", linnois: "Linnois" };
+export function brandFor(user: { role?: string; origin?: UserOrigin | null } | null | undefined): Brand {
+  if (!user || user.role === "admin") return "staybase";
+  return user.origin === "linnois" ? "linnois" : "staybase";
+}
+
+/**
+ * Taal van de interface. NL is de basis: ontbreekt een vertaling, dan valt de
+ * app terug op het Nederlands in plaats van een lege plek te tonen.
+ */
+export type Language = "nl" | "fr" | "en";
+export const LANGUAGES: Language[] = ["nl", "fr", "en"];
+export const LANGUAGE_LABEL: Record<Language, string> = {
+  nl: "Nederlands",
+  fr: "Français",
+  en: "English",
+};
+/** Korte weergave voor de taalkiezer in de balk. */
+export const LANGUAGE_SHORT: Record<Language, string> = { nl: "NL", fr: "FR", en: "EN" };
+export const DEFAULT_LANGUAGE: Language = "nl";
+
+export function isLanguage(v: unknown): v is Language {
+  return v === "nl" || v === "fr" || v === "en";
+}
+
+/**
+ * Commissieafspraak. Wordt per klant onderhandeld, dus twee gegevens:
+ * hoeveel procent, en waarover het gerekend wordt.
+ *   • bruto = de totale gastbetaling
+ *   • netto = totale gastbetaling − OTA-commissie − schoonmaakkost
+ * Bruto is de standaard; netto is een commerciële geste voor eigenaars die
+ * geen commissie willen betalen over kosten die ze toch al afdragen.
+ */
+export type CommissionBasis = "bruto" | "netto";
+export const COMMISSION_BASIS_LABEL: Record<CommissionBasis, string> = {
+  bruto: "Bruto",
+  netto: "Netto",
+};
+export const COMMISSION_BASIS_HINT: Record<CommissionBasis, string> = {
+  bruto: "over de totale gastbetaling",
+  netto: "na aftrek van OTA-commissie en schoonmaak",
+};
+/** De standaardafspraak waarmee een nieuwe klant start. */
+export const COMMISSION_DEFAULT_PCT = 15;
+export const COMMISSION_MIN_PCT = 0;
+export const COMMISSION_MAX_PCT = 40;
+
+export interface Commission {
+  pct: number;
+  basis: CommissionBasis;
+}
+
 /** Formules: bepalen welke schermen een eigenaar ziet. Admins zien alles. */
 export type UserPlan = "basic" | "premium" | "super";
 export const PLAN_RANK: Record<UserPlan, number> = { basic: 0, premium: 1, super: 2 };

@@ -90,7 +90,7 @@ export function InsightsPage() {
 
   const k = data.kpis;
   const mixTotal = data.channelMix.reduce((a, c) => a + c.revenue, 0) || 1;
-  const channelColor: Record<string, string> = { airbnb: "var(--coral)", booking: "var(--booking)", vrbo: "var(--vrbo)" };
+  const channelColor: Record<string, string> = { airbnb: "var(--airbnb)", booking: "var(--booking)", vrbo: "var(--vrbo)" };
 
   return (
     <section className="page insights-page">

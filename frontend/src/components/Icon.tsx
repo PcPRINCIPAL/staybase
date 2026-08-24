@@ -20,6 +20,8 @@ const PATHS = {
   building: '<rect x="4.5" y="3.5" width="15" height="17" rx="2"/><path d="M8.5 8h2M13.5 8h2M8.5 12h2M13.5 12h2M10.5 20.5v-4h3v4"/>',
   pulse: '<path d="M3 12.5h4l2.5-6.5 4.5 12 2.5-6.5H21"/>',
   chevD: '<path d="M6 9.5 12 15l6-5.5"/>',
+  globe: '<circle cx="12" cy="12" r="9"/><path d="M3.2 9.5h17.6M3.2 14.5h17.6"/><path d="M12 3c-2.4 2.4-3.6 5.4-3.6 9s1.2 6.6 3.6 9c2.4-2.4 3.6-5.4 3.6-9S14.4 5.4 12 3Z"/>',
+  translate: '<path d="M4 6h9M8.5 4v2M11 6c-.5 4-3 7-7 8.5"/><path d="M6 10.5c1.2 2.4 3.2 4 6 5"/><path d="M13 20l4-9 4 9M14.6 17h4.8"/>',
 } as const;
 
 export type IconName = keyof typeof PATHS;
@@ -44,7 +46,7 @@ export function Icon({ name, size = 17 }: { name: IconName; size?: number }) {
 export function Logo({ size = 30 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true">
-      <rect width="32" height="32" rx="10" fill="#FF385C" />
+      <rect width="32" height="32" rx="10" fill="var(--coral)" />
       <path d="M9 17.2 16 10l7 7.2" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M11.5 16v6.5h9V16" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>

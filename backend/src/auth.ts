@@ -2,7 +2,7 @@ import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import type { NextFunction, Request, Response } from "express";
 import { Router } from "express";
 import { db } from "./db";
-import { PLAN_RANK, type UserPlan } from "../../shared/types";
+import { PLAN_RANK, isLanguage, viewFor, type Language, type PlatformView, type UserOrigin, type UserPlan } from "../../shared/types";
 
 /**
  * Sessie-gebaseerde login met een httpOnly-cookie.
@@ -33,11 +33,16 @@ export interface UserRow {
   password_hash: string;
   role: "admin" | "owner";
   plan: UserPlan;
+  origin: UserOrigin;
+  language: Language;
 }
 
 /** Publieke weergave van een gebruiker (zonder wachtwoordhash). */
 function publicUser(u: UserRow) {
-  return { id: u.id, email: u.email, name: u.name, role: u.role, plan: u.plan };
+  return {
+    id: u.id, email: u.email, name: u.name, role: u.role, plan: u.plan,
+    origin: u.origin ?? "staybase", language: u.language ?? "nl",
+  };
 }
 
 function parseCookies(req: Request): Record<string, string> {
@@ -98,6 +103,32 @@ export function requirePlan(min: UserPlan) {
   };
 }
 
+/**
+ * Slot op onderdelen die een Linnois-gebruiker niet mag zien (inbox, prijzen,
+ * schoonmaakdetails). De frontend verbergt ze al; dit is het serverslot erachter.
+ * Draait ná requireAuth.
+ */
+export function requireView(part: keyof PlatformView) {
+  const REASON: Record<keyof PlatformView, string> = {
+    inbox: "Linnois beheert de gastcommunicatie voor jou — stel je vraag via Chat met Julie.",
+    prices: "Linnois bepaalt de prijzen voor jou.",
+    grossRevenue: "Je ziet je netto-uitbetaling in plaats van de totale omzet.",
+    cleaningDetails: "De schoonmaakdetails worden door Linnois beheerd.",
+  };
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const user = (req as Request & { user?: UserRow }).user;
+    if (!user) {
+      res.status(401).json({ error: "niet aangemeld" });
+      return;
+    }
+    if (viewFor(user)[part]) {
+      next();
+      return;
+    }
+    res.status(403).json({ error: REASON[part], blockedBy: "origin" });
+  };
+}
+
 export function currentUser(req: Request): UserRow | undefined {
   return (req as Request & { user?: UserRow }).user;
 }
@@ -152,8 +183,10 @@ authRoutes.post("/register", async (req, res) => {
   }
 
   const id = "u-" + randomBytes(8).toString("hex");
-  await db.prepare("INSERT INTO users (id, email, name, password_hash, role) VALUES (?, ?, ?, ?, 'owner')")
-    .run(id, email, name, hashPassword(password));
+  // De taal waarin iemand zich inschrijft is meteen zijn voorkeurstaal.
+  const language: Language = isLanguage(req.body?.language) ? req.body.language : "nl";
+  await db.prepare("INSERT INTO users (id, email, name, password_hash, role, language) VALUES (?, ?, ?, ?, 'owner', ?)")
+    .run(id, email, name, hashPassword(password), language);
   const user = (await db.prepare("SELECT * FROM users WHERE id = ?").get(id)) as unknown as UserRow;
   await startSession(res, user);
   res.status(201).json(publicUser(user));
@@ -164,6 +197,22 @@ authRoutes.post("/logout", async (req, res) => {
   if (token) await db.prepare("DELETE FROM auth_sessions WHERE token = ?").run(token);
   res.setHeader("Set-Cookie", `${COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
   res.json({ ok: true });
+});
+
+/** Eigen voorkeurstaal aanpassen. Zit op /auth omdat het bij de sessie hoort. */
+authRoutes.patch("/me/language", async (req, res) => {
+  const user = await sessionUser(req);
+  if (!user) {
+    res.status(401).json({ error: "niet aangemeld" });
+    return;
+  }
+  const language = req.body?.language;
+  if (!isLanguage(language)) {
+    res.status(400).json({ error: "taal moet nl, fr of en zijn" });
+    return;
+  }
+  await db.prepare("UPDATE users SET language = ? WHERE id = ?").run(language, user.id);
+  res.json({ ok: true, language });
 });
 
 authRoutes.get("/me", async (req, res) => {

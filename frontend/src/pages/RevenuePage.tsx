@@ -4,9 +4,10 @@ import { useRevenue } from "../lib/api";
 import { eur, monthName } from "../lib/format";
 import { Icon } from "../components/Icon";
 import { useToast } from "../components/Toast";
+import { useView } from "../components/OriginGate";
 
 const SERIES = [
-  { key: "airbnb", name: "Airbnb", color: "var(--coral)" },
+  { key: "airbnb", name: "Airbnb", color: "var(--airbnb)" },
   { key: "booking", name: "Booking.com", color: "var(--booking)" },
   { key: "vrbo", name: "VRBO", color: "var(--vrbo)" },
 ] as const;
@@ -81,6 +82,7 @@ function RevenueChart({ months }: { months: RevenueMonth[] }) {
 }
 
 export function RevenuePage() {
+  const platform = useView();
   const { data, isLoading } = useRevenue();
   const toast = useToast();
 
@@ -88,12 +90,19 @@ export function RevenuePage() {
 
   return (
     <section className="page">
-      <h1>Opbrengsten</h1>
-      <p className="sub">Precies weten waar je staat — per kanaal, per pand, met alle documenten voor je boekhouder.</p>
+      {/* Een Linnois-eigenaar ziet zijn netto-uitbetaling, niet de totale
+          gastbetaling. De volledige berekening (gast betaalde − OTA-commissie
+          − commissie Linnois − schoonmaak) komt met de opbrengsten-rework. */}
+      <h1>{platform.grossRevenue ? "Opbrengsten" : "Uitbetalingen"}</h1>
+      <p className="sub">
+        {platform.grossRevenue
+          ? "Precies weten waar je staat — per kanaal, per pand, met alle documenten voor je boekhouder."
+          : "Wat er effectief naar jou gaat — per maand, per pand, met alle documenten voor je boekhouder."}
+      </p>
 
       <div className="rev-hero">
         <div>
-          <span className="lbl">Dit jaar tot vandaag</span>
+          <span className="lbl">{platform.grossRevenue ? "Dit jaar tot vandaag" : "Netto uitbetaald dit jaar"}</span>
           <div className="big num">{eur(data.totalYear)}</div>
         </div>
         <span className="chip good" style={{ marginBottom: 6 }}>▲ {data.deltaLabel}</span>

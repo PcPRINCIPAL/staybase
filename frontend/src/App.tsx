@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { Sidebar } from "./components/Sidebar";
 import { Dashboard } from "./pages/Dashboard";
@@ -19,12 +19,18 @@ import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { Wizard } from "./features/Wizard";
 import { PlanGate } from "./components/PlanGate";
+import { OriginGate } from "./components/OriginGate";
 import { Assistant } from "./features/Assistant";
 import { UICtx } from "./ui";
 import { useAuth } from "./auth";
+import { BRAND_LABEL, brandFor } from "@shared/types";
+import { useLocale } from "./i18n";
 
 /** Schil rond de ingelogde app: navigatie, footer en de assistent. */
 function AppLayout() {
+  const { user } = useAuth();
+  const { t } = useLocale();
+  const brandName = BRAND_LABEL[brandFor(user)];
   return (
     <div className="shell">
       <Sidebar />
@@ -32,7 +38,7 @@ function AppLayout() {
         <main className="wrap">
           <Outlet />
         </main>
-        <footer className="foot">Staybase · een voorstel van Oblivion Labs</footer>
+        <footer className="foot">{t("app.footer", { brand: brandName })}</footer>
       </div>
       <Assistant />
     </div>
@@ -43,8 +49,23 @@ export default function App() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const ui = useMemo(() => ({ openWizard: () => setWizardOpen(true) }), []);
   const { user, loading } = useAuth();
+  const { lang, setLang, t } = useLocale();
 
-  if (loading) return <div className="loading" style={{ paddingTop: 120 }}>Staybase laden…</div>;
+  // De voorkeurstaal uit het profiel wint zodra we weten wie er inlogt; wie
+  // niet ingelogd is, houdt de keuze uit localStorage of de browsertaal.
+  useEffect(() => {
+    if (user && user.language && user.language !== lang) setLang(user.language);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, user?.language]);
+
+  // Huisstijl op de document-root: zo krijgen ook schermen buiten de app-schil
+  // (de onboarding-wizard) de juiste merkkleuren mee. Uitgelogd is het altijd
+  // Staybase — de website zelf blijft Staybase-branding.
+  useEffect(() => {
+    document.documentElement.dataset.brand = user ? brandFor(user) : "staybase";
+  }, [user]);
+
+  if (loading) return <div className="loading" style={{ paddingTop: 120 }}>{t("app.loading")}</div>;
 
   return (
     <UICtx.Provider value={ui}>
@@ -59,8 +80,8 @@ export default function App() {
             <Route path="/panden" element={<PropertiesPage />} />
             <Route path="/pand/:id" element={<PropertyPage />} />
             <Route path="/kalender" element={<CalendarPage />} />
-            <Route path="/inbox" element={<InboxPage />} />
-            <Route path="/prijzen" element={<PlanGate min="premium"><PricesPage /></PlanGate>} />
+            <Route path="/inbox" element={<OriginGate part="inbox"><InboxPage /></OriginGate>} />
+            <Route path="/prijzen" element={<OriginGate part="prices"><PlanGate min="premium"><PricesPage /></PlanGate></OriginGate>} />
             <Route path="/schoonmaak" element={<CleaningPage />} />
             <Route path="/opbrengsten" element={<PlanGate min="premium"><RevenuePage /></PlanGate>} />
             <Route path="/insights" element={<PlanGate min="super"><InsightsPage /></PlanGate>} />
