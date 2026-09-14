@@ -26,6 +26,7 @@ const ITEMS: {
   { to: "/prijzen", icon: "tag", key: "nav.prices", badge: "price", minPlan: "premium", needs: "prices" },
   { to: "/schoonmaak", icon: "sparkle", key: "nav.cleaning" },
   { to: "/opbrengsten", icon: "chart", key: "nav.revenue", minPlan: "premium" },
+  { to: "/facturen", icon: "doc", key: "nav.invoices" },
   { to: "/insights", icon: "pulse", key: "nav.insights", minPlan: "super" },
   { to: "/beheer", icon: "shield", key: "nav.admin", adminOnly: true },
   { to: "/koppelingen", icon: "plug", key: "nav.integrations", adminOnly: true },

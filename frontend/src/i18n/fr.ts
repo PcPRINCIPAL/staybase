@@ -964,4 +964,24 @@ export const fr: Dict = {
 
   // ---- facturen-nudge-plafond ----
   "inv.nudgeMore": "+ encore {n} — retrouvez-les toutes dans le calendrier",
+
+  // ---- facturen-tabblad ----
+  "nav.invoices": "Factures",
+  "invp.title": "Factures",
+  "invp.loading": "Chargement des factures…",
+  "invp.sub": "Toutes les factures voyageurs par bien — établies au nom du propriétaire, dès le jour du départ.",
+  "invp.downloadAll": "⬇ Tout télécharger ({n})",
+  "invp.bundle": "⬇ Lot ({n})",
+  "invp.invoices1": "1 facture",
+  "invp.invoicesN": "{n} factures",
+  "invp.th.number": "Numéro",
+  "invp.th.guest": "Voyageur",
+  "invp.th.stay": "Séjour",
+  "invp.th.date": "Date de facture",
+  "invp.th.amount": "Montant (TVA incl.)",
+  "invp.pending": "Encore à facturer",
+  "invp.pendingSub": "Réservations terminées sans facture. Le téléchargement crée la facture immédiatement.",
+  "invp.empty": "Pas encore de factures. Elles apparaîtront ici dès que vous en téléchargez une pour une réservation terminée.",
+  "invp.emptyFiltered": "Aucune facture pour ce bien.",
+  "invp.total": "Total facturé",
 };

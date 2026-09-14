@@ -389,6 +389,13 @@ table.mini thead tr{border-bottom:1px solid var(--line)}
 .chip.brand-staybase{background:#FFF0F3; color:#E31C5F}
 .chip.brand-linnois{background:#EEEDF6; color:#100551}
 
+/* Facturen-tabblad: groepskop per pand met bundelknop. */
+.invp-group-head{display:flex; align-items:center; gap:12px; margin-top:30px; margin-bottom:12px; flex-wrap:wrap}
+.invp-group-head .btn{margin-left:auto}
+.invp-group-meta{font-size:13px; color:var(--muted); font-weight:600}
+.invp-total{margin-top:18px; text-align:right; font-size:13.5px; color:var(--muted)}
+.invp-total b{color:var(--ink); font-size:15px}
+
 /* §9a-nudge: uitgecheckte boekingen zonder factuur. */
 .inv-nudge{margin-top:18px; padding:16px 18px; border:1.5px solid var(--warn-soft); background:var(--warn-soft)}
 .inv-nudge-head{display:flex; gap:12px; align-items:flex-start}

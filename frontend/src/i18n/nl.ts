@@ -968,4 +968,24 @@ export const nl: Dict = {
 
   // ---- facturen-nudge-plafond ----
   "inv.nudgeMore": "+ nog {n} — je vindt ze allemaal in de kalender",
+
+  // ---- facturen-tabblad ----
+  "nav.invoices": "Facturen",
+  "invp.title": "Facturen",
+  "invp.loading": "Facturen laden…",
+  "invp.sub": "Alle gastfacturen per pand — opgemaakt op naam van de eigenaar, vanaf de dag van check-out.",
+  "invp.downloadAll": "⬇ Download alles ({n})",
+  "invp.bundle": "⬇ Bundel ({n})",
+  "invp.invoices1": "1 factuur",
+  "invp.invoicesN": "{n} facturen",
+  "invp.th.number": "Nummer",
+  "invp.th.guest": "Gast",
+  "invp.th.stay": "Verblijf",
+  "invp.th.date": "Factuurdatum",
+  "invp.th.amount": "Bedrag (incl. btw)",
+  "invp.pending": "Nog te factureren",
+  "invp.pendingSub": "Uitgecheckte boekingen zonder factuur. Downloaden maakt de factuur meteen aan.",
+  "invp.empty": "Nog geen facturen. Ze verschijnen hier zodra je er één downloadt bij een uitgecheckte boeking.",
+  "invp.emptyFiltered": "Geen facturen voor dit pand.",
+  "invp.total": "Totaal gefactureerd",
 };

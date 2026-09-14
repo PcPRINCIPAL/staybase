@@ -46,7 +46,7 @@ Er zijn twee assen die samen bepalen wat iemand ziet:
 ## 4. Navigatie & dashboards
 
 - [x] Zijbalk i.p.v. topnav, inklapbaar tijdens werken — al gedaan, goedgekeurd.
-- [ ] **Nieuwe tab in de linkerbalk: "Facturen" / "Financieel overzicht"** — aan zowel admin- als eigenaarszijde.
+- [~] **Nieuwe tab in de linkerbalk: "Facturen" / "Financieel overzicht"** — aan zowel admin- als eigenaarszijde. *(staat er voor de gastfacturen: per pand gegroepeerd, bundel-download als één PDF, eigenaars zien enkel eigen panden, plus de werklijst "nog te factureren"; de owner statements en Linnois-facturen uit §9b komen er later bij)*
 - Admin-dashboard (goedgekeurd zoals het is): insights, check-ins/check-outs, actions on the side, panden met bezettingsgraad per maand, AI-chat over de portfolio.
 - Eigenaar-dashboard (goedgekeurd): volgende check-in, kalendertje met bezetting, inbox beperkt tot eigen panden.
 

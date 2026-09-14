@@ -964,4 +964,24 @@ export const en: Dict = {
 
   // ---- facturen-nudge-plafond ----
   "inv.nudgeMore": "+ {n} more — find them all in the calendar",
+
+  // ---- facturen-tabblad ----
+  "nav.invoices": "Invoices",
+  "invp.title": "Invoices",
+  "invp.loading": "Loading invoices…",
+  "invp.sub": "Every guest invoice per property — issued in the owner's name, from the day of check-out.",
+  "invp.downloadAll": "⬇ Download all ({n})",
+  "invp.bundle": "⬇ Bundle ({n})",
+  "invp.invoices1": "1 invoice",
+  "invp.invoicesN": "{n} invoices",
+  "invp.th.number": "Number",
+  "invp.th.guest": "Guest",
+  "invp.th.stay": "Stay",
+  "invp.th.date": "Invoice date",
+  "invp.th.amount": "Amount (incl. VAT)",
+  "invp.pending": "Still to invoice",
+  "invp.pendingSub": "Checked-out bookings without an invoice. Downloading creates the invoice right away.",
+  "invp.empty": "No invoices yet. They'll appear here as soon as you download one for a checked-out booking.",
+  "invp.emptyFiltered": "No invoices for this property.",
+  "invp.total": "Total invoiced",
 };

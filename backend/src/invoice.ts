@@ -120,13 +120,43 @@ const eur = (n: number) =>
  * eigenaar; meertalige templates komen later, samen met de gastgegevens
  * (adres/btw-nummer van de gast) uit de §9a-onboarding.
  */
-export function renderInvoicePdf(input: {
+export interface InvoicePageInput {
   invoice: InvoiceRow;
   booking: BookingRow;
   property: PropertyRow;
   owner: Pick<UserRow, "name" | "email"> | null;
   brand: Brand; // huisstijl van de omgeving van de eigenaar
-}): Promise<Buffer> {
+}
+
+export function renderInvoicePdf(input: InvoicePageInput): Promise<Buffer> {
+  const doc = new PDFDocument({ size: "A4", margins: { top: 64, left: 64, right: 64, bottom: 64 } });
+  const chunks: Buffer[] = [];
+  doc.on("data", (c: Buffer) => chunks.push(c));
+  const done = new Promise<Buffer>((resolve) => doc.on("end", () => resolve(Buffer.concat(chunks))));
+  drawInvoicePage(doc, input);
+  doc.end();
+  return done;
+}
+
+/**
+ * Bundel: alle facturen in één document, elk op een eigen pagina en elk in
+ * de huisstijl van zijn eigen eigenaar. Volgorde bepaalt de aanroeper
+ * (per pand, dan op nummer).
+ */
+export function renderInvoiceBundlePdf(inputs: InvoicePageInput[]): Promise<Buffer> {
+  const doc = new PDFDocument({ size: "A4", margins: { top: 64, left: 64, right: 64, bottom: 64 }, autoFirstPage: false });
+  const chunks: Buffer[] = [];
+  doc.on("data", (c: Buffer) => chunks.push(c));
+  const done = new Promise<Buffer>((resolve) => doc.on("end", () => resolve(Buffer.concat(chunks))));
+  for (const input of inputs) {
+    doc.addPage();
+    drawInvoicePage(doc, input);
+  }
+  doc.end();
+  return done;
+}
+
+function drawInvoicePage(doc: PDFKit.PDFDocument, input: InvoicePageInput): void {
   const { invoice, booking, property, owner, brand } = input;
   const pal = PALETTES[brand];
   const nights = nightsBetween(booking.start_date, booking.end_date);
@@ -134,11 +164,6 @@ export function renderInvoicePdf(input: {
   const incl = Number(invoice.amount);
   const excl = incl / (1 + vatRate / 100);
   const vat = incl - excl;
-
-  const doc = new PDFDocument({ size: "A4", margins: { top: 64, left: 64, right: 64, bottom: 64 } });
-  const chunks: Buffer[] = [];
-  doc.on("data", (c: Buffer) => chunks.push(c));
-  const done = new Promise<Buffer>((resolve) => doc.on("end", () => resolve(Buffer.concat(chunks))));
 
   const W = doc.page.width - 128; // tekstbreedte binnen de marges
   const L = 64;
@@ -244,7 +269,4 @@ export function renderInvoicePdf(input: {
       `toepasselijke overgangsregeling.`,
       L, footY + 12, { width: W }
     );
-
-  doc.end();
-  return done;
 }

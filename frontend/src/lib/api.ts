@@ -298,12 +298,34 @@ export interface InvoicesOverview {
 export const useInvoicesOverview = () =>
   useQuery({ queryKey: ["invoices"], queryFn: () => api<InvoicesOverview>("/invoices/overview") });
 
+export interface InvoiceListItem {
+  bookingId: string;
+  label: string;
+  issuedAt: string;
+  amount: number;
+  vatRate: number;
+  propertyId: string;
+  propertyName: string;
+  propertyCode: string | null;
+  guest: string;
+  startDate: string | null;
+  endDate: string | null;
+}
+
+export const useInvoices = () =>
+  useQuery({ queryKey: ["invoices", "list"], queryFn: () => api<InvoiceListItem[]>("/invoices") });
+
 /**
  * Download via een verborgen navigatie zodat de sessiecookie meegaat; daarna
  * het overzicht verversen, want de eerste download legt het factuurnummer vast.
  */
 export function downloadInvoice(bookingId: string): void {
   window.location.assign(`/api/bookings/${bookingId}/invoice.pdf`);
+}
+
+/** Bundel: alle facturen in scope als één PDF, optioneel voor één pand. */
+export function downloadInvoiceBundle(propertyId?: string): void {
+  window.location.assign(`/api/invoices/bundle.pdf${propertyId ? `?property=${propertyId}` : ""}`);
 }
 
 /* ---------- Guesty-koppeling ---------- */

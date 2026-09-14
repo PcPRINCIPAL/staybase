@@ -7,6 +7,7 @@ import { InboxPage } from "./pages/InboxPage";
 import { PricesPage } from "./pages/PricesPage";
 import { CleaningPage } from "./pages/CleaningPage";
 import { RevenuePage } from "./pages/RevenuePage";
+import { InvoicesPage } from "./pages/InvoicesPage";
 import { AdminPage } from "./pages/AdminPage";
 import { IntegrationsPage } from "./pages/IntegrationsPage";
 import { PropertiesPage } from "./pages/PropertiesPage";
@@ -84,6 +85,7 @@ export default function App() {
             <Route path="/prijzen" element={<OriginGate part="prices"><PlanGate min="premium"><PricesPage /></PlanGate></OriginGate>} />
             <Route path="/schoonmaak" element={<CleaningPage />} />
             <Route path="/opbrengsten" element={<PlanGate min="premium"><RevenuePage /></PlanGate>} />
+            <Route path="/facturen" element={<InvoicesPage />} />
             <Route path="/insights" element={<PlanGate min="super"><InsightsPage /></PlanGate>} />
             <Route path="/beheer" element={<AdminPage />} />
             <Route path="/koppelingen" element={<IntegrationsPage />} />

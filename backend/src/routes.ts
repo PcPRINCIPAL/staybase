@@ -15,7 +15,7 @@ import { answer } from "./assistant";
 import { aiAvailable, llmAnswer, llmDraft, llmTranslate } from "./ai";
 import { guestyAvailable, guestyStatus, resetGuestyData, syncGuesty, testGuesty } from "./guesty";
 import { currentUser, requireAdmin, requirePlan, requireView } from "./auth";
-import { ensureInvoice, invoiceAvailable, invoiceForBooking, invoiceLabel, renderInvoicePdf } from "./invoice";
+import { ensureInvoice, invoiceAvailable, invoiceForBooking, invoiceLabel, renderInvoiceBundlePdf, renderInvoicePdf, type InvoicePageInput, type InvoiceRow } from "./invoice";
 import { brandFor } from "../../shared/types";
 
 export const routes = Router();
@@ -1021,6 +1021,85 @@ routes.get("/bookings/:id/invoice.pdf", async (req, res) => {
   });
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader("Content-Disposition", `attachment; filename="${invoiceLabel(invoice)} ${property.name}.pdf"`);
+  res.send(pdf);
+});
+
+/** Factuur + boeking + pand + eigenaar samenrapen voor het renderen van een pagina. */
+async function invoicePageInput(inv: InvoiceRow, req: import("express").Request): Promise<InvoicePageInput | null> {
+  const booking = (await db.prepare("SELECT * FROM bookings WHERE id = ?").get(inv.booking_id)) as BookingRow | undefined;
+  const property = await propertyById(inv.property_id);
+  if (!booking || !property) return null;
+  const owner = property.owner_id
+    ? (await db.prepare("SELECT name, email, origin FROM users WHERE id = ?").get(property.owner_id)) as
+        { name: string; email: string; origin: "staybase" | "linnois" } | undefined
+    : undefined;
+  const brand = owner ? brandFor({ role: "owner", origin: owner.origin }) : brandFor(currentUser(req));
+  return { invoice: inv, booking, property, owner: owner ?? null, brand };
+}
+
+/**
+ * Alle uitgereikte facturen binnen de scope, met boekings- en pandcontext —
+ * de datalaag van het Facturen-tabblad. Eigenaars zien enkel hun eigen panden.
+ */
+routes.get("/invoices", async (req, res) => {
+  const scope = await scopedProperties(req);
+  const scopeIds = new Set(scope.map((p) => p.id));
+  const propById = new Map(scope.map((p) => [p.id, p]));
+  const bookings = new Map(
+    (((await db.prepare("SELECT * FROM bookings").all()) as unknown as BookingRow[])).map((b) => [b.id, b])
+  );
+  const rows = ((await db.prepare("SELECT * FROM invoices ORDER BY year DESC, number DESC").all()) as unknown as InvoiceRow[])
+    .filter((i) => scopeIds.has(i.property_id));
+  res.json(rows.map((i) => {
+    const b = bookings.get(i.booking_id);
+    const p = propById.get(i.property_id);
+    return {
+      bookingId: i.booking_id,
+      label: invoiceLabel(i),
+      issuedAt: i.issued_at,
+      amount: Number(i.amount),
+      vatRate: Number(i.vat_rate),
+      propertyId: i.property_id,
+      propertyName: p?.name ?? "",
+      propertyCode: p?.code_name ?? null,
+      guest: b?.guest ?? "",
+      startDate: b?.start_date ?? null,
+      endDate: b?.end_date ?? null,
+    };
+  }));
+});
+
+/**
+ * Bundel: alle facturen in de scope als één PDF, optioneel beperkt tot één
+ * pand (?property=…). Gesorteerd per pand en dan op factuurnummer, zodat de
+ * stapel leest zoals het tabblad.
+ */
+routes.get("/invoices/bundle.pdf", async (req, res) => {
+  const scope = await scopedProperties(req);
+  const propFilter = req.query.property ? String(req.query.property) : null;
+  const props = propFilter ? scope.filter((p) => p.id === propFilter) : scope;
+  if (props.length === 0) {
+    res.status(404).json({ error: "onbekend pand" });
+    return;
+  }
+  const scopeIds = new Set(props.map((p) => p.id));
+  const orderByProp = new Map(props.slice().sort((a, b) => a.name.localeCompare(b.name, "nl")).map((p, i) => [p.id, i]));
+  const rows = ((await db.prepare("SELECT * FROM invoices").all()) as unknown as InvoiceRow[])
+    .filter((i) => scopeIds.has(i.property_id))
+    .sort((a, b) =>
+      (orderByProp.get(a.property_id)! - orderByProp.get(b.property_id)!) ||
+      (a.year - b.year) || (a.number - b.number)
+    );
+  if (rows.length === 0) {
+    res.status(409).json({ error: "Nog geen facturen om te bundelen." });
+    return;
+  }
+  const inputs = (await Promise.all(rows.map((i) => invoicePageInput(i, req))))
+    .filter((x): x is InvoicePageInput => x !== null);
+  const pdf = await renderInvoiceBundlePdf(inputs);
+  const name = propFilter ? props[0].name : "alle panden";
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="Facturen ${name} (${inputs.length}).pdf"`);
   res.send(pdf);
 });
 
