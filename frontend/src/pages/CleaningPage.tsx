@@ -2,78 +2,82 @@ import { useCleanings, useConfirmCleaning, useOverview } from "../lib/api";
 import { eur } from "../lib/format";
 import { Icon } from "../components/Icon";
 import { useToast } from "../components/Toast";
-import { useView } from "../components/OriginGate";
+import { useBrand, useView } from "../components/OriginGate";
+import { useT, type TFn } from "../i18n";
+import { BRAND_LABEL } from "@shared/types";
 import type { Cleaning } from "@shared/types";
 
-function statusEnd(c: Cleaning, onConfirm: (id: string) => void, busy: boolean) {
+function statusEnd(c: Cleaning, onConfirm: (id: string) => void, busy: boolean, t: TFn) {
   switch (c.status) {
     case "confirmed":
-      return <span className="chip good">✓ Bevestigd</span>;
+      return <span className="chip good">{t("clean.chipConfirmed")}</span>;
     case "pending_owner":
       return (
         <>
-          <span className="chip warn">Wacht op jou</span>
+          <span className="chip warn">{t("clean.chipWaitYou")}</span>
           <button className="btn primary sm" disabled={busy} onClick={() => onConfirm(c.id)}>
-            Bevestig · {eur(c.price)}
+            {t("clean.confirm", { p: eur(c.price) })}
           </button>
         </>
       );
     case "awaiting_team":
       return <span className="chip gray">⏱ {c.statusNote}</span>;
     case "done":
-      return <span className="chip good">🤖 AI-fotocheck: {c.aiCheck}</span>;
+      return <span className="chip good">{t("clean.aiCheck", { v: c.aiCheck ?? "" })}</span>;
   }
 }
 
 export function CleaningPage() {
   const platform = useView();
+  const t = useT();
+  const brand = BRAND_LABEL[useBrand()];
   const { data: cleanings, isLoading } = useCleanings();
   const { data: overview } = useOverview();
   const confirm = useConfirmCleaning();
   const toast = useToast();
 
-  if (isLoading || !cleanings) return <div className="loading">Schoonmaak laden…</div>;
+  if (isLoading || !cleanings) return <div className="loading">{t("clean.loading")}</div>;
 
   const planned = cleanings.filter((c) => c.status !== "done");
   const done = [...cleanings.filter((c) => c.status === "done")].reverse();
   const liveProps = (overview?.properties ?? []).filter((p) => p.status === "live");
 
   const onConfirm = (id: string) => {
-    confirm.mutate([id], { onSuccess: () => toast("Sparkle Coast bevestigd voor za 25 juli ✓") });
+    confirm.mutate([id], { onSuccess: () => toast(t("clean.confirmToast")) });
   };
 
   return (
     <section className="page">
-      <h1>Schoonmaak</h1>
+      <h1>{t("clean.title")}</h1>
       <p className="sub">
         {platform.cleaningDetails
-          ? "Na elke check-out plant Staybase automatisch een poetsbeurt in. Jij hoeft niets te doen."
-          : "Linnois plant de schoonmaak na elke check-out. Hier zie je wanneer je pand gepoetst wordt."}
+          ? t("clean.sub", { brand })
+          : t("clean.subLinnois")}
       </p>
 
       {platform.cleaningDetails && (
       <div className="card waterfall" style={{ marginTop: 24 }}>
         <div className="wf-step">
           <span className="em">👋</span>
-          <b>1 · Jouw eigen team eerst</b>
-          <span>Rosa krijgt automatisch de vraag na elke check-out</span>
+          <b>{t("clean.wf1")}</b>
+          <span>{t("clean.wf1p")}</span>
         </div>
         <div className="wf-arrow"><Icon name="arrow" /></div>
         <div className="wf-step">
           <span className="em">⏱️</span>
-          <b>2 · Geen antwoord in 4 uur?</b>
-          <span>Staybase schakelt vanzelf door</span>
+          <b>{t("clean.wf2")}</b>
+          <span>{t("clean.wf2p", { brand })}</span>
         </div>
         <div className="wf-arrow"><Icon name="arrow" /></div>
         <div className="wf-step">
           <span className="em">🧽</span>
-          <b>3 · De marktplaats neemt over</b>
-          <span>Gescreende teams, faire prijs op basis van je pand</span>
+          <b>{t("clean.wf3")}</b>
+          <span>{t("clean.wf3p")}</span>
         </div>
       </div>
       )}
 
-      <h2 className="sec-title"><span className="em">📋</span> Geplande beurten</h2>
+      <h2 className="sec-title"><span className="em">📋</span> {t("clean.planned")}</h2>
       <div className="card">
         {planned.map((c) => (
           <div className="clean-row" key={c.id}>
@@ -85,18 +89,18 @@ export function CleaningPage() {
               <b>{c.propertyName}{c.timeLabel ? ` · ${c.timeLabel}` : ""}</b>
               <span>{platform.cleaningDetails
                 ? `${c.team}${c.statusNote && c.status !== "awaiting_team" ? ` · ${c.statusNote}` : ""}`
-                : "Schoonmaak ingepland"}</span>
+                : t("clean.scheduled")}</span>
             </span>
             <span className="end">
               {platform.cleaningDetails
-                ? statusEnd(c, onConfirm, confirm.isPending)
-                : <span className="chip good">✓ Ingepland</span>}
+                ? statusEnd(c, onConfirm, confirm.isPending, t)
+                : <span className="chip good">{t("clean.chipScheduled")}</span>}
             </span>
           </div>
         ))}
       </div>
 
-      <h2 className="sec-title"><span className="em">✅</span> Afgerond</h2>
+      <h2 className="sec-title"><span className="em">✅</span> {t("clean.done")}</h2>
       <div className="card">
         {done.map((c) => (
           <div className="clean-row" key={c.id}>
@@ -106,30 +110,30 @@ export function CleaningPage() {
             </span>
             <span className="who">
               <b>{c.propertyName}</b>
-              <span>{platform.cleaningDetails ? `${c.team} · ${c.photos} foto's na afloop` : "Schoonmaak uitgevoerd"}</span>
+              <span>{platform.cleaningDetails ? t("clean.photos", { team: c.team, n: c.photos ?? 0 }) : t("clean.executed")}</span>
             </span>
             <span className="end">
               {platform.cleaningDetails ? (
                 <>
-                  {statusEnd(c, onConfirm, confirm.isPending)}
-                  <button className="btn ghost sm" onClick={() => toast("Foto's openen — in een volgende fase zie je hier alle foto's")}>
-                    Bekijk foto's
+                  {statusEnd(c, onConfirm, confirm.isPending, t)}
+                  <button className="btn ghost sm" onClick={() => toast(t("clean.photosDemo"))}>
+                    {t("clean.viewPhotos")}
                   </button>
                 </>
-              ) : <span className="chip good">✓ Afgerond</span>}
+              ) : <span className="chip good">{t("clean.chipDone")}</span>}
             </span>
           </div>
         ))}
       </div>
 
       {platform.cleaningDetails && (<>
-      <h2 className="sec-title"><span className="em">💶</span> Hoe de prijs bepaald wordt</h2>
+      <h2 className="sec-title"><span className="em">💶</span> {t("clean.priceTitle")}</h2>
       <div className="card" style={{ padding: "18px 20px", fontSize: 14, color: "var(--muted)", lineHeight: 1.6 }}>
-        Eén faire, vaste prijs per pand — berekend op oppervlakte en uitrusting, geen verrassingen.<br />
+        {t("clean.priceBody")}<br />
         {liveProps.map((p, i) => (
           <span key={p.id}>
             {i > 0 && <> &nbsp;·&nbsp; </>}
-            <b style={{ color: "var(--ink)" }}>{p.name}</b> ({p.areaM2} m²) → <b style={{ color: "var(--ink)" }} className="num">{eur(p.cleaningPrice)}</b> per beurt
+            <b style={{ color: "var(--ink)" }}>{p.name}</b> ({p.areaM2} m²) → <b style={{ color: "var(--ink)" }} className="num">{eur(p.cleaningPrice)}</b> {t("clean.perClean")}
           </span>
         ))}
       </div>

@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import {
-  COMMISSION_BASIS_HINT, COMMISSION_BASIS_LABEL, COMMISSION_MAX_PCT, COMMISSION_MIN_PCT,
+  COMMISSION_BASIS_LABEL, COMMISSION_MAX_PCT, COMMISSION_MIN_PCT,
   type CommissionBasis,
 } from "@shared/types";
 import { useSetUserCommission } from "../lib/api";
+import { useT } from "../i18n";
 import type { AdminUser } from "../lib/api";
 
 /**
@@ -21,6 +22,7 @@ export function CommissionRow({
   onSaved: (name: string, pct: number, basis: CommissionBasis) => void;
   onError: () => void;
 }) {
+  const t = useT();
   const save = useSetUserCommission();
   const [pct, setPct] = useState(user.commissionPct);
   const [basis, setBasis] = useState<CommissionBasis>(user.commissionBasis);
@@ -60,7 +62,7 @@ export function CommissionRow({
           max={COMMISSION_MAX_PCT}
           step={0.5}
           value={pct}
-          aria-label={`Commissiepercentage voor ${user.name}`}
+          aria-label={t("adm.commAriaPct", { name: user.name })}
           style={{ background: `linear-gradient(90deg, var(--coral) ${fill}%, var(--soft) ${fill}%)` }}
           onChange={(e) => setPct(Number(e.target.value))}
           onPointerUp={(e) => commit(Number((e.target as HTMLInputElement).value), basis)}
@@ -75,7 +77,7 @@ export function CommissionRow({
             max={COMMISSION_MAX_PCT}
             step={0.5}
             value={pct}
-            aria-label={`Commissiepercentage voor ${user.name}, in cijfers`}
+            aria-label={t("adm.commAriaPctNum", { name: user.name })}
             onChange={(e) => setPct(Number(e.target.value))}
             onBlur={(e) => commit(Number(e.target.value), basis)}
             onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
@@ -87,7 +89,7 @@ export function CommissionRow({
         <select
           className="plan-select"
           value={basis}
-          aria-label={`Berekeningsbasis voor ${user.name}`}
+          aria-label={t("adm.commAriaBasis", { name: user.name })}
           onChange={(e) => commit(pct, e.target.value as CommissionBasis)}
         >
           {(["bruto", "netto"] as const).map((b) => (
@@ -95,7 +97,7 @@ export function CommissionRow({
           ))}
         </select>
       </td>
-      <td className="comm-hint">{COMMISSION_BASIS_HINT[basis]}</td>
+      <td className="comm-hint">{t(`adm.commHint.${basis}`)}</td>
     </tr>
   );
 }

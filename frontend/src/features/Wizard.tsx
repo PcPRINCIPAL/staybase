@@ -3,17 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { Icon, Logo } from "../components/Icon";
 import { useToast } from "../components/Toast";
 import { geocodeAddress, trackOnboarding, useCreateProperty, type AddressSuggestion } from "../lib/api";
+import { useT } from "../i18n";
+import { useBrand } from "../components/OriginGate";
+import { BRAND_LABEL } from "@shared/types";
 
 const STEP_COUNT = 8;
 const STEP_TITLES = [
   "Welkom", "Pandgegevens", "Foto's", "Attesten", "Schoonmaak", "Kanalen", "Stem-intake", "Overzicht",
 ];
-const MIC_QS = [
-  "“Hoe zou je je pand omschrijven aan een goeie vriend?”",
-  "“Wat maakt de buurt zo leuk voor gasten?”",
-  "“Hoe verwelkom je gasten meestal?”",
-  "Even luisteren… jouw stijl wordt opgeslagen ✨",
-];
+// Analytics-labels (STEP_TITLES) blijven bewust Nederlands: ze worden
+// opgeslagen in onboarding_events en moeten vergelijkbaar blijven over talen.
+const MIC_Q_KEYS = ["wiz.micQ1", "wiz.micQ2", "wiz.micQ3", "wiz.micQ4"];
 const AMENITIES = ["🏊 Zwembad", "🌳 Tuin", "🚗 Parkeerplaats", "📶 Wifi", "🐶 Huisdieren welkom", "🔥 Open haard", "🚲 Fietsen"];
 const CONFETTI_COLORS = ["#FF385C", "#2B6CDF", "#00A67C", "#FFB400", "#E31C5F"];
 
@@ -40,6 +40,8 @@ function Confetti() {
 }
 
 export function Wizard({ onClose }: { onClose: () => void }) {
+  const t = useT();
+  const brand = BRAND_LABEL[useBrand()];
   const [step, setStep] = useState(0);
   const [type, setType] = useState("Huis");
   const [address, setAddress] = useState("Sparrendreef 24, 8300 Knokke-Heist");
@@ -60,7 +62,7 @@ export function Wizard({ onClose }: { onClose: () => void }) {
   const [airbnbLinked, setAirbnbLinked] = useState(false);
   const [vrbo, setVrbo] = useState(true);
   const [micState, setMicState] = useState<"idle" | "live" | "done">("idle");
-  const [micQ, setMicQ] = useState("Klaar om te starten?");
+  const [micQ, setMicQ] = useState<string>("wiz.micIdle");
   const create = useCreateProperty();
   const toast = useToast();
   const nav = useNavigate();
@@ -128,19 +130,19 @@ export function Wizard({ onClose }: { onClose: () => void }) {
     if (micState !== "idle") return;
     setMicState("live");
     let qi = 0;
-    setMicQ(MIC_QS[0]);
+    setMicQ(MIC_Q_KEYS[0]);
     const iv = setInterval(() => {
       qi++;
-      if (qi < MIC_QS.length) setMicQ(MIC_QS[qi]);
+      if (qi < MIC_Q_KEYS.length) setMicQ(MIC_Q_KEYS[qi]);
       else {
         clearInterval(iv);
         setMicState("done");
-        setMicQ("Klaar! Staybase schrijft voortaan in jouw stem ✅");
+        setMicQ("wiz.micDone");
       }
     }, 2200);
   };
 
-  const street = address.split(",")[0].trim() || "Je pand";
+  const street = address.split(",")[0].trim() || t("wiz.yourProperty");
 
   const finish = () => {
     logStep(true);
@@ -156,18 +158,18 @@ export function Wizard({ onClose }: { onClose: () => void }) {
         onSuccess: () => {
           onClose();
           nav("/");
-          toast(`${street} staat in onboarding — verwachte livegang vr 24 juli 🎉`);
+          toast(t("wiz.createdToast", { p: street }));
         },
-        onError: () => toast("Er ging iets mis bij het aanmaken — probeer opnieuw"),
+        onError: () => toast(t("wiz.createFailed")),
       }
     );
   };
 
   const nextLabel =
-    step === 0 ? "Let's go 🚀"
-    : step === STEP_COUNT - 2 ? "Rond af"
-    : step === STEP_COUNT - 1 ? (create.isPending ? "Aanmaken…" : "Naar mijn dashboard")
-    : "Ga verder";
+    step === 0 ? t("wiz.next0")
+    : step === STEP_COUNT - 2 ? t("wiz.nextFinish")
+    : step === STEP_COUNT - 1 ? (create.isPending ? t("wiz.creating") : t("wiz.toDashboard"))
+    : t("wiz.next");
 
   const onNext = () => {
     if (step === STEP_COUNT - 1) finish();
@@ -175,7 +177,7 @@ export function Wizard({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="wizard" role="dialog" aria-label="Nieuw pand toevoegen">
+    <div className="wizard" role="dialog" aria-label={t("wiz.aria")}>
       {step === STEP_COUNT - 1 && <Confetti />}
       <div className="wiz-top">
         <div className="logo" style={{ fontSize: 17 }}>
@@ -186,41 +188,39 @@ export function Wizard({ onClose }: { onClose: () => void }) {
             <i key={i} className={i <= step ? "done" : ""} />
           ))}
         </div>
-        <button className="icon-btn" onClick={closeWizard} aria-label="Sluiten"><Icon name="x" /></button>
+        <button className="icon-btn" onClick={closeWizard} aria-label={t("common.close")}><Icon name="x" /></button>
       </div>
 
       <div className="wiz-body">
         {step === 0 && (
           <div className="wiz-step">
-            <h2>Binnen 7 dagen staat je pand online 🚀</h2>
-            <p className="lead">
-              Jij vertelt ons over je pand, wij doen het zware werk: schoonmaak, fotoshoot, teksten en publicatie op de juiste kanalen.
-            </p>
+            <h2>{t("wiz.s0.title")}</h2>
+            <p className="lead">{t("wiz.s0.lead")}</p>
             <div className="card" style={{ marginTop: 28 }}>
-              <div className="check-item"><span className="st ok">1</span><span><b>Vandaag — 5 minuutjes van jou</b><span>Enkele vragen over je pand, in mensentaal</span></span><span className="end" style={{ fontSize: 20 }}>☕</span></div>
-              <div className="check-item"><span className="st ok">2</span><span><b>Deze week — wij komen langs</b><span>Schoonmaak, linnen en professionele fotoshoot</span></span><span className="end" style={{ fontSize: 20 }}>📸</span></div>
-              <div className="check-item"><span className="st ok">3</span><span><b>Volgende week — je staat live</b><span>Op Airbnb en Booking.com, met slimme prijzen vanaf dag één</span></span><span className="end" style={{ fontSize: 20 }}>🎉</span></div>
+              <div className="check-item"><span className="st ok">1</span><span><b>{t("wiz.s0.1h")}</b><span>{t("wiz.s0.1p")}</span></span><span className="end" style={{ fontSize: 20 }}>☕</span></div>
+              <div className="check-item"><span className="st ok">2</span><span><b>{t("wiz.s0.2h")}</b><span>{t("wiz.s0.2p")}</span></span><span className="end" style={{ fontSize: 20 }}>📸</span></div>
+              <div className="check-item"><span className="st ok">3</span><span><b>{t("wiz.s0.3h")}</b><span>{t("wiz.s0.3p")}</span></span><span className="end" style={{ fontSize: 20 }}>🎉</span></div>
             </div>
           </div>
         )}
 
         {step === 1 && (
           <div className="wiz-step">
-            <h2>Vertel eens over je pand 🏡</h2>
-            <p className="lead">Geen zorgen als je iets niet zeker weet — alles kan later nog aangepast worden.</p>
+            <h2>{t("wiz.s1.title")}</h2>
+            <p className="lead">{t("wiz.s1.lead")}</p>
             <div className="opt-grid">
               {[
-                ["Huis", "🏠", "Vrijstaand of gesloten"],
-                ["Appartement", "🏢", "Ook studio of penthouse"],
-                ["Villa", "🏖️", "Met tuin of zwembad"],
-              ].map(([t, em, sub]) => (
-                <button key={t} className={`opt ${type === t ? "sel" : ""}`} onClick={() => setType(t)}>
-                  <span className="em">{em}</span><b>{t}</b><span>{sub}</span>
+                ["Huis", "🏠", t("wiz.s1.house"), t("wiz.s1.houseSub")],
+                ["Appartement", "🏢", t("wiz.s1.apartment"), t("wiz.s1.apartmentSub")],
+                ["Villa", "🏖️", t("wiz.s1.villa"), t("wiz.s1.villaSub")],
+              ].map(([val, em, label, sub]) => (
+                <button key={val} className={`opt ${type === val ? "sel" : ""}`} onClick={() => setType(val)}>
+                  <span className="em">{em}</span><b>{label}</b><span>{sub}</span>
                 </button>
               ))}
             </div>
             <div className="fld addr-wrap">
-              <label htmlFor="wAddr">Adres</label>
+              <label htmlFor="wAddr">{t("wiz.s1.address")}</label>
               <input
                 type="text"
                 id="wAddr"
@@ -229,8 +229,8 @@ export function Wizard({ onClose }: { onClose: () => void }) {
                 onChange={(e) => onAddressChange(e.target.value)}
                 onBlur={() => setTimeout(() => setAddrOpen(false), 150)}
               />
-              {addrChecking && <span className="addr-status">Zoeken…</span>}
-              {addrVerified && !addrChecking && <span className="addr-status ok">✓ gevonden</span>}
+              {addrChecking && <span className="addr-status">{t("wiz.s1.searching")}</span>}
+              {addrVerified && !addrChecking && <span className="addr-status ok">{t("wiz.s1.found")}</span>}
               {addrOpen && (
                 <div className="addr-drop">
                   {addrSuggestions.map((s, i) => (
@@ -244,9 +244,9 @@ export function Wizard({ onClose }: { onClose: () => void }) {
             </div>
             <div className="steppers">
               {[
-                ["🛏️ Slaapkamers", bedrooms, setBedrooms],
-                ["🛁 Badkamers", bathrooms, setBathrooms],
-                ["👥 Max. gasten", maxGuests, setMaxGuests],
+                [t("wiz.s1.bedrooms"), bedrooms, setBedrooms],
+                [t("wiz.s1.bathrooms"), bathrooms, setBathrooms],
+                [t("wiz.s1.maxGuests"), maxGuests, setMaxGuests],
               ].map(([label, val, set]) => (
                 <div className="stepper" key={label as string}>
                   <b>{label as string}</b>
@@ -278,75 +278,75 @@ export function Wizard({ onClose }: { onClose: () => void }) {
 
         {step === 2 && (
           <div className="wiz-step">
-            <h2>Foto's die boekingen opleveren 📸</h2>
-            <p className="lead">Panden met professionele foto's krijgen tot 40% meer boekingen. Onze fotograaf kent de kust — en het licht.</p>
+            <h2>{t("wiz.s2.title")}</h2>
+            <p className="lead">{t("wiz.s2.lead")}</p>
             <div className="opt-grid two">
               <button className={`opt ${photoChoice === "photographer" ? "sel" : ""}`} onClick={() => setPhotoChoice("photographer")}>
-                <span className="chip coral rec">Aanbevolen</span>
-                <span className="em">📸</span><b>Onze fotograaf komt langs</b>
-                <span>Er is deze week nog een slot vrij: donderdag 23 juli om 10:00. Wij regelen alles.</span>
+                <span className="chip coral rec">{t("wiz.s2.recommended")}</span>
+                <span className="em">📸</span><b>{t("wiz.s2.photographer")}</b>
+                <span>{t("wiz.s2.photographerSub")}</span>
               </button>
               <button className={`opt ${photoChoice === "own" ? "sel" : ""}`} onClick={() => setPhotoChoice("own")}>
-                <span className="em">🤳</span><b>Ik gebruik eigen foto's</b>
-                <span>Uploaden kan meteen — wij kiezen de beste volgorde</span>
+                <span className="em">🤳</span><b>{t("wiz.s2.own")}</b>
+                <span>{t("wiz.s2.ownSub")}</span>
               </button>
             </div>
-            <div className="banner good">💡 <span>De shoot wordt pas gefactureerd als je pand live staat. Annuleren kan tot 24u vooraf.</span></div>
+            <div className="banner good">{t("wiz.s2.banner")}</div>
           </div>
         )}
 
         {step === 3 && (
           <div className="wiz-step">
-            <h2>Veilig & volgens de regels 🛡️</h2>
-            <p className="lead">Verhuren aan de kust vraagt een paar attesten. Staybase houdt bij wat in orde is — en regelt de rest mee.</p>
+            <h2>{t("wiz.s3.title")}</h2>
+            <p className="lead">{t("wiz.s3.lead", { brand })}</p>
             <div className="card" style={{ marginTop: 24 }}>
               <div className="check-item">
                 <span className={`st ${certRequested ? "ok" : "todo"}`}>{certRequested ? "✓" : "!"}</span>
-                <span><b>Brandveiligheidsattest</b><span>Verplicht door Toerisme Vlaanderen</span></span>
+                <span><b>{t("wiz.s3.fire")}</b><span>{t("wiz.s3.fireSub")}</span></span>
                 <span className="end">
                   {certRequested ? (
-                    <span className="chip good">✓ Keuring aangevraagd — wij volgen op</span>
+                    <span className="chip good">{t("wiz.s3.fireRequested")}</span>
                   ) : (
-                    <button className="btn primary sm" onClick={() => { setCertRequested(true); toast("Keuring aangevraagd via Certilogics (demo)"); }}>
-                      Vraag keuring aan
+                    <button className="btn primary sm" onClick={() => { setCertRequested(true); toast(t("wiz.s3.fireToast")); }}>
+                      {t("wiz.s3.requestFire")}
                     </button>
                   )}
                 </span>
               </div>
               <div className="check-item">
                 <span className="st ok">✓</span>
-                <span><b>EPC-attest</b><span>Gevonden via je adres — geldig tot 2031</span></span>
-                <span className="end"><span className="chip good">In orde</span></span>
+                <span><b>{t("wiz.s3.epc")}</b><span>{t("wiz.s3.epcSub")}</span></span>
+                <span className="end"><span className="chip good">{t("wiz.s3.ok")}</span></span>
               </div>
               <div className="check-item">
                 <span className="st ok">✓</span>
-                <span><b>Verzekering burgerlijke aansprakelijkheid</b><span>Bevestigd bij onboarding</span></span>
-                <span className="end"><span className="chip good">In orde</span></span>
+                <span><b>{t("wiz.s3.insurance")}</b><span>{t("wiz.s3.insuranceSub")}</span></span>
+                <span className="end"><span className="chip good">{t("wiz.s3.ok")}</span></span>
               </div>
             </div>
-            <div className="banner warn">⏳ <span><b>Je kan gewoon verdergaan.</b> Publiceren kan zodra het attest binnen is — wij volgen het op en verwittigen je. Zo blijft elk Staybase-pand gecontroleerd en betrouwbaar.</span></div>
+            <div className="banner warn">{t("wiz.s3.banner", { brand })}</div>
           </div>
         )}
 
         {step === 4 && (
           <div className="wiz-step">
-            <h2>Wie doet de schoonmaak? 🧽</h2>
-            <p className="lead">Na elke check-out plant Staybase automatisch een poetsbeurt. Kies wat voor jou werkt — wisselen kan altijd.</p>
+            <h2>{t("wiz.s4.title")}</h2>
+            <p className="lead">{t("wiz.s4.lead", { brand })}</p>
             <div className="opt-grid two">
               <button className={`opt ${cleaningChoice === "marketplace" ? "sel" : ""}`} onClick={() => setCleaningChoice("marketplace")}>
-                <span className="chip coral rec">Populair</span>
-                <span className="em">✨</span><b>Staybase regelt het</b>
-                <span>Gescreende teams uit de buurt. Voor dit pand: ± € 85 per beurt, linnen inbegrepen.</span>
+                <span className="chip coral rec">{t("wiz.s4.popular")}</span>
+                <span className="em">✨</span><b>{t("wiz.s4.marketplace", { brand })}</b>
+                <span>{t("wiz.s4.marketplaceSub")}</span>
               </button>
               <button className={`opt ${cleaningChoice === "own" ? "sel" : ""}`} onClick={() => setCleaningChoice("own")}>
-                <span className="em">👋</span><b>Ik heb een eigen poetsteam</b>
-                <span>Zij krijgen na elke check-out automatisch een taak. Antwoorden ze niet, dan springt de marktplaats bij.</span>
+                <span className="em">👋</span><b>{t("wiz.s4.own")}</b>
+                <span>{t("wiz.s4.ownSub")}</span>
               </button>
             </div>
             <div className="fld">
-              <label htmlFor="wCleanMail">E-mail van je poetsteam (optioneel)</label>
+              <label htmlFor="wCleanMail">{t("wiz.s4.email")}</label>
               <input
-                type="email" id="wCleanMail" placeholder="bv. rosa@poetsteam.be"
+                type="email" id="wCleanMail" placeholder={t("wiz.s4.emailPh")}
                 value={cleaningEmail} onChange={(e) => setCleaningEmail(e.target.value)}
               />
             </div>
@@ -355,34 +355,34 @@ export function Wizard({ onClose }: { onClose: () => void }) {
 
         {step === 5 && (
           <div className="wiz-step">
-            <h2>Waar wil je verhuren? 🌍</h2>
-            <p className="lead">Jij blijft de host, in eigen naam. Staybase staat ernaast als co-host en doet het werk.</p>
+            <h2>{t("wiz.s5.title")}</h2>
+            <p className="lead">{t("wiz.s5.lead", { brand })}</p>
             <div className="card" style={{ marginTop: 24 }}>
               <div className="check-item">
                 <span className="st" style={{ background: "var(--coral-soft)", fontSize: 15 }}>🅰</span>
-                <span><b>Airbnb — jouw eigen account</b><span>Jouw naam, jouw reviews. Staybase wordt co-host.</span></span>
+                <span><b>{t("wiz.s5.airbnb")}</b><span>{t("wiz.s5.airbnbSub", { brand })}</span></span>
                 <span className="end">
                   {airbnbLinked ? (
-                    <span className="chip good">✓ Gekoppeld als co-host</span>
+                    <span className="chip good">{t("wiz.s5.linked")}</span>
                   ) : (
-                    <button className="btn primary sm" onClick={() => { setAirbnbLinked(true); toast("Airbnb-account gekoppeld — jij blijft de host"); }}>
-                      Koppel mijn account
+                    <button className="btn primary sm" onClick={() => { setAirbnbLinked(true); toast(t("wiz.s5.linkToast")); }}>
+                      {t("wiz.s5.link")}
                     </button>
                   )}
                 </span>
               </div>
               <div className="check-item">
                 <span className="st" style={{ background: "var(--booking-soft)", fontSize: 15 }}>🅱</span>
-                <span><b>Booking.com</b><span>Loopt via het Staybase-account — geregeld voor jou</span></span>
-                <span className="end"><span className="chip good">✓ Inbegrepen</span></span>
+                <span><b>Booking.com</b><span>{t("wiz.s5.bookingSub", { brand })}</span></span>
+                <span className="end"><span className="chip good">{t("wiz.s5.included")}</span></span>
               </div>
               <div className="check-item">
                 <span className="st" style={{ background: "var(--vrbo-soft)", fontSize: 15 }}>✌️</span>
-                <span><b>VRBO</b><span>Extra bereik bij internationale gezinnen</span></span>
+                <span><b>VRBO</b><span>{t("wiz.s5.vrboSub")}</span></span>
                 <span className="end">
                   <button
                     className={`switch ${vrbo ? "on" : ""}`}
-                    role="switch" aria-checked={vrbo} aria-label="VRBO inschakelen"
+                    role="switch" aria-checked={vrbo} aria-label={t("wiz.s5.vrboAria")}
                     style={{ transform: "scale(.85)" }}
                     onClick={() => setVrbo((v) => !v)}
                   />
@@ -394,23 +394,20 @@ export function Wizard({ onClose }: { onClose: () => void }) {
 
         {step === 6 && (
           <div className="wiz-step">
-            <h2>Laat Staybase klinken als jou 🎙️</h2>
-            <p className="lead">
-              Eén belletje van 2 minuten. Geen vragenlijst — gewoon even babbelen over je pand.
-              Daarna schrijft Staybase elk gastenbericht in jouw stem.
-            </p>
+            <h2>{t("wiz.s6.title", { brand })}</h2>
+            <p className="lead">{t("wiz.s6.lead", { brand })}</p>
             <div className="card mic-wrap" style={{ marginTop: 24 }}>
               <div className={`mic ${micState === "live" ? "live" : ""} ${micState === "done" ? "done-mic" : ""}`}>
                 <Icon name="mic" size={34} />
               </div>
-              <div className="mic-q">{micQ}</div>
+              <div className="mic-q">{t(micQ, { brand })}</div>
               <p className="mic-sub">
-                {micState === "idle" && "Duurt ± 2 minuten · je kan altijd opnieuw"}
-                {micState === "live" && "Opname loopt · gewoon babbelen, geen juiste antwoorden"}
-                {micState === "done" && "Je kan dit altijd opnieuw doen via je profiel"}
+                {micState === "idle" && t("wiz.s6.idle")}
+                {micState === "live" && t("wiz.s6.live")}
+                {micState === "done" && t("wiz.s6.done")}
               </p>
               {micState === "idle" && (
-                <button className="btn coral" style={{ marginTop: 18 }} onClick={startMic}>Start het belletje</button>
+                <button className="btn coral" style={{ marginTop: 18 }} onClick={startMic}>{t("wiz.s6.start")}</button>
               )}
             </div>
           </div>
@@ -418,17 +415,17 @@ export function Wizard({ onClose }: { onClose: () => void }) {
 
         {step === 7 && (
           <div className="wiz-step">
-            <h2>Alles staat klaar! 🎉</h2>
-            <p className="lead">Wij gaan aan de slag. Jij hoort van ons — en volgt alles live op je dashboard.</p>
+            <h2>{t("wiz.s7.title")}</h2>
+            <p className="lead">{t("wiz.s7.lead")}</p>
             <div className="card" style={{ marginTop: 24 }}>
-              <div className="check-item"><span className="st ok">✓</span><span><b>{address}</b><span>{type} · {bedrooms} slpk · {maxGuests} gasten{amenities.has("🏊 Zwembad") ? " · zwembad" : ""}</span></span></div>
-              <div className="check-item"><span className="st ok">✓</span><span><b>{photoChoice === "photographer" ? "Fotoshoot geboekt" : "Eigen foto's gekozen"}</b><span>{photoChoice === "photographer" ? "Donderdag 23 juli om 10:00" : "Uploaden kan meteen na afronden"}</span></span></div>
-              <div className="check-item"><span className={`st ${certRequested ? "ok" : "todo"}`}>{certRequested ? "✓" : "⏳"}</span><span><b>Brandveiligheidsattest {certRequested ? "aangevraagd" : "nog te regelen"}</b><span>{certRequested ? "Keuring wordt ingepland — wij volgen op" : "Wij herinneren je eraan — publiceren kan zodra het binnen is"}</span></span></div>
-              <div className="check-item"><span className="st ok">✓</span><span><b>Schoonmaak geregeld</b><span>{cleaningChoice === "marketplace" ? "Via de Staybase-marktplaats · ± € 85 per beurt" : `Jouw eigen team${cleaningEmail ? ` (${cleaningEmail})` : ""} · marktplaats als vangnet`}</span></span></div>
-              <div className="check-item"><span className={`st ${airbnbLinked ? "ok" : "todo"}`}>{airbnbLinked ? "✓" : "⏳"}</span><span><b>{airbnbLinked ? "Airbnb gekoppeld als co-host" : "Airbnb koppelen kan ook later"}</b><span>Booking.com{vrbo ? " en VRBO" : ""} inbegrepen</span></span></div>
-              <div className="check-item"><span className={`st ${micState === "done" ? "ok" : "todo"}`}>{micState === "done" ? "✓" : "⏳"}</span><span><b>{micState === "done" ? "Jouw schrijfstijl geleerd" : "Stem-intake kan ook later"}</b><span>Gastenberichten klinken voortaan als jij</span></span></div>
+              <div className="check-item"><span className="st ok">✓</span><span><b>{address}</b><span>{t("wiz.s7.meta", { type, s: bedrooms, g: maxGuests })}{amenities.has("🏊 Zwembad") ? t("wiz.s7.pool") : ""}</span></span></div>
+              <div className="check-item"><span className="st ok">✓</span><span><b>{photoChoice === "photographer" ? t("wiz.s7.shootBooked") : t("wiz.s7.ownPhotos")}</b><span>{photoChoice === "photographer" ? t("wiz.s7.shootWhen") : t("wiz.s7.uploadAfter")}</span></span></div>
+              <div className="check-item"><span className={`st ${certRequested ? "ok" : "todo"}`}>{certRequested ? "✓" : "⏳"}</span><span><b>{certRequested ? t("wiz.s7.fireRequested") : t("wiz.s7.fireTodo")}</b><span>{certRequested ? t("wiz.s7.fireReqSub") : t("wiz.s7.fireTodoSub")}</span></span></div>
+              <div className="check-item"><span className="st ok">✓</span><span><b>{t("wiz.s7.cleaning")}</b><span>{cleaningChoice === "marketplace" ? t("wiz.s7.cleaningMarket", { brand }) : t("wiz.s7.cleaningOwn", { mail: cleaningEmail ? ` (${cleaningEmail})` : "" })}</span></span></div>
+              <div className="check-item"><span className={`st ${airbnbLinked ? "ok" : "todo"}`}>{airbnbLinked ? "✓" : "⏳"}</span><span><b>{airbnbLinked ? t("wiz.s7.airbnbLinked") : t("wiz.s7.airbnbLater")}</b><span>{t("wiz.s7.channels", { vrbo: vrbo ? t("wiz.s7.andVrbo") : "" })}</span></span></div>
+              <div className="check-item"><span className={`st ${micState === "done" ? "ok" : "todo"}`}>{micState === "done" ? "✓" : "⏳"}</span><span><b>{micState === "done" ? t("wiz.s7.voiceDone") : t("wiz.s7.voiceLater")}</b><span>{t("wiz.s7.voiceSub")}</span></span></div>
             </div>
-            <div className="banner good">🗓️ <span><b>Verwachte livegang: vrijdag 24 juli.</b> Zodra het attest binnen is, publiceert Staybase automatisch.</span></div>
+            <div className="banner good">{t("wiz.s7.banner", { brand })}</div>
           </div>
         )}
       </div>
@@ -436,7 +433,7 @@ export function Wizard({ onClose }: { onClose: () => void }) {
       <div className="wiz-foot">
         <div className="wiz-foot-in">
           <button className="btn ghost" style={{ visibility: step === 0 ? "hidden" : "visible" }} onClick={() => goToStep(Math.max(0, step - 1))}>
-            Terug
+            {t("wiz.back")}
           </button>
           <button className="btn coral" onClick={onNext} disabled={create.isPending}>{nextLabel}</button>
         </div>

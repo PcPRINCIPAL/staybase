@@ -2,13 +2,16 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { DEMO_TODAY, type CalendarDay, type Property } from "@shared/types";
 import { useCalendar, useCalendarOverview, useProperties } from "../lib/api";
-import { CHANNEL_META, addMonths, eur, monthName, nightsBetween } from "../lib/format";
+import { CHANNEL_META, addMonths, dowShort, eur, monthName, nightsBetween } from "../lib/format";
 import { Icon } from "../components/Icon";
 import { useToast } from "../components/Toast";
-import { useView } from "../components/OriginGate";
+import { useBrand, useView } from "../components/OriginGate";
+import { useT } from "../i18n";
+import { BRAND_LABEL } from "@shared/types";
 
 /** Compacte pandkaart in de lijst links — klikken selecteert het pand. */
 function CalProp({ p, on, onSelect }: { p: Property; on: boolean; onSelect: () => void }) {
+  const t = useT();
   return (
     <button className={`cal-prop ${on ? "on" : ""}`} onClick={onSelect} aria-pressed={on}>
       <span className="thumb" style={{ background: p.artBg }}>
@@ -16,9 +19,9 @@ function CalProp({ p, on, onSelect }: { p: Property; on: boolean; onSelect: () =
       </span>
       <span className="cal-prop-txt">
         <b>{p.name}</b>
-        <small>{p.location} · {p.bedrooms} slpk</small>
+        <small>{p.location} · {p.bedrooms} {t("cal.bedrooms")}</small>
         <small className={p.status === "live" ? "dot-live" : "dot-off"}>
-          {p.status === "live" ? "● live" : "◌ onboarding"}
+          {p.status === "live" ? t("cal.dotLive") : t("cal.dotOnboarding")}
         </small>
       </span>
     </button>
@@ -29,7 +32,8 @@ function CalProp({ p, on, onSelect }: { p: Property; on: boolean; onSelect: () =
 function GanttView({ month, sort }: { month: string; sort: "name" | "occupancy" }) {
   const { data, isLoading } = useCalendarOverview(month);
   const nav = useNavigate();
-  if (isLoading || !data) return <div className="loading">Tijdlijn laden…</div>;
+  const t = useT();
+  if (isLoading || !data) return <div className="loading">{t("cal.loadingTimeline")}</div>;
 
   const rows = data.properties.slice().sort((a, b) =>
     sort === "occupancy"
@@ -63,7 +67,7 @@ function GanttView({ month, sort }: { month: string; sort: "name" | "occupancy" 
               </span>
               <span className="gantt-name-txt">
                 <b>{r.property.name}</b>
-                <small className="num">{r.occupancyPct}% bezet</small>
+                <small className="num">{t("cal.occupied", { n: r.occupancyPct })}</small>
               </span>
             </button>
             <div className="gantt-days" style={{ gridTemplateColumns: `repeat(${dim}, 1fr)` }}>
@@ -109,6 +113,8 @@ export function CalendarPage() {
   const [view, setView] = useState<"maand" | "lijst">("maand");
   const [sort, setSort] = useState<"name" | "occupancy">("occupancy");
   const platform = useView();
+  const t = useT();
+  const brand = BRAND_LABEL[useBrand()];
   const { data: rawProperties } = useProperties();
   const { data, isLoading } = useCalendar(view === "maand" ? propertyId : "", month);
   const toast = useToast();
@@ -148,15 +154,15 @@ export function CalendarPage() {
 
   const monthNav = (
     <div className="cal-head">
-      <button className="icon-btn" aria-label="Vorige maand" onClick={() => setMonth((m) => addMonths(m, -1))}>
+      <button className="icon-btn" aria-label={t("cal.prevMonth")} onClick={() => setMonth((m) => addMonths(m, -1))}>
         <Icon name="chevL" />
       </button>
       <span className="cal-month">{monthName(month)[0].toUpperCase() + monthName(month).slice(1)} {month.slice(0, 4)}</span>
-      <button className="icon-btn" aria-label="Volgende maand" onClick={() => setMonth((m) => addMonths(m, 1))}>
+      <button className="icon-btn" aria-label={t("cal.nextMonth")} onClick={() => setMonth((m) => addMonths(m, 1))}>
         <Icon name="chevR" />
       </button>
       {bezet != null && (
-        <span className="chip coral num" style={{ marginLeft: "auto" }}>{bezet}% bezet</span>
+        <span className="chip coral num" style={{ marginLeft: "auto" }}>{t("cal.occupied", { n: bezet })}</span>
       )}
     </div>
   );
@@ -165,21 +171,21 @@ export function CalendarPage() {
     <section className="page cal-page">
       <div className="page-head">
         <div>
-          <h1>Kalender</h1>
-          <p className="sub">Alle kanalen in één overzicht — Airbnb, Booking.com en VRBO synchroniseren automatisch.</p>
+          <h1>{t("cal.title")}</h1>
+          <p className="sub">{t("cal.sub")}</p>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           {view === "lijst" && (
-            <div className="seg" role="tablist" aria-label="Sorteren">
-              {([["occupancy", "Bezetting"], ["name", "Naam"]] as const).map(([v, label]) => (
+            <div className="seg" role="tablist" aria-label={t("cal.sort")}>
+              {([["occupancy", t("cal.sortOccupancy")], ["name", t("cal.sortName")]] as const).map(([v, label]) => (
                 <button key={v} role="tab" aria-selected={sort === v} className={sort === v ? "on" : ""} onClick={() => setSort(v)}>
                   {label}
                 </button>
               ))}
             </div>
           )}
-          <div className="seg" role="tablist" aria-label="Weergave">
-            {([["maand", "Maand"], ["lijst", "Lijst"]] as const).map(([v, label]) => (
+          <div className="seg" role="tablist" aria-label={t("cal.view")}>
+            {([["maand", t("cal.month")], ["lijst", t("cal.list")]] as const).map(([v, label]) => (
               <button key={v} role="tab" aria-selected={view === v} className={view === v ? "on" : ""} onClick={() => setView(v)}>
                 {label}
               </button>
@@ -208,13 +214,13 @@ export function CalendarPage() {
           {monthNav}
           <div className="card cal">
           <div className="cal-days">
-            {["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"].map((d) => <span key={d}>{d}</span>)}
+            {dowShort().map((d) => <span key={d}>{d}</span>)}
           </div>
           <div className="cal-cells">
             {Array.from({ length: data?.leadingBlanks ?? 0 }).map((_, i) => (
               <div className="cell blank" key={"b" + i} />
             ))}
-            {isLoading && <div className="loading" style={{ gridColumn: "1 / -1" }}>Kalender laden…</div>}
+            {isLoading && <div className="loading" style={{ gridColumn: "1 / -1" }}>{t("cal.loading")}</div>}
             {data?.days.map((d) => {
               // b = de boeking van deze nácht; ending = de boeking die deze
               // ochtend uitcheckt. Op een wisseldag zijn dat er twee: het oude
@@ -239,7 +245,7 @@ export function CalendarPage() {
                 d.date === selected && !selBooking ? "sel" : "",
               ].filter(Boolean).join(" ");
               return (
-                <button key={d.date} className={cls} onClick={() => setSelected(d.date)} aria-label={`${d.day} ${data.monthLabel}`}>
+                <button key={d.date} className={cls} onClick={() => setSelected(d.date)} aria-label={`${d.day} ${monthName(month)}`}>
                   {ending && <span className={`bseg bseg-end ${ending.channel}`} />}
                   {b && <span className={`bseg bseg-cover ${b.channel} ${b.isStart ? "from-mid" : "full"}`} />}
                   {inPeriod && (
@@ -268,8 +274,8 @@ export function CalendarPage() {
             <span><span className="dot" style={{ background: "var(--airbnb)" }} />Airbnb</span>
             <span><span className="dot" style={{ background: "var(--booking)" }} />Booking.com</span>
             <span><span className="dot" style={{ background: "var(--vrbo)" }} />VRBO</span>
-            <span><span className="dot" style={{ background: "var(--soft)", border: "1px solid var(--line)" }} />Vrij</span>
-            <span>🧽 wisseldag met schoonmaak</span>
+            <span><span className="dot" style={{ background: "var(--soft)", border: "1px solid var(--line)" }} />{t("cal.free")}</span>
+            <span>{t("cal.changeover")}</span>
           </div>
         </div>
         </div>
@@ -287,17 +293,17 @@ export function CalendarPage() {
                 </div>
               </div>
               <dl>
-                <dt>Check-in</dt>
+                <dt>{t("common.checkIn")}</dt>
                 <dd className="num">
                   {Number(selBooking.startDate.slice(8))} {monthName(selBooking.startDate).slice(0, 3)}{selBooking.checkInTime ? ` · ${selBooking.checkInTime}` : ""}
                 </dd>
-                <dt>Check-out</dt>
+                <dt>{t("common.checkOut")}</dt>
                 <dd className="num">
                   {Number(selBooking.endDate.slice(8))} {monthName(selBooking.endDate).slice(0, 3)}{selBooking.checkOutTime ? ` · ${selBooking.checkOutTime}` : ""}
                 </dd>
-                <dt>Nachten</dt><dd className="num">{nightsBetween(selBooking.startDate, selBooking.endDate)}</dd>
-                <dt>Gasten</dt><dd className="num">{selBooking.guests}</dd>
-                <dt>Jouw uitbetaling</dt><dd className="num">{eur(selBooking.payout)}</dd>
+                <dt>{t("cal.nights")}</dt><dd className="num">{nightsBetween(selBooking.startDate, selBooking.endDate)}</dd>
+                <dt>{t("cal.guests")}</dt><dd className="num">{selBooking.guests}</dd>
+                <dt>{t("cal.payout")}</dt><dd className="num">{eur(selBooking.payout)}</dd>
               </dl>
               {selBooking.note && (
                 <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>💡 {selBooking.note}</p>
@@ -307,7 +313,7 @@ export function CalendarPage() {
                 style={{ width: "100%", justifyContent: "center" }}
                 onClick={() => nav("/inbox")}
               >
-                💬 Stuur een bericht
+                {t("cal.sendMsg")}
               </button>
             </>
           ) : selDay ? (
@@ -315,39 +321,37 @@ export function CalendarPage() {
               <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
                 <span className="avat">🌤️</span>
                 <div>
-                  <b style={{ fontSize: 16 }}>{selDay.day} {data?.monthLabel.split(" ")[0].toLowerCase()} — vrij</b><br />
-                  <span className="chip gray">Nog boekbaar</span>
+                  <b style={{ fontSize: 16 }}>{t("cal.dayFree", { d: `${selDay.day} ${monthName(month)}` })}</b><br />
+                  <span className="chip gray">{t("cal.bookable")}</span>
                 </div>
               </div>
               {platform.prices && (
                 <dl>
-                  <dt>Huidige nachtprijs</dt><dd className="num">€ {selDay.price}</dd>
+                  <dt>{t("cal.nightPrice")}</dt><dd className="num">€ {selDay.price}</dd>
                 </dl>
               )}
               {!platform.prices ? (
                 <p style={{ fontSize: 13, color: "var(--muted)" }}>
-                  Deze nacht is nog vrij. Linnois bepaalt de prijs en zet het pand in de markt —
-                  vragen over een bepaalde week? Stel ze via Chat met Julie.
+                  {t("cal.linnoisFree")}
                 </p>
               ) : selDay.suggested ? (
                 <>
                   <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>
-                    ✨ Staybase stelt <b>€ {selDay.suggested}</b> voor: laatste vrije nachten tussen twee boekingen.
-                    Zo verdrievoudigt de kans op een last-minute boeking.
+                    {t("cal.suggestion", { brand, p: `€ ${selDay.suggested}` })}
                   </p>
                   <button className="btn coral sm" style={{ width: "100%", justifyContent: "center" }} onClick={() => nav("/prijzen")}>
-                    Bekijk het voorstel
+                    {t("cal.viewSuggestion")}
                   </button>
                 </>
               ) : (
                 <p style={{ fontSize: 13, color: "var(--muted)" }}>
-                  De prijs volgt automatisch de vraag in Knokke. Wil je een vaste prijs? Pas hem hier gewoon aan.
+                  {t("cal.autoPrice")}
                 </p>
               )}
             </>
           ) : (
             <p style={{ fontSize: 13.5, color: "var(--muted)" }}>
-              Klik op een dag om {platform.prices ? "de boeking of prijs" : "de boeking"} te bekijken. 👈
+              {platform.prices ? t("cal.clickDay") : t("cal.clickDayNoPrice")}
             </p>
           )}
           {selDay && !selBooking && !selDay.suggested && selDay.price == null && (

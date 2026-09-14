@@ -5,6 +5,7 @@ import { eur, monthName } from "../lib/format";
 import { Icon } from "../components/Icon";
 import { useToast } from "../components/Toast";
 import { useView } from "../components/OriginGate";
+import { useLocale } from "../i18n";
 
 const SERIES = [
   { key: "airbnb", name: "Airbnb", color: "var(--airbnb)" },
@@ -13,6 +14,7 @@ const SERIES = [
 ] as const;
 
 function RevenueChart({ months }: { months: RevenueMonth[] }) {
+  const { t } = useLocale();
   const [tip, setTip] = useState<{ x: number; y: number; label: string; value: string } | null>(null);
   const W = 560, H = 210;
   const max = Math.max(18000, ...months.map((m) => m.airbnb + m.booking + m.vrbo)) * 1.02;
@@ -21,7 +23,7 @@ function RevenueChart({ months }: { months: RevenueMonth[] }) {
 
   return (
     <div style={{ position: "relative" }}>
-      <svg viewBox={`0 0 ${W} ${H + 24}`} style={{ width: "100%", height: "auto" }} role="img" aria-label="Opbrengsten per maand per kanaal">
+      <svg viewBox={`0 0 ${W} ${H + 24}`} style={{ width: "100%", height: "auto" }} role="img" aria-label={t("rev.chartAria")}>
         {[6000, 12000, 18000].map((g) => {
           const y = H - (g / max) * (H - 30);
           return (
@@ -55,8 +57,8 @@ function RevenueChart({ months }: { months: RevenueMonth[] }) {
                     const r = (e.target as SVGRectElement).getBoundingClientRect();
                     setTip({
                       x: r.left + r.width / 2, y: r.top,
-                      label: `${s.name} · ${m.label}${m.running ? " (loopt nog)" : ""}`,
-                      value: `${eur(s.amount)} van ${eur(total)}`,
+                      label: `${s.name} · ${m.label}${m.running ? ` ${t("rev.stillRunning")}` : ""}`,
+                      value: t("rev.of", { a: eur(s.amount), b: eur(total) }),
                     });
                   }}
                   onMouseLeave={() => setTip(null)}
@@ -82,43 +84,42 @@ function RevenueChart({ months }: { months: RevenueMonth[] }) {
 }
 
 export function RevenuePage() {
+  const { t } = useLocale();
   const platform = useView();
   const { data, isLoading } = useRevenue();
   const toast = useToast();
 
-  if (isLoading || !data) return <div className="loading">Opbrengsten laden…</div>;
+  if (isLoading || !data) return <div className="loading">{t("rev.loading")}</div>;
 
   return (
     <section className="page">
       {/* Een Linnois-eigenaar ziet zijn netto-uitbetaling, niet de totale
           gastbetaling. De volledige berekening (gast betaalde − OTA-commissie
           − commissie Linnois − schoonmaak) komt met de opbrengsten-rework. */}
-      <h1>{platform.grossRevenue ? "Opbrengsten" : "Uitbetalingen"}</h1>
+      <h1>{platform.grossRevenue ? t("rev.title") : t("rev.titleNet")}</h1>
       <p className="sub">
-        {platform.grossRevenue
-          ? "Precies weten waar je staat — per kanaal, per pand, met alle documenten voor je boekhouder."
-          : "Wat er effectief naar jou gaat — per maand, per pand, met alle documenten voor je boekhouder."}
+        {platform.grossRevenue ? t("rev.sub") : t("rev.subNet")}
       </p>
 
       <div className="rev-hero">
         <div>
-          <span className="lbl">{platform.grossRevenue ? "Dit jaar tot vandaag" : "Netto uitbetaald dit jaar"}</span>
+          <span className="lbl">{platform.grossRevenue ? t("rev.ytd") : t("rev.ytdNet")}</span>
           <div className="big num">{eur(data.totalYear)}</div>
         </div>
         <span className="chip good" style={{ marginBottom: 6 }}>▲ {data.deltaLabel}</span>
         <button
           className="btn primary"
           style={{ marginLeft: "auto" }}
-          onClick={() => toast("Kwartaalrapport Q2 gegenereerd — verstuurd naar je mailbox (demo)")}
+          onClick={() => toast(t("rev.reportToast"))}
         >
-          <Icon name="doc" /> Rapport voor je boekhouder
+          <Icon name="doc" /> {t("rev.report")}
         </button>
       </div>
 
       <div className="rev-grid">
         <div className="card chart-card">
-          <h3>Per maand, per kanaal</h3>
-          <p className="hint">{monthName(DEMO_TODAY)[0].toUpperCase() + monthName(DEMO_TODAY).slice(1)} loopt nog — stand van vandaag, live uit je boekingen</p>
+          <h3>{t("rev.perMonth")}</h3>
+          <p className="hint">{t("rev.running", { m: monthName(DEMO_TODAY)[0].toUpperCase() + monthName(DEMO_TODAY).slice(1) })}</p>
           <RevenueChart months={data.months} />
           <div className="legend">
             {SERIES.map((s) => (
@@ -128,7 +129,7 @@ export function RevenuePage() {
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div className="card" style={{ padding: "18px 20px" }}>
-            <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 6 }}>Verdeling per kanaal</h3>
+            <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 6 }}>{t("rev.perChannel")}</h3>
             {data.channels.map((c) => (
               <div className="split-row" key={c.channel}>
                 <span className="dot" style={{ background: SERIES.find((s) => s.key === c.channel)?.color }} />
@@ -138,7 +139,7 @@ export function RevenuePage() {
             ))}
           </div>
           <div className="card">
-            <h3 style={{ fontSize: 15, fontWeight: 800, padding: "16px 20px 6px" }}>Per pand</h3>
+            <h3 style={{ fontSize: 15, fontWeight: 800, padding: "16px 20px 6px" }}>{t("rev.perProperty")}</h3>
             <table className="mini">
               <tbody>
                 {data.perProperty.map((p) => (
@@ -156,7 +157,7 @@ export function RevenuePage() {
         </div>
       </div>
 
-      <h2 className="sec-title"><span className="em">🗂️</span> Facturen & documenten</h2>
+      <h2 className="sec-title"><span className="em">🗂️</span> {t("rev.docs")}</h2>
       <div className="card">
         {data.documents.map((d) => (
           <div className="doc-row" key={d.id}>
@@ -167,8 +168,8 @@ export function RevenuePage() {
             </span>
             <span className="end">
               {d.badge && <span className="chip good">{d.badge}</span>}
-              <button className="btn ghost sm" onClick={() => toast("Download gestart (demo)")}>
-                <Icon name="down" /> Download
+              <button className="btn ghost sm" onClick={() => toast(t("rev.downloadDemo"))}>
+                <Icon name="down" /> {t("common.download")}
               </button>
             </span>
           </div>

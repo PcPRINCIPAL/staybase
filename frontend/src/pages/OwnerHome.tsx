@@ -7,6 +7,7 @@ import { Icon } from "../components/Icon";
 import { useAuth } from "../auth";
 import { useUI } from "../ui";
 import { useBrand, useView } from "../components/OriginGate";
+import { useT } from "../i18n";
 
 function addDays(iso: string, days: number): string {
   const d = new Date(iso + "T00:00:00Z");
@@ -67,6 +68,7 @@ export function OwnerHome() {
   const { user } = useAuth();
   const platform = useView();
   const brandName = BRAND_LABEL[useBrand()];
+  const t = useT();
   const { openWizard } = useUI();
   const nav = useNavigate();
   const [selected, setSelected] = useState<string | undefined>(undefined);
@@ -75,22 +77,21 @@ export function OwnerHome() {
   if (isLoading || !data) return <div className="loading">Jouw overzicht laden…</div>;
 
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Goedemorgen" : hour < 18 ? "Goedemiddag" : "Goedenavond";
+  const greeting = hour < 12 ? t("home.morning") : hour < 18 ? t("home.afternoon") : t("home.evening");
   const p = data.property;
 
   if (!p) {
     return (
       <section className="page">
         <h1>{greeting} {user?.name} 👋</h1>
-        <p className="sub">Fijn dat je er bent.</p>
+        <p className="sub">{t("oh.welcome")}</p>
         <div className="card" style={{ marginTop: 24, padding: "34px 28px", textAlign: "center" }}>
           <div style={{ fontSize: 36, marginBottom: 10 }}>🏡</div>
-          <b style={{ fontSize: 17 }}>Er is nog geen pand aan je account gekoppeld</b>
+          <b style={{ fontSize: 17 }}>{t("oh.noProperty")}</b>
           <p style={{ color: "var(--muted)", fontSize: 14.5, maxWidth: 460, margin: "8px auto 18px" }}>
-            Voeg je pand toe via de onboarding — het {brandName}-team koppelt het daarna aan
-            jouw account en dan verschijnt hier je volledige overzicht.
+            {t("oh.noPropertyBody", { brand: brandName })}
           </p>
-          <button className="btn coral" onClick={openWizard}>+ Pand toevoegen</button>
+          <button className="btn coral" onClick={openWizard}>{t("oh.addProperty")}</button>
         </div>
       </section>
     );
@@ -104,7 +105,7 @@ export function OwnerHome() {
   const revDelta = k.prevMonthRevenue ? Math.round(((k.monthRevenue - k.prevMonthRevenue) / k.prevMonthRevenue) * 100) : null;
 
   const meldOnderhoud = () =>
-    window.dispatchEvent(new CustomEvent("sb:ask", { detail: `Ik wil onderhoud melden voor ${p.name}.` }));
+    window.dispatchEvent(new CustomEvent("sb:ask", { detail: t("oh.maintenanceAsk", { p: p.name }) }));
 
   return (
     <section className="page home-page owner-home">
@@ -112,7 +113,7 @@ export function OwnerHome() {
         <div>
           <h1>{greeting} {user?.name} 👋</h1>
           <p className="sub" style={{ margin: "4px 0 0" }}>
-            Fijn dat je er bent. Hier is het overzicht van jouw {data.properties.length > 1 ? "panden" : "pand"}.
+            {data.properties.length > 1 ? t("oh.welcomeProps") : t("oh.welcomeProp")}
           </p>
         </div>
         <span className="date-pill">📅 {shortDate(DEMO_TODAY)} {DEMO_TODAY.slice(0, 4)}</span>
@@ -132,71 +133,71 @@ export function OwnerHome() {
         <div className="oh-hero" style={{ background: p.artBg }}>
           {p.photo && <img src={p.photo} alt="" />}
           <div className="oh-hero-overlay">
-            <span className="oh-hero-chip">🏠 Jouw pand</span>
+            <span className="oh-hero-chip">{t("oh.yourProperty")}</span>
             <div className="oh-hero-foot">
               <div>
                 <h2>{p.name}</h2>
-                <span>{p.location} · {p.maxGuests} gasten · {p.bedrooms} slaapkamers</span>
+                <span>{t("oh.propMeta", { loc: p.location, g: p.maxGuests, b: p.bedrooms })}</span>
               </div>
               <button className="btn ghost sm oh-hero-btn" onClick={() => nav(`/pand/${p.id}`)}>
-                Bekijk pand <Icon name="arrow" size={14} />
+                {t("oh.viewProperty")} <Icon name="arrow" size={14} />
               </button>
             </div>
           </div>
         </div>
         <div className="card rail-card oh-assist">
-          <h3>✨ {brandName} Assistent</h3>
-          <p className="hint">Vragen over je boekingen, onderhoud of iets anders? Wij helpen je graag.</p>
+          <h3>{t("oh.assistTitle", { brand: brandName })}</h3>
+          <p className="hint">{t("oh.assistHint")}</p>
           <button className="btn coral" style={{ width: "100%", justifyContent: "center" }}
             onClick={() => window.dispatchEvent(new Event("sb:open"))}>
-            💬 Stel een vraag
+            {t("oh.askQuestion")}
           </button>
         </div>
       </div>
 
       <div className="hkpis oh-kpis">
         <div className="card hkpi">
-          <span className="lbl">{nbCurrent ? "🔑 Huidige gast" : "📅 Aankomende boeking"}</span>
-          <span className="val">{nb ? (nbCurrent ? `t.e.m. ${shortDate(nb.endDate)}` : shortDate(nb.startDate)) : "—"}</span>
+          <span className="lbl">{nbCurrent ? t("oh.currentGuest") : t("oh.upcomingBooking")}</span>
+          <span className="val">{nb ? (nbCurrent ? t("oh.tem", { d: shortDate(nb.endDate) }) : shortDate(nb.startDate)) : "—"}</span>
           <span className="cmp">
             {!nb
-              ? "Geen aankomende boeking"
+              ? t("oh.noUpcoming")
               : nbCurrent
-                ? `${nb.guest} verblijft er nu`
-                : nb.daysUntil === 0 ? "Vandaag!" : `Nog ${nb.daysUntil} ${nb.daysUntil === 1 ? "dag" : "dagen"}`}
+                ? t("oh.staysNow", { g: nb.guest })
+                : nb.daysUntil === 0 ? t("oh.todayBang") : nb.daysUntil === 1 ? t("oh.inDays1") : t("oh.inDaysN", { n: nb.daysUntil })}
           </span>
         </div>
         <div className="card hkpi">
-          <span className="lbl">👥 Bezetting ({maand})</span>
+          <span className="lbl">{t("oh.occupancy", { m: maand })}</span>
           <span className="val num">{k.occupancyPct}%</span>
           <span className="cmp">
-            <span className={`hkpi-delta ${occDelta >= 0 ? "up" : "down"}`}>{occDelta >= 0 ? "↑" : "↓"} {Math.abs(occDelta)} pp</span> t.o.v. vorige maand
+            <span className={`hkpi-delta ${occDelta >= 0 ? "up" : "down"}`}>{occDelta >= 0 ? "↑" : "↓"} {Math.abs(occDelta)} pp</span> {t("oh.vsPrevMonth")}
           </span>
         </div>
         <div className="card hkpi">
           {/* Een Linnois-eigenaar ziet wat er naar hem gaat, niet de totale
               gastbetaling. De volledige berekening (− OTA-commissie − commissie
               Linnois − schoonmaak) komt met de opbrengsten-rework. */}
-          <span className="lbl">💶 {platform.grossRevenue ? "Opbrengsten" : "Netto-uitbetaling"} ({maand})</span>
+          <span className="lbl">{platform.grossRevenue ? t("oh.revenue", { m: maand }) : t("oh.netPayout", { m: maand })}</span>
           <span className="val num">{eur(k.monthRevenue)}</span>
           <span className="cmp">
             {revDelta != null
-              ? <><span className={`hkpi-delta ${revDelta >= 0 ? "up" : "down"}`}>{revDelta >= 0 ? "↑" : "↓"} {Math.abs(revDelta)}%</span> t.o.v. vorige maand</>
-              : platform.grossRevenue ? "Boekingen met check-in deze maand" : "Wat er voor deze maand naar jou gaat"}
+              ? <><span className={`hkpi-delta ${revDelta >= 0 ? "up" : "down"}`}>{revDelta >= 0 ? "↑" : "↓"} {Math.abs(revDelta)}%</span> {t("oh.vsPrevMonth")}</>
+              : platform.grossRevenue ? t("oh.revCmp") : t("oh.netCmp")}
           </span>
         </div>
         <div className="card hkpi">
           {k.rating != null ? (
             <>
-              <span className="lbl">⭐ Gemiddelde beoordeling</span>
+              <span className="lbl">{t("oh.rating")}</span>
               <span className="val num">{String(k.rating).replace(".", ",")} / 5</span>
-              <span className="cmp">Score op je verhuurkanalen</span>
+              <span className="cmp">{t("oh.ratingCmp")}</span>
             </>
           ) : (
             <>
-              <span className="lbl">🗓️ Komende 8 weken</span>
+              <span className="lbl">{t("oh.next8")}</span>
               <span className="val num">{data.upcoming.length}</span>
-              <span className="cmp">{data.upcoming.length === 1 ? "boeking gepland" : "boekingen gepland"}</span>
+              <span className="cmp">{data.upcoming.length === 1 ? t("oh.booked1") : t("oh.bookedN")}</span>
             </>
           )}
         </div>
@@ -206,8 +207,8 @@ export function OwnerHome() {
         <div className="oh-main">
           <div className="card oh-next">
             <div className="oh-card-head">
-              <h3>{nbCurrent ? "Nu te gast" : "Eerstvolgende boeking"}</h3>
-              <button className="home-link" onClick={() => nav("/kalender")}>Bekijk alle <Icon name="arrow" size={14} /></button>
+              <h3>{nbCurrent ? t("oh.nowGuest") : t("oh.nextBooking")}</h3>
+              <button className="home-link" onClick={() => nav("/kalender")}>{t("home.seeAll")} <Icon name="arrow" size={14} /></button>
             </div>
             {nb ? (
               <>
@@ -215,31 +216,31 @@ export function OwnerHome() {
                   <span className="avat">{nb.avatar}</span>
                   <div>
                     <b>{nb.guest}</b><br />
-                    <span>{shortDate(nb.startDate)} – {shortDate(nb.endDate)} {nb.endDate.slice(0, 4)} ({nb.nights} {nb.nights === 1 ? "nacht" : "nachten"})</span>
+                    <span>{shortDate(nb.startDate)} – {shortDate(nb.endDate)} {nb.endDate.slice(0, 4)} ({nb.nights} {nb.nights === 1 ? t("common.night") : t("common.nights")})</span>
                   </div>
-                  <span className="chip good" style={{ marginLeft: "auto" }}>{nbCurrent ? "Ingecheckt" : "Bevestigd"}</span>
+                  <span className="chip good" style={{ marginLeft: "auto" }}>{nbCurrent ? t("oh.checkedIn") : t("oh.confirmed")}</span>
                 </div>
                 <div className="oh-next-stats">
-                  <div><b className="num">{nb.guests}</b><span>gasten</span></div>
-                  <div><b>Check-in</b><span>{nb.checkInTime ? `vanaf ${nb.checkInTime}` : "—"}</span></div>
-                  <div><b>Check-out</b><span>{nb.checkOutTime ? `tot ${nb.checkOutTime}` : "—"}</span></div>
+                  <div><b className="num">{nb.guests}</b><span>{t("common.guests")}</span></div>
+                  <div><b>{t("common.checkIn")}</b><span>{nb.checkInTime ? t("common.from", { time: nb.checkInTime }) : "—"}</span></div>
+                  <div><b>{t("common.checkOut")}</b><span>{nb.checkOutTime ? t("common.until", { time: nb.checkOutTime }) : "—"}</span></div>
                 </div>
                 <div className="oh-next-actions">
                   {platform.inbox
-                    ? <button className="btn ghost sm" onClick={() => nav("/inbox")}>💬 Bericht sturen</button>
-                    : <button className="btn ghost sm" onClick={() => window.dispatchEvent(new Event("sb:open"))}>💬 Chat met Julie</button>}
-                  <button className="btn ghost sm" onClick={() => nav("/kalender")}>Boeking bekijken <Icon name="arrow" size={13} /></button>
+                    ? <button className="btn ghost sm" onClick={() => nav("/inbox")}>{t("oh.sendMessage")}</button>
+                    : <button className="btn ghost sm" onClick={() => window.dispatchEvent(new Event("sb:open"))}>{t("oh.chatJulie")}</button>}
+                  <button className="btn ghost sm" onClick={() => nav("/kalender")}>{t("oh.viewBooking")} <Icon name="arrow" size={13} /></button>
                 </div>
               </>
             ) : (
-              <p style={{ color: "var(--muted)", fontSize: 14 }}>Geen aankomende boekingen — de kalender is vrij.</p>
+              <p style={{ color: "var(--muted)", fontSize: 14 }}>{t("oh.noBookings")}</p>
             )}
           </div>
 
           <div className="card oh-cal">
             <div className="oh-card-head">
-              <h3>Kalender <small>(komende 8 weken)</small></h3>
-              <button className="home-link" onClick={() => nav("/kalender")}>Bekijk kalender <Icon name="arrow" size={14} /></button>
+              <h3>{t("oh.calendar")} <small>{t("oh.calWeeks")}</small></h3>
+              <button className="home-link" onClick={() => nav("/kalender")}>{t("oh.viewCalendar")} <Icon name="arrow" size={14} /></button>
             </div>
             <WeeksStrip bookings={data.upcoming} />
           </div>
@@ -247,48 +248,48 @@ export function OwnerHome() {
 
         <aside className="oh-rail">
           <div className="card rail-card">
-            <h3>Snelle acties</h3>
+            <h3>{t("oh.quickActions")}</h3>
             <button className="tmrw-row" onClick={() => nav("/kalender")}>
               <span className="tmrw-ico" style={{ background: "var(--coral-soft)" }}>📅</span>
-              <span><b>Blokkade instellen</b><br /><small>Houd data vrij in je kalender</small></span>
+              <span><b>{t("oh.block")}</b><br /><small>{t("oh.blockSub")}</small></span>
               <span className="tmrw-go"><Icon name="chevR" size={15} /></span>
             </button>
             <button className="tmrw-row" onClick={meldOnderhoud}>
               <span className="tmrw-ico" style={{ background: "var(--booking-soft)" }}>🔧</span>
-              <span><b>Onderhoud melden</b><br /><small>Laat het ons weten</small></span>
+              <span><b>{t("oh.maintenance")}</b><br /><small>{t("oh.maintenanceSub")}</small></span>
               <span className="tmrw-go"><Icon name="chevR" size={15} /></span>
             </button>
             <button className="tmrw-row" style={{ marginBottom: 0 }} onClick={() => nav("/opbrengsten")}>
               <span className="tmrw-ico" style={{ background: "var(--vrbo-soft)" }}>📄</span>
-              <span><b>Documenten bekijken</b><br /><small>Opbrengsten en rapporten</small></span>
+              <span><b>{t("oh.documents")}</b><br /><small>{t("oh.documentsSub")}</small></span>
               <span className="tmrw-go"><Icon name="chevR" size={15} /></span>
             </button>
           </div>
 
           <div className="card rail-card oh-contact">
-            <h3>Jouw contactpersoon</h3>
+            <h3>{t("oh.contact")}</h3>
             <div className="oh-contact-row">
               <span className="avatar" style={{ width: 44, height: 44, fontSize: 17 }}>{data.contactName.slice(0, 1)}</span>
               <div>
-                <b>{data.contactName} van {brandName}</b><br />
-                <small>Property manager</small>
+                <b>{t("oh.contactOf", { name: data.contactName, brand: brandName })}</b><br />
+                <small>{t("oh.pm")}</small>
               </div>
             </div>
-            <div className="oh-contact-quote">Heb je een vraag? Ik denk graag met je mee!</div>
+            <div className="oh-contact-quote">{t("oh.contactQuote")}</div>
             <button className="btn ghost sm" style={{ width: "100%", justifyContent: "center" }}
               onClick={() => window.dispatchEvent(new Event("sb:open"))}>
-              ✈️ Stuur een bericht
+              {t("oh.sendMsg")}
             </button>
-            <small className="oh-contact-hours">Bereikbaar ma – za, 9:00 – 18:00</small>
+            <small className="oh-contact-hours">{t("oh.hours")}</small>
           </div>
 
           {platform.inbox ? (
           <div className="card rail-card">
             <div className="oh-card-head" style={{ marginBottom: 10 }}>
-              <h3>Recente berichten</h3>
-              <button className="home-link sm" onClick={() => nav("/inbox")}>Bekijk alle <Icon name="arrow" size={13} /></button>
+              <h3>{t("oh.recentMsgs")}</h3>
+              <button className="home-link sm" onClick={() => nav("/inbox")}>{t("home.seeAll")} <Icon name="arrow" size={13} /></button>
             </div>
-            {data.recent.length === 0 && <p style={{ color: "var(--muted)", fontSize: 13.5 }}>Nog geen berichten voor dit pand.</p>}
+            {data.recent.length === 0 && <p style={{ color: "var(--muted)", fontSize: 13.5 }}>{t("oh.noMsgs")}</p>}
             {data.recent.map((c) => (
               <button key={c.id} className="oh-msg" onClick={() => nav("/inbox")}>
                 <span className="avat" style={{ width: 34, height: 34, fontSize: 15 }}>{c.avatar}</span>
@@ -306,15 +307,14 @@ export function OwnerHome() {
           ) : (
             <div className="card rail-card">
               <div className="oh-card-head" style={{ marginBottom: 10 }}>
-                <h3>Chat met Julie</h3>
+                <h3>{t("oh.julieCard")}</h3>
               </div>
               <p style={{ color: "var(--muted)", fontSize: 13.5, marginBottom: 12 }}>
-                Linnois beantwoordt je gasten voor jou. Heb je zelf een vraag over een boeking,
-                de planning of je uitbetaling? Stel ze hier.
+                {t("oh.julieCardBody")}
               </p>
               <button className="btn coral sm" style={{ width: "100%", justifyContent: "center" }}
                 onClick={() => window.dispatchEvent(new Event("sb:open"))}>
-                💬 Stel je vraag
+                {t("oh.julieCardCta")}
               </button>
             </div>
           )}
@@ -323,11 +323,11 @@ export function OwnerHome() {
 
       <div className="oh-banner">
         <div>
-          <b>Zorgeloos verhuren, meer genieten.</b>
-          <span>Wij regelen de rest, zodat jij zorgeloos kunt genieten van jouw pand.</span>
+          <b>{t("oh.footerTitle")}</b>
+          <span>{t("oh.footerSub")}</span>
         </div>
         <button className="btn ghost sm oh-banner-btn" onClick={() => nav("/kennis")}>
-          Meer over onze service <Icon name="arrow" size={14} />
+          {t("oh.footerCta")} <Icon name="arrow" size={14} />
         </button>
       </div>
     </section>

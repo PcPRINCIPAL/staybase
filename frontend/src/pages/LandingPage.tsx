@@ -29,37 +29,37 @@ const USPS = [
 ];
 
 const PIJN = [
-  { em: "⏰", h: "12+ uur per week aan beheer", p: "Gastberichten om 23u. Poetshulp via WhatsApp. Agenda's op drie platformen. Het pand verdient; de eigenaar ligt wakker." },
-  { em: "📉", h: "Prijzen op gevoel", p: "De meeste verhuurders zetten één tarief en laten het staan. Vraag, evenementen en seizoenen blijven onbenut. Gemiddeld verlies: 15–22% per jaar." },
-  { em: "🧩", h: "Alles loopt via jou", p: "Gasten, prijzen, kalenders en poetsdiensten: zolang jij alles opvolgt werkt het. Tot het te druk wordt." },
-  { em: "🏦", h: "Agentschappen nemen 20–30%", p: "Het enige volledige alternatief kost je je marge, je controle én de directe band met je gasten." },
+  { em: "⏰", h: "lp.pijn.1h", p: "lp.pijn.1p" },
+  { em: "📉", h: "lp.pijn.2h", p: "lp.pijn.2p" },
+  { em: "🧩", h: "lp.pijn.3h", p: "lp.pijn.3p" },
+  { em: "🏦", h: "lp.pijn.4h", p: "lp.pijn.4p" },
 ];
 
 const FEATURES = [
-  { em: "🔄", h: "Eén kalender, alle kanalen", p: "Staybase verbindt je woning met Airbnb, Booking.com en VRBO en synchroniseert beschikbaarheid, prijzen en reserveringen automatisch. Meer bereik, geen dubbele boekingen, één overzicht." },
-  { em: "💬", h: "Gastcommunicatie in jouw stem", p: "AI-berichten getraind op het karakter van jouw pand en jouw toon. Gasten krijgen antwoorden die klinken als persoonlijke notities. Jij keurt goed met één tik — of niet meer, zodra het vertrouwen er is." },
-  { em: "🧽", h: "Poetsbeheer, automatisch", p: "Bij elke check-out vertrekt de poetsopdracht vanzelf. Je eigen team eerst; geen antwoord, dan springt de marktplaats bij. Niets valt tussen uitcheck en incheck." },
-  { em: "📈", h: "Slimme prijzen die je agenda beschermen", badge: "Craft", p: "Staybase volgt de markt en komt met heldere voorstellen wanneer je tarief beter kan. Eén voorstel, één beslissing." },
+  { em: "🔄", h: "lp.feat.1h", p: "lp.feat.1p" },
+  { em: "💬", h: "lp.feat.2h", p: "lp.feat.2p" },
+  { em: "🧽", h: "lp.feat.3h", p: "lp.feat.3p" },
+  { em: "📈", h: "lp.feat.4h", badge: "Craft", p: "lp.feat.4p" },
 ];
 
 const AI_KAARTEN = [
-  { em: "📋", n: "01", h: "Vijf vragen over je pand", p: "Je beschrijft het karakter van je pand, je gasten en je toon. Dat wordt de instructieset van de AI." },
-  { em: "✏️", n: "02", h: "Elke aanpassing maakt het scherper", p: "Verander je een woord, dan leert het model mee. Na 20 goedgekeurde berichten hoef je nauwelijks nog bij te sturen." },
-  { em: "🛡️", n: "03", h: "Vertrouwen wordt verdiend", p: "De AI start in goedkeuringsmodus en verdient pas daarna autonomie. Kortingen en voorwaarden blijven altijd bij jou." },
+  { em: "📋", n: "01", h: "lp.ai.1h", p: "lp.ai.1p" },
+  { em: "✏️", n: "02", h: "lp.ai.2h", p: "lp.ai.2p" },
+  { em: "🛡️", n: "03", h: "lp.ai.3h", p: "lp.ai.3p" },
 ];
 
 const VERHALEN = [
-  { av: "ND", naam: "Nathalie D.", info: "2 panden · Gent en de Ardennen", q: "Vroeger ging mijn zondagavond op aan berichten en paniek over mijn agenda. Nu open ik Staybase op maandagmorgen, zie dat alles geregeld is, en ga door met mijn dag." },
-  { av: "PV", naam: "Pieter V.", info: "8 panden · België", q: "Ik stelde het opstarten uit omdat ik dacht dat het ingewikkeld zou zijn. Achteraf was alles sneller geregeld dan verwacht." },
-  { av: "EM", naam: "Elise M.", info: "3 panden · Knokke", q: "Ik heb zoveel zorg in dit pand gestoken. Staybase is het eerste dat dat lijkt te begrijpen. De berichten klinken als mij, niet als een hotelketen." },
+  { av: "ND", naam: "Nathalie D.", info: "lp.testi.1info", q: "lp.testi.1q" },
+  { av: "PV", naam: "Pieter V.", info: "lp.testi.2info", q: "lp.testi.2q" },
+  { av: "EM", naam: "Elise M.", info: "lp.testi.3info", q: "lp.testi.3q" },
 ];
 
 const FAQ = [
-  { v: "Klinken de AI-berichten als mij — of als elke andere verhuurder?", a: "Dat hangt bijna volledig af van de vijf vragen die je bij de start beantwoordt. Verhuurders die tien minuten nemen om het karakter van hun pand, hun typische gast en hun toon te beschrijven, krijgen berichten die gasten voor persoonlijke notities houden." },
-  { v: "Dwingt dynamische prijszetting mij tot korting geven?", a: "Nee. Het model werkt op vraag, niet op leegstandsangst — het stelt vaker verhogingen dan verlagingen voor. Je zet ook een bodemprijs per pand: daar gaat niets onder zonder jouw expliciete goedkeuring." },
-  { v: "Wat gebeurt er met mijn reviews en Superhost-status?", a: "Niets. Staybase werkt achter je bestaande listings en beheert de operationele laag. Je Airbnb-profiel, reviewgeschiedenis en Superhost-status blijven onaangeroerd." },
-  { v: "Hoe lang duurt het opzetten echt?", a: "Je Airbnb koppelen duurt acht minuten, de stemscan van je pand vier. Je eerste AI-bericht staat er binnen enkele minuten na die scan." },
-  { v: "Kan ik stoppen wanneer ik wil?", a: "Ja. Geen contract, geen opstartkosten, maandelijks opzegbaar met één klik. De eerste veertien dagen zijn gratis en vragen geen kaartgegevens." },
+  { v: "lp.faq.1v", a: "lp.faq.1a" },
+  { v: "lp.faq.2v", a: "lp.faq.2a" },
+  { v: "lp.faq.3v", a: "lp.faq.3a" },
+  { v: "lp.faq.4v", a: "lp.faq.4a" },
+  { v: "lp.faq.5v", a: "lp.faq.5a" },
 ];
 
 /**
@@ -80,6 +80,7 @@ function useNavHeight(ref: React.RefObject<HTMLElement>) {
 }
 
 function VideoModal({ onClose }: { onClose: () => void }) {
+  const t = useT();
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -90,11 +91,11 @@ function VideoModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="lp-modal" onMouseDown={(e) => { if (e.target === ref.current) onClose(); }} ref={ref}>
-      <div className="lp-modal-box" role="dialog" aria-label="Demovideo">
+      <div className="lp-modal-box" role="dialog" aria-label={t("lp.video.title")}>
         <div className="lp-modal-head">
           <span style={{ fontSize: 18 }}>🎬</span>
-          <b>Staybase in 2 minuten</b>
-          <button className="icon-btn" style={{ marginLeft: "auto" }} onClick={onClose} aria-label="Sluiten">
+          <b>{t("lp.video.title")}</b>
+          <button className="icon-btn" style={{ marginLeft: "auto" }} onClick={onClose} aria-label={t("common.close")}>
             <Icon name="x" />
           </button>
         </div>
@@ -195,7 +196,7 @@ export function LandingPage() {
                 <div className="lp-hero-canvas">
                   <img
                     src="/villasun.png"
-                    alt="Zonnige woonkamer van een vakantiewoning met zicht op zee"
+                    alt={t("lp.heroAlt")}
                     width={1536}
                     height={1024}
                     decoding="async"
@@ -203,7 +204,7 @@ export function LandingPage() {
                 </div>
 
                 <div className="lp-card lp-card-income">
-                  <span className="lbl">Inkomsten deze maand</span>
+                  <span className="lbl">{t("lp.mock.income")}</span>
                   <div className="amt"><b className="num">€ 8.945</b><span>+23%</span></div>
                   <svg viewBox="0 0 160 42" preserveAspectRatio="none">
                     <defs>
@@ -220,12 +221,12 @@ export function LandingPage() {
                 </div>
 
                 <div className="lp-card lp-card-book">
-                  <div className="hd"><b>Boekingen</b><span>Meer bekijken</span></div>
+                  <div className="hd"><b>{t("lp.mock.bookings")}</b><span>{t("lp.mock.more")}</span></div>
                   {[
-                    { av: "🌊", nm: "Sophie & Bram", dt: "3–8 jul", st: "ok", lb: "Bevestigd" },
-                    { av: "⛱️", nm: "Familie Müller", dt: "10–17 jul", st: "ok", lb: "Bevestigd" },
-                    { av: "🚲", nm: "Familie Peeters", dt: "17–24 jul", st: "wait", lb: "Vandaag" },
-                    { av: "🐚", nm: "Claire Dubois", dt: "26–31 jul", st: "ok", lb: "Bevestigd" },
+                    { av: "🌊", nm: "Sophie & Bram", dt: "3–8 jul", st: "ok", lb: t("lp.mock.confirmed") },
+                    { av: "⛱️", nm: "Familie Müller", dt: "10–17 jul", st: "ok", lb: t("lp.mock.confirmed") },
+                    { av: "🚲", nm: "Familie Peeters", dt: "17–24 jul", st: "wait", lb: t("lp.mock.today") },
+                    { av: "🐚", nm: "Claire Dubois", dt: "26–31 jul", st: "ok", lb: t("lp.mock.confirmed") },
                   ].map((b) => (
                     <div className="lp-book-row" key={b.nm}>
                       <span className="av">{b.av}</span>
@@ -241,11 +242,11 @@ export function LandingPage() {
                     <span className="av">🐚</span>
                     <div>
                       <b>Claire D.</b>
-                      <div className="dt">2 dagen geleden</div>
+                      <div className="dt">{t("lp.mock.daysAgo")}</div>
                     </div>
                     <span className="stars">★★★★★</span>
                   </div>
-                  <p>“Prachtig huis, alles was perfect geregeld. We komen zeker terug!”</p>
+                  <p>{t("lp.mock.review")}</p>
                 </div>
               </div>
             </div>
@@ -257,13 +258,13 @@ export function LandingPage() {
           <div className="lp-container">
             <div className="lp-stats-grid">
               <div className="lp-trust-left">
-                <b>Vertrouwd door verhuurders aan de Belgische kust</b>
-                <span>Gebouwd vanuit Linnois, dat vandaag zelf vakantiewoningen in Knokke beheert.</span>
+                <b>{t("lp.stats.h")}</b>
+                <span>{t("lp.stats.p")}</span>
               </div>
               <div className="lp-stats-nums">
-                <div className="lp-stat"><b className="num">+23%</b><span>gemiddelde omzetgroei in de eerste 90 dagen</span></div>
-                <div className="lp-stat"><b className="num">4 uur</b><span>per week minder beheertijd</span></div>
-                <div className="lp-stat"><b className="num">4,87</b><span>gemiddelde reviewscore</span></div>
+                <div className="lp-stat"><b className="num">+23%</b><span>{t("lp.stats.1")}</span></div>
+                <div className="lp-stat"><b className="num">{t("lp.stats.2h")}</b><span>{t("lp.stats.2")}</span></div>
+                <div className="lp-stat"><b className="num">4,87</b><span>{t("lp.stats.3")}</span></div>
               </div>
             </div>
           </div>
@@ -273,24 +274,21 @@ export function LandingPage() {
       {/* PIJN */}
       <section className="lp-sec" id="verhuurders">
         <div className="lp-container">
-          <p className="lp-label lp-fade">Klinkt dit bekend?</p>
-          <h2 className="lp-h2 lp-fade">Zelf beheren kost tijd.<br />Uitbesteden kost rendement.</h2>
-          <p className="lp-sub lp-fade">Dit is waarom zoveel verhuurders vastlopen.</p>
+          <p className="lp-label lp-fade">{t("lp.pijn.label")}</p>
+          <h2 className="lp-h2 lp-fade">{t("lp.pijn.title1")}<br />{t("lp.pijn.title2")}</h2>
+          <p className="lp-sub lp-fade">{t("lp.pijn.sub")}</p>
           <div className="lp-pain">
             {PIJN.map((p) => (
               <article className="lp-pain-card lp-fade" key={p.h}>
                 <span className="em">{p.em}</span>
-                <h3>{p.h}</h3>
-                <p>{p.p}</p>
+                <h3>{t(p.h)}</h3>
+                <p>{t(p.p)}</p>
               </article>
             ))}
           </div>
           <div className="lp-quote lp-fade">
-            <blockquote>
-              “Ik geniet van het extra inkomen, maar eerlijk gezegd stresst het me. Ik heb altijd het gevoel
-              dat één slechte review alles kan verstoren.”
-            </blockquote>
-            <cite>— Vakantieverhuurder, Belgische kust</cite>
+            <blockquote>{t("lp.pijn.quote")}</blockquote>
+            <cite>{t("lp.pijn.cite")}</cite>
           </div>
         </div>
       </section>
@@ -301,24 +299,22 @@ export function LandingPage() {
       {/* HOE */}
       <section className="lp-sec alt" id="hoe">
         <div className="lp-container">
-          <p className="lp-label lp-fade">Hoe het werkt</p>
-          <h2 className="lp-h2 lp-fade">De ervaring van een professionele beheerder,<br />geleverd als software.</h2>
-          <p className="lp-sub lp-fade">
-            Staybase neemt het repetitieve werk over en geeft jou één rustig overzicht waar bijna alles al geregeld is.
-          </p>
+          <p className="lp-label lp-fade">{t("lp.feat.label")}</p>
+          <h2 className="lp-h2 lp-fade">{t("lp.feat.title1")}<br />{t("lp.feat.title2")}</h2>
+          <p className="lp-sub lp-fade">{t("lp.feat.sub")}</p>
           <div className="lp-features">
             {FEATURES.map((f) => (
               <article className="lp-feature lp-fade" key={f.h}>
                 <span className="em">{f.em}</span>
                 <div>
-                  <h3>{f.h}{f.badge && <span className="lp-badge">{f.badge}</span>}</h3>
-                  <p>{f.p}</p>
+                  <h3>{t(f.h)}{f.badge && <span className="lp-badge">{f.badge}</span>}</h3>
+                  <p>{t(f.p)}</p>
                   {f.badge && (
                     <div className="lp-price-demo">
-                      Jouw huidige tarief: <b>€140 per nacht</b><br />
-                      Vergelijkbare woningen: <b>€185–€210 per nacht</b><br />
-                      Voorstel: <b className="voorstel">€175 per nacht</b>
-                      <small>Eén voorstel. Eén beslissing. Klaar.</small>
+                      {t("lp.feat.demo1")} <b>{t("lp.feat.demo1b")}</b><br />
+                      {t("lp.feat.demo2")} <b>{t("lp.feat.demo2b")}</b><br />
+                      {t("lp.feat.demo3")} <b className="voorstel">{t("lp.feat.demo3b")}</b>
+                      <small>{t("lp.feat.demo4")}</small>
                     </div>
                   )}
                 </div>
@@ -332,9 +328,9 @@ export function LandingPage() {
       <section className="lp-calc-sec" id="calculator">
         <div className="lp-container">
           <div className="lp-calc-head lp-fade">
-            <p className="lp-label">Zie jouw cijfers</p>
-            <h2 className="lp-h2">Wat is jouw vakantieverhuur werkelijk waard?</h2>
-            <p>Vul je huidige situatie in. Geen e-mailadres nodig — de berekening is van jou, niet van ons.</p>
+            <p className="lp-label">{t("lp.calcSec.label")}</p>
+            <h2 className="lp-h2">{t("lp.calcSec.title")}</h2>
+            <p>{t("lp.calcSec.sub")}</p>
           </div>
           <Calculator onCta={naarLogin} />
         </div>
@@ -343,64 +339,64 @@ export function LandingPage() {
       {/* PRIJZEN */}
       <section className="lp-sec" id="prijzen">
         <div className="lp-container">
-          <p className="lp-label lp-fade">Prijzen</p>
-          <h2 className="lp-h2 lp-fade">Eén prijs per pand. Geen commissies. Geen verrassingen.</h2>
-          <p className="lp-sub lp-fade">Kies het abonnement dat past bij hoe jij verhuurt.</p>
+          <p className="lp-label lp-fade">{t("lp.plans.label")}</p>
+          <h2 className="lp-h2 lp-fade">{t("lp.plans.title")}</h2>
+          <p className="lp-sub lp-fade">{t("lp.plans.sub")}</p>
 
           <div className="lp-plans">
             <div className="lp-plan lp-fade">
-              <p className="lp-plan-label">Voor de onafhankelijke verhuurder</p>
+              <p className="lp-plan-label">{t("lp.plans.host.label")}</p>
               <div className="lp-plan-name">Host</div>
-              <div className="lp-plan-price"><b className="num">€59</b><span>/pand/maand</span></div>
+              <div className="lp-plan-price"><b className="num">€59</b><span>{t("lp.plans.perMonth")}</span></div>
               <p className="lp-plan-disc">−10% vanaf 5 panden · −15% vanaf 10</p>
               <ul>
-                <li><span className="tick">✓</span>Synchronisatie met Airbnb, Booking.com en VRBO</li>
-                <li><span className="tick">✓</span>Automatische gastcommunicatie</li>
-                <li><span className="tick">✓</span>Poetsbeheer en wisseldagen</li>
-                <li><span className="tick">✓</span>Kalender- en boekingsdashboard</li>
-                <li><span className="tick">✓</span>Opbrengst- en bezettingsrapporten</li>
-                <li className="locked"><span>🔒</span>Dynamische prijzen — enkel Craft</li>
-                <li className="locked"><span>🔒</span>Stembibliotheek — enkel Craft</li>
-                <li className="locked"><span>🔒</span>Eigen boekingspagina — enkel Craft</li>
+                <li><span className="tick">✓</span>{t("lp.plans.host.f1")}</li>
+                <li><span className="tick">✓</span>{t("lp.plans.host.f2")}</li>
+                <li><span className="tick">✓</span>{t("lp.plans.host.f3")}</li>
+                <li><span className="tick">✓</span>{t("lp.plans.host.f4")}</li>
+                <li><span className="tick">✓</span>{t("lp.plans.host.f5")}</li>
+                <li className="locked"><span>🔒</span>{t("lp.plans.host.l1")}</li>
+                <li className="locked"><span>🔒</span>{t("lp.plans.host.l2")}</li>
+                <li className="locked"><span>🔒</span>{t("lp.plans.host.l3")}</li>
               </ul>
-              <div className="lp-plan-note">Op dag 30 zie je als Host-klant wat dynamische prijzen je vorige maand hadden opgeleverd.</div>
+              <div className="lp-plan-note">{t("lp.plans.host.note")}</div>
               <button className="btn ghost" onClick={naarRegistreer}>{t("lp.tryFree")}</button>
             </div>
 
             <div className="lp-plan top lp-fade">
-              <span className="lp-plan-badge">Meest gekozen</span>
-              <p className="lp-plan-label">Voor de hospitality-host</p>
+              <span className="lp-plan-badge">{t("lp.plans.craft.badge")}</span>
+              <p className="lp-plan-label">{t("lp.plans.craft.label")}</p>
               <div className="lp-plan-name">Craft</div>
-              <div className="lp-plan-price"><b className="num">€99</b><span>/pand/maand</span></div>
+              <div className="lp-plan-price"><b className="num">€99</b><span>{t("lp.plans.perMonth")}</span></div>
               <p className="lp-plan-disc">−10% vanaf 5 panden · −15% vanaf 10</p>
               <ul>
-                <li><span className="tick">✓</span>Alles uit Host</li>
-                <li className="hi">⭐ Dynamische prijzen — vraaggestuurd, altijd door jou goedgekeurd</li>
-                <li><span className="tick">✓</span>Stembibliotheek — AI in precies jouw toon</li>
-                <li><span className="tick">✓</span>Eigen boekingspagina — nul commissie</li>
-                <li><span className="tick">✓</span>Gastbelevingstijdlijn</li>
-                <li><span className="tick">✓</span>Reviewantwoorden in jouw stem</li>
-                <li><span className="tick">✓</span>Persoonlijk onboardinggesprek (30 min)</li>
+                <li><span className="tick">✓</span>{t("lp.plans.craft.f1")}</li>
+                <li className="hi">{t("lp.plans.craft.hi")}</li>
+                <li><span className="tick">✓</span>{t("lp.plans.craft.f2")}</li>
+                <li><span className="tick">✓</span>{t("lp.plans.craft.f3")}</li>
+                <li><span className="tick">✓</span>{t("lp.plans.craft.f4")}</li>
+                <li><span className="tick">✓</span>{t("lp.plans.craft.f5")}</li>
+                <li><span className="tick">✓</span>{t("lp.plans.craft.f6")}</li>
               </ul>
               <button className="btn coral" onClick={naarRegistreer}>{t("lp.tryFree")}</button>
             </div>
           </div>
 
           <table className="lp-vol lp-fade">
-            <thead><tr><th>Panden</th><th>Host</th><th>Craft</th></tr></thead>
+            <thead><tr><th>{t("lp.plans.vol.props")}</th><th>Host</th><th>Craft</th></tr></thead>
             <tbody>
-              <tr><td>1–4</td><td><b>€59</b> / pand</td><td><b>€99</b> / pand</td></tr>
+              <tr><td>1–4</td><td><b>€59</b> {t("lp.plans.vol.perPand")}</td><td><b>€99</b> {t("lp.plans.vol.perPand")}</td></tr>
               <tr><td>5–9</td><td><b>€53,10</b> <span className="off">−10%</span></td><td><b>€89,10</b> <span className="off">−10%</span></td></tr>
               <tr><td>10+</td><td><b>€50,15</b> <span className="off">−15%</span></td><td><b>€84,15</b> <span className="off">−15%</span></td></tr>
             </tbody>
           </table>
-          <p style={{ fontSize: 12.5, color: "var(--faint)" }}>Kortingen gelden voor al je panden zodra je de drempel bereikt.</p>
+          <p style={{ fontSize: 12.5, color: "var(--faint)" }}>{t("lp.plans.vol.note")}</p>
 
           <div className="lp-guarantee lp-fade">
             <span className="em">🛡️</span>
             <div>
-              <h4>14 dagen gratis proberen — geen kaartgegevens nodig</h4>
-              <p>Voelt Staybase in de eerste twee weken niet goed? Eén klik en het stopt. Geen factuur, geen gesprek.</p>
+              <h4>{t("lp.plans.guarantee.h")}</h4>
+              <p>{t("lp.plans.guarantee.p")}</p>
             </div>
           </div>
         </div>
@@ -409,16 +405,16 @@ export function LandingPage() {
       {/* AI */}
       <section className="lp-sec alt">
         <div className="lp-container">
-          <p className="lp-label lp-fade">Jouw stem, versterkt</p>
-          <h2 className="lp-h2 lp-fade">Berichten die klinken als jij —<br />niet als elke andere verhuurder.</h2>
-          <p className="lp-sub lp-fade">Jouw pand heeft een karakter. Staybase leert het kennen.</p>
+          <p className="lp-label lp-fade">{t("lp.ai.label")}</p>
+          <h2 className="lp-h2 lp-fade">{t("lp.ai.title1")}<br />{t("lp.ai.title2")}</h2>
+          <p className="lp-sub lp-fade">{t("lp.ai.sub")}</p>
           <div className="lp-ai">
             {AI_KAARTEN.map((k) => (
               <article className="lp-ai-card lp-fade" key={k.n}>
                 <span className="em">{k.em}</span>
                 <div className="num">{k.n}</div>
-                <h3>{k.h}</h3>
-                <p>{k.p}</p>
+                <h3>{t(k.h)}</h3>
+                <p>{t(k.p)}</p>
               </article>
             ))}
           </div>
@@ -432,16 +428,16 @@ export function LandingPage() {
         </div>
 
         <div className="lp-container" style={{ marginTop: 82 }}>
-          <p className="lp-label lp-fade">Wat verhuurders zeggen</p>
-          <h2 className="lp-h2 lp-fade">Na de eerste maand.</h2>
+          <p className="lp-label lp-fade">{t("lp.testi.label")}</p>
+          <h2 className="lp-h2 lp-fade">{t("lp.testi.title")}</h2>
           <div className="lp-testi">
-            {VERHALEN.map((t) => (
-              <article className="lp-testi-card lp-fade" key={t.naam}>
+            {VERHALEN.map((v) => (
+              <article className="lp-testi-card lp-fade" key={v.naam}>
                 <div className="lp-stars">★★★★★</div>
-                <p>“{t.q}”</p>
+                <p>“{t(v.q)}”</p>
                 <div className="lp-testi-who">
-                  <span className="av">{t.av}</span>
-                  <div><b>{t.naam}</b><span>{t.info}</span></div>
+                  <span className="av">{v.av}</span>
+                  <div><b>{v.naam}</b><span>{t(v.info)}</span></div>
                 </div>
               </article>
             ))}
@@ -454,34 +450,31 @@ export function LandingPage() {
         <div className="lp-container">
           <div className="lp-founders-grid">
             <div>
-              <p className="lp-label lp-fade">Ons verhaal</p>
-              <h2 className="lp-h2 lp-fade">Gebouwd vanuit ervaring.<br /><em>Niet vanuit theorie.</em></h2>
+              <p className="lp-label lp-fade">{t("lp.found.label")}</p>
+              <h2 className="lp-h2 lp-fade">{t("lp.found.title1")}<br /><em>{t("lp.found.title2")}</em></h2>
               <p className="lp-founders-text lp-fade">
-                Staybase komt voort uit Linnois, een hospitalityconcept aan de Belgische kust. Bij het beheren van
-                vakantiewoningen zagen we hetzelfde probleem telkens terugkeren: eigenaars moesten kiezen tussen twee
-                uitersten. Alles zelf doen en uren verliezen aan administratie, prijszetting en opvolging. Of het beheer
-                volledig uit handen geven en een flink deel van de opbrengst afstaan.
+                {t("lp.found.p1")}
                 <br /><br />
-                Staybase is gebouwd vanuit de overtuiging dat er een betere manier moest bestaan.
+                {t("lp.found.p2")}
                 <br /><br />
-                <em>Helpt dit eigenaars om slimmer te verhuren, met minder werk en meer controle?</em><br />
-                Is het antwoord nee, dan bouwen we het niet.
+                <em>{t("lp.found.p3")}</em><br />
+                {t("lp.found.p4")}
               </p>
               <div className="lp-founder-cards">
                 <div className="lp-founder lp-fade">
                   <span className="av">BD</span>
                   <div>
                     <h4>Benoit Desintebin</h4>
-                    <div className="rol">Medeoprichter &amp; CEO</div>
-                    <p>Bracht de operationele visie naar het product. Elke functie is te herleiden tot één doel: vakantieverhuur eenvoudiger en rendabeler maken.</p>
+                    <div className="rol">{t("lp.found.ceo")}</div>
+                    <p>{t("lp.found.benoit")}</p>
                   </div>
                 </div>
                 <div className="lp-founder lp-fade">
                   <span className="av">JC</span>
                   <div>
                     <h4>Julie Cousin</h4>
-                    <div className="rol">Medeoprichter &amp; CPO</div>
-                    <p>Bracht het hospitalitydenken naar het product. Elke UX-beslissing is te herleiden tot echte gasten en wat zij nodig hadden.</p>
+                    <div className="rol">{t("lp.found.cpo")}</div>
+                    <p>{t("lp.found.julie")}</p>
                   </div>
                 </div>
               </div>
@@ -491,14 +484,14 @@ export function LandingPage() {
               <div className="lp-founders-photo">
                 <img
                   src="/linnois.webp"
-                  alt="De oprichters van Staybase voor het Linnois-kantoor in Knokke"
+                  alt={t("lp.found.photoAlt")}
                   width={750}
                   height={1000}
                   loading="lazy"
                   decoding="async"
                 />
               </div>
-              <p className="lp-founders-cap">Linnois · Knokke — waar Staybase begon.</p>
+              <p className="lp-founders-cap">{t("lp.found.cap")}</p>
             </div>
           </div>
         </div>
@@ -507,16 +500,16 @@ export function LandingPage() {
       {/* FAQ */}
       <section className="lp-sec alt">
         <div className="lp-container">
-          <p className="lp-label lp-fade">Vragen</p>
-          <h2 className="lp-h2 lp-fade">Eerlijke antwoorden.</h2>
+          <p className="lp-label lp-fade">{t("lp.faq.label")}</p>
+          <h2 className="lp-h2 lp-fade">{t("lp.faq.title")}</h2>
           <div className="lp-faq lp-fade">
             {FAQ.map((f, i) => (
               <div className={`lp-faq-item ${faqOpen === i ? "open" : ""}`} key={f.v}>
                 <button className="lp-faq-q" aria-expanded={faqOpen === i} onClick={() => setFaqOpen(faqOpen === i ? null : i)}>
-                  <b>{f.v}</b>
+                  <b>{t(f.v)}</b>
                   <span className="chev"><Icon name="chevD" /></span>
                 </button>
-                <div className="lp-faq-a"><p>{f.a}</p></div>
+                <div className="lp-faq-a"><p>{t(f.a)}</p></div>
               </div>
             ))}
           </div>
@@ -529,13 +522,13 @@ export function LandingPage() {
       {/* LAATSTE CTA */}
       <section className="lp-final">
         <div className="lp-container">
-          <h2 className="lp-fade">Je pand is meer waard dan een spreadsheet kan meten.</h2>
-          <p className="sub lp-fade">Start met Host, upgrade wanneer je meer wil verdienen. Koppel je Airbnb in acht minuten.</p>
+          <h2 className="lp-fade">{t("lp.final.title")}</h2>
+          <p className="sub lp-fade">{t("lp.final.sub")}</p>
           <div className="lp-final-ctas lp-fade">
             <button className="btn coral lp-btn-lg" onClick={naarRegistreer}>{t("lp.tryFree")}</button>
-            <a className="lp-final-link" href="#hoe">Bekijk hoe het werkt →</a>
+            <a className="lp-final-link" href="#hoe">{t("lp.final.link")}</a>
           </div>
-          <p style={{ fontSize: 13, color: "var(--faint)" }}>Geen kaartgegevens. Geen contract. Maandelijks opzegbaar.</p>
+          <p style={{ fontSize: 13, color: "var(--faint)" }}>{t("lp.final.note")}</p>
         </div>
       </section>
 
@@ -545,28 +538,28 @@ export function LandingPage() {
           <div className="lp-footer-top">
             <div className="lp-footer-col">
               <div className="logo" style={{ color: "#fff" }}><Logo size={26} /> staybase</div>
-              <p className="lp-footer-tag">Het beheersysteem voor onafhankelijke vakantieverhuurders.</p>
+              <p className="lp-footer-tag">{t("lp.footer.tag")}</p>
             </div>
             <div className="lp-footer-col">
-              <h5>Product</h5>
-              <a href="#hoe">Hoe het werkt</a>
-              <a href="#prijzen">Prijzen</a>
-              <a href="#calculator">Bereken je waarde</a>
+              <h5>{t("lp.footer.product")}</h5>
+              <a href="#hoe">{t("lp.nav.how")}</a>
+              <a href="#prijzen">{t("lp.nav.prices")}</a>
+              <a href="#calculator">{t("lp.nav.calc")}</a>
             </div>
             <div className="lp-footer-col">
-              <h5>Bedrijf</h5>
-              <a href="#verhalen">Verhalen</a>
-              <a href="#top">Over ons</a>
+              <h5>{t("lp.footer.company")}</h5>
+              <a href="#verhalen">{t("lp.nav.stories")}</a>
+              <a href="#top">{t("lp.footer.about")}</a>
             </div>
             <div className="lp-footer-col">
-              <h5>Aan de slag</h5>
-              <button className="btn coral sm" style={{ justifyContent: "center" }} onClick={naarRegistreer}>Gratis proberen</button>
-              <a onClick={naarLogin} style={{ marginTop: 12 }}>Ik heb al een account →</a>
+              <h5>{t("lp.footer.start")}</h5>
+              <button className="btn coral sm" style={{ justifyContent: "center" }} onClick={naarRegistreer}>{t("lp.tryFree")}</button>
+              <a onClick={naarLogin} style={{ marginTop: 12 }}>{t("lp.footer.haveAccount")}</a>
             </div>
           </div>
           <div className="lp-footer-bottom">
-            <span>© 2026 Staybase · alle data op deze demo is fictief</span>
-            <span>Een voorstel van Oblivion Labs</span>
+            <span>{t("lp.footer.copy")}</span>
+            <span>{t("lp.footer.proposal")}</span>
           </div>
         </div>
       </footer>

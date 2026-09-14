@@ -5,6 +5,7 @@ import { shortDate } from "../lib/format";
 import { CommissionRow } from "../components/CommissionRow";
 import { useAuth } from "../auth";
 import { useToast } from "../components/Toast";
+import { useT } from "../i18n";
 
 function fmtDur(ms: number): string {
   if (ms < 1000) return "< 1 s";
@@ -13,9 +14,11 @@ function fmtDur(ms: number): string {
   return `${Math.floor(sec / 60)}m ${String(sec % 60).padStart(2, "0")}s`;
 }
 
-const ROLE_LABEL: Record<string, string> = { admin: "Beheerder", owner: "Eigenaar" };
+const ROLE_KEY: Record<string, string> = { admin: "adm.role.admin", owner: "adm.role.owner" };
+const ROLE_PLURAL_KEY: Record<string, string> = { admin: "adm.role.admins", owner: "adm.role.owners" };
 
 export function AdminPage() {
+  const t = useT();
   const { user } = useAuth();
   const { data: usersData, isLoading: usersLoading } = useAdminUsers();
   const { data: stats, isLoading: statsLoading } = useOnboardingStats();
@@ -27,7 +30,7 @@ export function AdminPage() {
 
   if (user?.role !== "admin") return <Navigate to="/" replace />;
   if (usersLoading || statsLoading || !usersData || !stats) {
-    return <div className="loading">Beheer laden…</div>;
+    return <div className="loading">{t("adm.loading")}</div>;
   }
 
   const maxAvg = Math.max(1, ...stats.perStep.map((s) => s.avgMs));
@@ -35,60 +38,58 @@ export function AdminPage() {
 
   return (
     <section className="page">
-      <h1>Beheer</h1>
-      <p className="sub">Inzichten voor het Staybase-team — eigenaars krijgen dit niet te zien.</p>
+      <h1>{t("adm.title")}</h1>
+      <p className="sub">{t("adm.sub")}</p>
 
       <div className="kpis" style={{ marginTop: 24 }}>
         <div className="card kpi">
-          <span className="lbl">Gebruikers</span>
+          <span className="lbl">{t("adm.users")}</span>
           <span className="val num">{usersData.users.length}</span>
           <span className="cmp">
-            {usersData.roles.map((r) => `${r.n} ${ROLE_LABEL[r.role]?.toLowerCase() ?? r.role}${r.n === 1 ? "" : "s"}`).join(" · ")}
+            {usersData.roles.map((r) => `${r.n} ${t(r.n === 1 ? ROLE_KEY[r.role] ?? r.role : ROLE_PLURAL_KEY[r.role] ?? r.role).toLowerCase()}`).join(" · ")}
             {" · "}
-            {usersData.users.filter((u) => u.origin === "linnois").length} via Linnois
+            {t("adm.viaLinnois", { n: usersData.users.filter((u) => u.origin === "linnois").length })}
           </span>
         </div>
         <div className="card kpi">
-          <span className="lbl">Onboardings gestart</span>
+          <span className="lbl">{t("adm.onbStarted")}</span>
           <span className="val num">{stats.sessionsStarted}</span>
-          <span className="cmp">Elke geopende wizard telt mee</span>
+          <span className="cmp">{t("adm.onbStartedCmp")}</span>
         </div>
         <div className="card kpi">
-          <span className="lbl">Onboardings afgerond</span>
+          <span className="lbl">{t("adm.onbDone")}</span>
           <span className="val num">{stats.sessionsCompleted}</span>
           <span className="cmp">
             {stats.sessionsStarted > 0
-              ? `${Math.round((stats.sessionsCompleted / stats.sessionsStarted) * 100)}% rondt de wizard af`
-              : "Nog geen data"}
+              ? t("adm.onbDoneCmp", { p: Math.round((stats.sessionsCompleted / stats.sessionsStarted) * 100) })
+              : t("adm.noData")}
           </span>
         </div>
         <div className="card kpi">
-          <span className="lbl">Traagste stap</span>
+          <span className="lbl">{t("adm.slowest")}</span>
           <span className="val" style={{ fontSize: 20 }}>
             {stats.perStep.length
               ? [...stats.perStep].sort((a, b) => b.avgMs - a.avgMs)[0].stepTitle
               : "—"}
           </span>
-          <span className="cmp">Kandidaat om te vereenvoudigen</span>
+          <span className="cmp">{t("adm.slowestCmp")}</span>
         </div>
       </div>
 
-      <h2 className="sec-title"><span className="em">👥</span> Gebruikers, herkomst & formule</h2>
+      <h2 className="sec-title"><span className="em">👥</span> {t("adm.usersTitle")}</h2>
       <p className="sub" style={{ marginTop: -6, marginBottom: 18 }}>
-        De <b>herkomst</b> bepaalt welke variant van het platform iemand ziet. Een Linnois-gebruiker
-        krijgt geen inbox (Linnois doet de gastcommunicatie), geen prijzen of nachtprijzen, en ziet
-        zijn netto-uitbetaling in plaats van de totale omzet.
+        {t("adm.usersSub")}
       </p>
       <div className="card">
         <table className="mini">
           <thead>
             <tr>
-              <th>Gebruiker</th>
-              <th>Rol</th>
-              <th>Herkomst</th>
-              <th>Formule</th>
-              <th>Onboardings</th>
-              <th>Laatst actief</th>
+              <th>{t("adm.th.user")}</th>
+              <th>{t("adm.th.role")}</th>
+              <th>{t("adm.th.origin")}</th>
+              <th>{t("adm.th.plan")}</th>
+              <th>{t("adm.th.onboardings")}</th>
+              <th>{t("adm.th.lastActive")}</th>
             </tr>
           </thead>
           <tbody>
@@ -100,22 +101,22 @@ export function AdminPage() {
                 </td>
                 <td>
                   <span className={`chip ${u.role === "admin" ? "coral" : "gray"}`}>
-                    {u.role === "admin" ? "🛡️ " : ""}{ROLE_LABEL[u.role] ?? u.role}
+                    {u.role === "admin" ? "🛡️ " : ""}{t(ROLE_KEY[u.role] ?? u.role)}
                   </span>
                 </td>
                 <td>
                   {u.role === "admin" ? (
                     // Een beheerder ziet en beheert alles, ongeacht herkomst —
                     // een keuze tonen zou suggereren dat ze iets verandert.
-                    <span style={{ color: "var(--faint)", fontSize: 13 }}>n.v.t.</span>
+                    <span style={{ color: "var(--faint)", fontSize: 13 }}>{t("adm.na")}</span>
                   ) : (
                     <select
                       className="plan-select"
                       value={u.origin ?? "staybase"}
                       onChange={(e) =>
                         setOrigin.mutate([u.id, e.target.value as UserOrigin], {
-                          onSuccess: (r) => toast(`${u.name} is nu een ${ORIGIN_LABEL[r.origin].toLowerCase()} ✓`),
-                          onError: () => toast("Herkomst wijzigen mislukte"),
+                          onSuccess: (r) => toast(t("adm.originToast", { name: u.name, origin: ORIGIN_LABEL[r.origin].toLowerCase() })),
+                          onError: () => toast(t("adm.originFailed")),
                         })
                       }
                     >
@@ -127,15 +128,15 @@ export function AdminPage() {
                 </td>
                 <td>
                   {u.role === "admin" ? (
-                    <span style={{ color: "var(--faint)", fontSize: 13 }}>alle toegang</span>
+                    <span style={{ color: "var(--faint)", fontSize: 13 }}>{t("adm.allAccess")}</span>
                   ) : (
                     <select
                       className="plan-select"
                       value={u.plan}
                       onChange={(e) =>
                         setPlan.mutate([u.id, e.target.value as UserPlan], {
-                          onSuccess: (r) => toast(`${u.name} staat nu op de ${PLAN_LABEL[r.plan]}-formule ✓`),
-                          onError: () => toast("Formule wijzigen mislukte"),
+                          onSuccess: (r) => toast(t("adm.planToast", { name: u.name, plan: PLAN_LABEL[r.plan] })),
+                          onError: () => toast(t("adm.planFailed")),
                         })
                       }
                     >
@@ -149,7 +150,7 @@ export function AdminPage() {
                   {u.onboardings}
                 </td>
                 <td className="num" style={{ color: u.lastLogin ? "var(--muted)" : "var(--faint)", fontWeight: 600 }}>
-                  {u.lastLogin ? shortDate(u.lastLogin) : "nooit"}
+                  {u.lastLogin ? shortDate(u.lastLogin) : t("common.never")}
                 </td>
               </tr>
             ))}
@@ -157,52 +158,50 @@ export function AdminPage() {
         </table>
       </div>
 
-      <h2 className="sec-title"><span className="em">🤝</span> Commissie per gebruiker</h2>
+      <h2 className="sec-title"><span className="em">🤝</span> {t("adm.commTitle")}</h2>
       <p className="sub" style={{ marginTop: -6, marginBottom: 18 }}>
-        De commissieafspraak wordt per klant onderhandeld. Zet het percentage met de schuifknop of
-        typ het exact, en kies waarover het gerekend wordt: <b>bruto</b> is de totale gastbetaling,
-        <b> netto</b> is die betaling min de OTA-commissie en de schoonmaakkost.
+        {t("adm.commSub")}
       </p>
       <div className="card">
         <table className="mini">
           <thead>
             <tr>
-              <th>Gebruiker</th>
-              <th>Percentage</th>
+              <th>{t("adm.th.user")}</th>
+              <th>{t("adm.th.pct")}</th>
               <th />
-              <th>Basis</th>
-              <th>Gerekend</th>
+              <th>{t("adm.th.basis")}</th>
+              <th>{t("adm.th.calc")}</th>
             </tr>
           </thead>
           <tbody>
             {owners.length === 0 && (
-              <tr><td colSpan={5} style={{ color: "var(--muted)" }}>Nog geen eigenaars om een afspraak mee vast te leggen.</td></tr>
+              <tr><td colSpan={5} style={{ color: "var(--muted)" }}>{t("adm.noOwners")}</td></tr>
             )}
             {owners.map((u) => (
               <CommissionRow
                 key={u.id}
                 user={u}
                 onSaved={(name, pct, basis) =>
-                  toast(`${name}: ${String(pct).replace(".", ",")}% op ${COMMISSION_BASIS_LABEL[basis].toLowerCase()} ✓`)
+                  toast(t("adm.commToast", { name, pct: String(pct).replace(".", ","), basis: COMMISSION_BASIS_LABEL[basis].toLowerCase() }))
                 }
-                onError={() => toast("Commissie aanpassen mislukte")}
+                onError={() => toast(t("adm.commFailed"))}
               />
             ))}
           </tbody>
         </table>
       </div>
 
-      <h2 className="sec-title"><span className="em">🏘️</span> Panden per eigenaar</h2>
+      <h2 className="sec-title"><span className="em">🏘️</span> {t("adm.propsTitle")}</h2>
       <p className="sub" style={{ marginTop: -6 }}>
-        Wijs panden toe aan een eigenaar — die ziet vanaf dan alléén zijn eigen panden, boekingen en berichten.
+        {t("adm.propsSub")}
       </p>
       <div className="card">
         <table className="mini">
           <thead>
             <tr>
-              <th>Pand</th>
-              <th>Status</th>
-              <th>Eigenaar</th>
+              <th>{t("adm.th.prop")}</th>
+              <th>{t("adm.th.status")}</th>
+              <th>{t("adm.th.owner")}</th>
             </tr>
           </thead>
           <tbody>
@@ -219,7 +218,7 @@ export function AdminPage() {
                 </td>
                 <td>
                   <span className={`chip ${p.status === "live" ? "coral" : "warn"}`}>
-                    {p.status === "live" ? "live" : "onboarding"}
+                    {p.status === "live" ? t("common.live") : t("common.onboarding")}
                   </span>
                 </td>
                 <td>
@@ -231,13 +230,13 @@ export function AdminPage() {
                       const owner = usersData.users.find((u) => u.id === userId);
                       assignOwner.mutate([p.id, userId], {
                         onSuccess: () => toast(userId
-                          ? `${p.name} toegewezen aan ${owner?.name ?? "eigenaar"} ✓`
-                          : `${p.name} losgekoppeld`),
-                        onError: () => toast("Toewijzen mislukte"),
+                          ? t("adm.assignToast", { p: p.name, u: owner?.name ?? t("adm.role.owner") })
+                          : t("adm.unassignToast", { p: p.name })),
+                        onError: () => toast(t("adm.assignFailed")),
                       });
                     }}
                   >
-                    <option value="">— geen eigenaar —</option>
+                    <option value="">{t("adm.noOwner")}</option>
                     {usersData.users.filter((u) => u.role === "owner").map((u) => (
                       <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
                     ))}
@@ -249,10 +248,10 @@ export function AdminPage() {
         </table>
       </div>
 
-      <h2 className="sec-title"><span className="em">⏱️</span> Tijd per onboarding-stap</h2>
+      <h2 className="sec-title"><span className="em">⏱️</span> {t("adm.stepTime")}</h2>
       <div className="card" style={{ padding: "18px 20px" }}>
         {stats.perStep.length === 0 && (
-          <p style={{ color: "var(--muted)", fontSize: 14 }}>Nog geen onboarding-data — open de wizard eens.</p>
+          <p style={{ color: "var(--muted)", fontSize: 14 }}>{t("adm.noStepData")}</p>
         )}
         {stats.perStep.map((s) => (
           <div key={`${s.step}-${s.stepTitle}`} className="split-row" style={{ gap: 14 }}>
@@ -264,27 +263,27 @@ export function AdminPage() {
             </div>
             <b className="num" style={{ marginLeft: 0, width: 90, textAlign: "right" }}>{fmtDur(s.avgMs)}</b>
             <span style={{ color: "var(--faint)", fontSize: 12.5, width: 70, textAlign: "right" }} className="num">
-              {s.visits}× bezocht
+              {t("adm.visited", { n: s.visits })}
             </span>
           </div>
         ))}
       </div>
 
-      <h2 className="sec-title"><span className="em">🧭</span> Recente onboardings</h2>
+      <h2 className="sec-title"><span className="em">🧭</span> {t("adm.recent")}</h2>
       <div className="card">
         <table className="mini">
           <thead>
             <tr>
-              <th>Gebruiker</th>
-              <th>Gestart</th>
-              <th>Stappen</th>
-              <th>Duur</th>
-              <th>Resultaat</th>
+              <th>{t("adm.th.user")}</th>
+              <th>{t("adm.th.started")}</th>
+              <th>{t("adm.th.steps")}</th>
+              <th>{t("adm.th.duration")}</th>
+              <th>{t("adm.th.result")}</th>
             </tr>
           </thead>
           <tbody>
             {stats.recent.length === 0 && (
-              <tr><td colSpan={5} style={{ color: "var(--muted)" }}>Nog geen onboarding-sessies geregistreerd.</td></tr>
+              <tr><td colSpan={5} style={{ color: "var(--muted)" }}>{t("adm.noSessions")}</td></tr>
             )}
             {stats.recent.map((r) => (
               <tr key={r.sessionId}>
@@ -294,7 +293,7 @@ export function AdminPage() {
                 <td className="num">{fmtDur(r.totalMs)}</td>
                 <td>
                   <span className={`chip ${r.completed ? "good" : "warn"}`}>
-                    {r.completed ? "✓ Afgerond" : "Afgebroken"}
+                    {r.completed ? t("adm.completed") : t("adm.aborted")}
                   </span>
                 </td>
               </tr>

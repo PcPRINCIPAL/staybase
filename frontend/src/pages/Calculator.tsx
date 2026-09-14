@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useT } from "../i18n";
 
 /**
  * Waarde-calculator uit de klantschets, 1-op-1 geport.
@@ -28,10 +29,10 @@ const LOCATIE_FACTOR: Record<string, number> = {
 };
 
 const LOCATIES = [
-  { id: "belgische-kust", label: "Belgische kust" },
-  { id: "ardennen", label: "Ardennen" },
-  { id: "stad", label: "Stad (Gent, Brugge, Brussel)" },
-  { id: "andere", label: "Andere regio" },
+  { id: "belgische-kust", label: "calc.loc.coast" },
+  { id: "ardennen", label: "calc.loc.ardennen" },
+  { id: "stad", label: "calc.loc.city" },
+  { id: "andere", label: "calc.loc.other" },
 ];
 
 interface Invoer {
@@ -102,6 +103,7 @@ function useCountUp(target: number) {
 }
 
 export function Calculator({ onCta }: { onCta: () => void }) {
+  const t = useT();
   const [v, setV] = useState<Invoer>({
     panden: 2, tarief: 130, bezetting: 58, situatie: "zelf", locatie: "belgische-kust",
   });
@@ -112,20 +114,20 @@ export function Calculator({ onCta }: { onCta: () => void }) {
   const persona = (() => {
     switch (r.persona) {
       case "sophie":
-        return <>Het grootste deel van die gap zit in twee dingen: je tarief ligt waarschijnlijk onder de markt op drukke weekends, en sommige nachten die geboekt hadden kunnen zijn, blijven leeg.</>;
+        return <>{t("calc.persona.sophie")}</>;
       case "elise":
-        return <>Op jouw tariefniveau maakt een prijsoptimalisering van 15–20% op piekavonden een groot verschil. De dynamische prijszetting van Craft verdient zijn kost doorgaans terug in het eerste geoptimaliseerde weekend.</>;
+        return <>{t("calc.persona.elise")}</>;
       case "thomas":
-        return <>Met {v.panden} panden is het consolidatievoordeel even groot als de omzetgap. Eén dashboard, één wekelijkse samenvatting, één AI die alle gastcommunicatie beheert.</>;
+        return <>{t("calc.persona.thomas", { n: v.panden })}</>;
       case "agentschap":
         return (
           <>
-            Die <b>{eur(r.commissie)}</b> aan jaarlijkse commissie is het grootste deel van jouw gap. Staybase geeft je professioneel beheer voor een vaste maandelijkse kost.
-            <small>Commissiebesparing: {eur(r.commissie)} · Staybase-jaarkost: {eur(r.staybaseKost)} · Nettobesparing: {eur(r.commissie - r.staybaseKost)}</small>
+            {t("calc.persona.agency1")} <b>{eur(r.commissie)}</b> {t("calc.persona.agency2")}
+            <small>{t("calc.persona.agencySmall", { a: eur(r.commissie), b: eur(r.staybaseKost), c: eur(r.commissie - r.staybaseKost) })}</small>
           </>
         );
       default:
-        return <>Deze schatting is gebaseerd op typische prestatieverbeteringen bij onafhankelijke vakantieverhuurders in België.</>;
+        return <>{t("calc.persona.default")}</>;
     }
   })();
 
@@ -138,21 +140,21 @@ export function Calculator({ onCta }: { onCta: () => void }) {
       <div className="lp-calc-inputs">
         <div className="lp-calc-col">
           <div className="lp-field">
-            <label>Hoeveel panden beheer je?</label>
-            <span className="hint">Elk gekoppeld pand krijgt zijn eigen stemprofiel en prijsintelligentie.</span>
+            <label>{t("calc.props")}</label>
+            <span className="hint">{t("calc.propsHint")}</span>
             <div className="lp-stepper">
-              <button onClick={() => setV((s) => ({ ...s, panden: Math.max(1, s.panden - 1) }))} aria-label="Minder panden">−</button>
+              <button onClick={() => setV((s) => ({ ...s, panden: Math.max(1, s.panden - 1) }))} aria-label={t("calc.less")}>−</button>
               <output className="num" aria-live="polite">{v.panden}</output>
-              <button onClick={() => setV((s) => ({ ...s, panden: Math.min(20, s.panden + 1) }))} aria-label="Meer panden">+</button>
+              <button onClick={() => setV((s) => ({ ...s, panden: Math.min(20, s.panden + 1) }))} aria-label={t("calc.more")}>+</button>
             </div>
             {v.panden >= 8 && (
-              <p className="lp-note">💡 Vanaf 8 panden is het consolidatievoordeel vaak groter dan de omzetgap zelf.</p>
+              <p className="lp-note">{t("calc.consolidation")}</p>
             )}
           </div>
 
           <div className="lp-field">
-            <label htmlFor="calc-tarief">Je gemiddelde nachtprijs</label>
-            <span className="hint">Je typische tarief over alle kanalen heen, over het hele jaar.</span>
+            <label htmlFor="calc-tarief">{t("calc.rate")}</label>
+            <span className="hint">{t("calc.rateHint")}</span>
             <div className="lp-slider-row">
               <input
                 id="calc-tarief" type="range" min={40} max={500} step={5} value={v.tarief}
@@ -170,8 +172,8 @@ export function Calculator({ onCta }: { onCta: () => void }) {
           </div>
 
           <div className="lp-field">
-            <label htmlFor="calc-bez">Je huidige bezettingsgraad</label>
-            <span className="hint">Hoeveel nachten per jaar effectief geboekt zijn.</span>
+            <label htmlFor="calc-bez">{t("calc.occ")}</label>
+            <span className="hint">{t("calc.occHint")}</span>
             <div className="lp-slider-row">
               <input
                 id="calc-bez" type="range" min={20} max={95} step={1} value={v.bezetting}
@@ -187,23 +189,23 @@ export function Calculator({ onCta }: { onCta: () => void }) {
               </span>
             </div>
             {v.bezetting > 85 && (
-              <p className="lp-note">💡 Op dit bezettingsniveau telt prijsoptimalisering meer dan leegstand wegwerken.</p>
+              <p className="lp-note">{t("calc.occNote")}</p>
             )}
           </div>
         </div>
 
         <div className="lp-calc-col">
           <div className="lp-field">
-            <label>Hoe beheer je vandaag?</label>
-            <div className="lp-choice-cards" role="radiogroup" aria-label="Huidige beheersituatie">
+            <label>{t("calc.manage")}</label>
+            <div className="lp-choice-cards" role="radiogroup" aria-label={t("calc.manageAria")}>
               <button
                 className={`lp-choice ${v.situatie === "zelf" ? "on" : ""}`}
                 role="radio" aria-checked={v.situatie === "zelf"}
                 onClick={() => setV((s) => ({ ...s, situatie: "zelf" }))}
               >
                 <span className="em">🧑‍💻</span>
-                <b>Zelfbeheer</b>
-                <span>Je regelt alles zelf: gasten, prijzen en planning.</span>
+                <b>{t("calc.self")}</b>
+                <span>{t("calc.selfP")}</span>
               </button>
               <button
                 className={`lp-choice ${v.situatie === "agentschap" ? "on" : ""}`}
@@ -211,16 +213,16 @@ export function Calculator({ onCta }: { onCta: () => void }) {
                 onClick={() => setV((s) => ({ ...s, situatie: "agentschap" }))}
               >
                 <span className="em">🏢</span>
-                <b>Agentschap</b>
-                <span>Iemand anders beheert voor jou, aan 20–30% commissie.</span>
+                <b>{t("calc.agency")}</b>
+                <span>{t("calc.agencyP")}</span>
               </button>
             </div>
           </div>
 
           <div className="lp-field">
-            <label>Je regio</label>
-            <span className="hint">Bepaalt met welke markttarieven we vergelijken.</span>
-            <div className="lp-pills" role="radiogroup" aria-label="Regio">
+            <label>{t("calc.region")}</label>
+            <span className="hint">{t("calc.regionHint")}</span>
+            <div className="lp-pills" role="radiogroup" aria-label={t("calc.region")}>
               {LOCATIES.map((l) => (
                 <button
                   key={l.id}
@@ -228,7 +230,7 @@ export function Calculator({ onCta }: { onCta: () => void }) {
                   role="radio" aria-checked={v.locatie === l.id}
                   onClick={() => setV((s) => ({ ...s, locatie: l.id }))}
                 >
-                  {l.label}
+                  {t(l.label)}
                 </button>
               ))}
             </div>
@@ -236,52 +238,49 @@ export function Calculator({ onCta }: { onCta: () => void }) {
         </div>
       </div>
 
-      <div className="lp-calc-divider"><span>Jouw geschatte resultaat</span></div>
+      <div className="lp-calc-divider"><span>{t("calc.divider")}</span></div>
 
       <div className="lp-results" aria-live="polite">
         <div className="lp-res-main">
-          <span className="lp-res-eyebrow">Jouw geschatte omzetgap</span>
+          <span className="lp-res-eyebrow">{t("calc.gapLabel")}</span>
           <div className="lp-res-num">{eur(getoond)}</div>
-          <p className="lp-res-cap">per jaar, vergeleken met een geoptimaliseerde onafhankelijke werking</p>
+          <p className="lp-res-cap">{t("calc.gapCap")}</p>
           {gap > 0 && (
             <div className="lp-res-pills">
-              <span className="lp-res-pill">📈 +{eur(r.omzetStijging)} extra omzet</span>
-              {r.commissie > 0 && <span className="lp-res-pill">💰 −{eur(r.commissie)} commissie bespaard</span>}
-              <span className="lp-res-pill">⏱️ {Math.round(r.urenPerJaar).toLocaleString("nl-BE")} uur per jaar terug</span>
+              <span className="lp-res-pill">{t("calc.pillRevenue", { n: eur(r.omzetStijging) })}</span>
+              {r.commissie > 0 && <span className="lp-res-pill">{t("calc.pillCommission", { n: eur(r.commissie) })}</span>}
+              <span className="lp-res-pill">{t("calc.pillHours", { n: Math.round(r.urenPerJaar).toLocaleString("nl-BE") })}</span>
             </div>
           )}
           <p className="lp-persona">
-            {gap > 0 ? persona : "Je pand presteert al dicht bij het marktoptimum. Staybase zou voor jou vooral tijd besparen in plaats van extra omzet opleveren."}
+            {gap > 0 ? persona : t("calc.optimal")}
           </p>
         </div>
 
         <div className="lp-res-side">
           <table className="lp-table">
             <thead>
-              <tr><th /><th>Nu</th><th>Met Staybase</th></tr>
+              <tr><th /><th>{t("calc.tbl.now")}</th><th>{t("calc.tbl.with")}</th></tr>
             </thead>
             <tbody>
-              <tr><td>Nachtprijs</td><td>{eur(v.tarief)}</td><td>{eur(r.optimaalTarief)}</td></tr>
-              <tr><td>Bezetting</td><td>{v.bezetting}%</td><td>{r.optimaleBezetting}%</td></tr>
-              <tr><td>Jaaromzet</td><td>{eur(r.huidigeOmzet)}</td><td>{eur(r.optimaleOmzet)}</td></tr>
-              <tr><td>Kost beheer</td><td>{r.commissie > 0 ? "−" + eur(r.commissie) : "€0"}</td><td>−{eur(r.staybaseKost)}</td></tr>
-              <tr className="tot"><td>Netto</td><td>{eur(r.nettoNu)}</td><td className="win">{eur(r.nettoStaybase)}</td></tr>
+              <tr><td>{t("calc.tbl.rate")}</td><td>{eur(v.tarief)}</td><td>{eur(r.optimaalTarief)}</td></tr>
+              <tr><td>{t("calc.tbl.occ")}</td><td>{v.bezetting}%</td><td>{r.optimaleBezetting}%</td></tr>
+              <tr><td>{t("calc.tbl.revenue")}</td><td>{eur(r.huidigeOmzet)}</td><td>{eur(r.optimaleOmzet)}</td></tr>
+              <tr><td>{t("calc.tbl.cost")}</td><td>{r.commissie > 0 ? "−" + eur(r.commissie) : "€0"}</td><td>−{eur(r.staybaseKost)}</td></tr>
+              <tr className="tot"><td>{t("calc.tbl.net")}</td><td>{eur(r.nettoNu)}</td><td className="win">{eur(r.nettoStaybase)}</td></tr>
             </tbody>
           </table>
           <div className="lp-plan-tip">
-            <b>Aanbevolen:</b> {r.plan} — {eur(r.perMaand)}/pand/maand
+            <b>{t("calc.recommended")}</b> {r.plan} — {eur(r.perMaand)}{t("lp.plans.perMonth")}
           </div>
         </div>
       </div>
 
       <div className="lp-calc-cta">
-        <button className="btn coral" onClick={onCta}>Gratis proberen — geen kaartgegevens nodig →</button>
-        <p>Koppelen duurt 8 minuten. Je eerste AI-bericht staat dezelfde dag klaar.</p>
+        <button className="btn coral" onClick={onCta}>{t("calc.cta")}</button>
+        <p>{t("calc.ctaP")}</p>
       </div>
-      <p className="lp-disclaimer">
-        Schattingen op basis van mediane prestatieverbeteringen bij onafhankelijke vakantieverhuurders in België.
-        Werkelijke resultaten verschillen per pand, markt en gebruik. Staybase garandeert geen specifieke omzet.
-      </p>
+      <p className="lp-disclaimer">{t("calc.disclaimer")}</p>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { InsightBucket } from "@shared/types";
 import { useInsights } from "../lib/api";
+import { useT, type TFn } from "../i18n";
 import { eur } from "../lib/format";
 
 const CORAL = "var(--coral)";
@@ -84,9 +85,10 @@ function fmtResponse(min: number | null): string {
 }
 
 export function InsightsPage() {
+  const t = useT();
   const { data, isLoading } = useInsights();
 
-  if (isLoading || !data) return <div className="loading">Insights laden…</div>;
+  if (isLoading || !data) return <div className="loading">{t("ins.loading")}</div>;
 
   const k = data.kpis;
   const mixTotal = data.channelMix.reduce((a, c) => a + c.revenue, 0) || 1;
@@ -94,64 +96,64 @@ export function InsightsPage() {
 
   return (
     <section className="page insights-page">
-      <h1>Insights</h1>
-      <p className="sub">Hoe presteert de portefeuille — berekend uit de echte boekingen en gesprekken.</p>
+      <h1>{t("ins.title")}</h1>
+      <p className="sub">{t("ins.sub")}</p>
 
       <div className="kpis five">
         <div className="card kpi">
-          <span className="lbl">Bezetting komende 30 dagen</span>
+          <span className="lbl">{t("ins.occ30")}</span>
           <span className="val num">{k.occupancyNext30}%</span>
-          <span className="cmp">Over alle live panden</span>
+          <span className="cmp">{t("ins.occ30Cmp")}</span>
         </div>
         <div className="card kpi">
-          <span className="lbl">Mediane reactietijd</span>
+          <span className="lbl">{t("ins.response")}</span>
           <span className="val num">{fmtResponse(k.medianResponseMin)}</span>
-          <span className="cmp">Gastbericht → eerste antwoord</span>
+          <span className="cmp">{t("ins.responseCmp")}</span>
         </div>
         <div className="card kpi">
-          <span className="lbl">Gem. verblijfsduur</span>
+          <span className="lbl">{t("ins.stay")}</span>
           <span className="val num">{k.avgStayNights != null ? String(k.avgStayNights).replace(".", ",") : "—"}</span>
-          <span className="cmp">Nachten per boeking</span>
+          <span className="cmp">{t("ins.stayCmp")}</span>
         </div>
         <div className="card kpi">
-          <span className="lbl">Boekingsvenster</span>
+          <span className="lbl">{t("ins.lead")}</span>
           <span className="val num">{k.avgLeadDays != null ? `${k.avgLeadDays} d` : "—"}</span>
-          <span className="cmp">Gem. van boeking tot check-in</span>
+          <span className="cmp">{t("ins.leadCmp")}</span>
         </div>
         <div className="card kpi">
-          <span className="lbl">Gem. nachtprijs</span>
+          <span className="lbl">{t("home.kpi.adr")}</span>
           <span className="val num">{k.adr != null ? eur(k.adr) : "—"}</span>
-          <span className="cmp">Uitbetaling per geboekte nacht</span>
+          <span className="cmp">{t("ins.adrCmp")}</span>
         </div>
       </div>
 
       <div className="insights-grid">
         <div className="card chart-card">
-          <h3>Bezettingsgraad per maand</h3>
-          <p className="hint">Drie maanden terug en acht vooruit — zo zie je hoe goed de komende periode al gevuld is</p>
+          <h3>{t("ins.occMonth")}</h3>
+          <p className="hint">{t("ins.occMonthHint")}</p>
           <ColumnChart
             unit="%"
             highlight={data.occupancyByMonth.findIndex((m) => m.current)}
-            ariaLabel="Bezettingsgraad per maand"
+            ariaLabel={t("ins.ariaOccMonth")}
             data={data.occupancyByMonth.map((m) => ({
               label: m.label, value: m.pct,
-              hint: `${m.label} ${m.month.slice(0, 4)}${m.current ? " · huidige maand" : ""}`,
+              hint: `${m.label} ${m.month.slice(0, 4)}${m.current ? ` · ${t("ins.currentMonth")}` : ""}`,
             }))}
           />
         </div>
 
         <div className="card chart-card">
-          <h3>Reactietijd op gastberichten</h3>
-          <p className="hint">Hoe snel volgt het eerste antwoord — mediaan {fmtResponse(k.medianResponseMin)}</p>
-          <BucketChart buckets={data.responseBuckets} unitLabel="antwoorden" ariaLabel="Verdeling van reactietijden" />
+          <h3>{t("ins.responseTitle")}</h3>
+          <p className="hint">{t("ins.responseHint", { v: fmtResponse(k.medianResponseMin) })}</p>
+          <BucketChart buckets={data.responseBuckets} unitLabel={t("ins.answers")} ariaLabel={t("ins.ariaResponse")} />
         </div>
 
         <div className="card chart-card">
-          <h3>Bezetting per pand</h3>
-          <p className="hint">Komende 90 dagen — waar is nog ruimte?</p>
+          <h3>{t("ins.occProp")}</h3>
+          <p className="hint">{t("ins.occPropHint")}</p>
           <div className="meter-list">
             {data.occupancyByProperty.map((p) => (
-              <div key={p.propertyId} className="meter-row" title={`${p.name}: ${p.pct}% bezet in de komende 90 dagen`}>
+              <div key={p.propertyId} className="meter-row" title={t("ins.occPropTitle", { name: p.name, pct: p.pct })}>
                 <span className="meter-name">{p.name}</span>
                 <span className="meter-track"><span className="meter-fill" style={{ width: `${p.pct}%` }} /></span>
                 <span className="meter-val num">{p.pct}%</span>
@@ -161,11 +163,11 @@ export function InsightsPage() {
         </div>
 
         <div className="card chart-card">
-          <h3>Kanaalmix</h3>
-          <p className="hint">Aandeel in de omzet per kanaal, over alle boekingen</p>
-          <div className="mix-bar" role="img" aria-label="Omzetaandeel per kanaal">
+          <h3>{t("ins.mix")}</h3>
+          <p className="hint">{t("ins.mixHint")}</p>
+          <div className="mix-bar" role="img" aria-label={t("ins.mixAria")}>
             {data.channelMix.map((c) => (
-              <span key={c.channel} className="mix-seg" title={`${c.label}: ${eur(c.revenue)} · ${c.bookings} boekingen`}
+              <span key={c.channel} className="mix-seg" title={`${c.label}: ${eur(c.revenue)} · ${t("ins.bookingsCount", { n: c.bookings })}`}
                 style={{ width: `${(c.revenue / mixTotal) * 100}%`, background: channelColor[c.channel] }} />
             ))}
           </div>
@@ -175,22 +177,22 @@ export function InsightsPage() {
                 <span className="dot" style={{ background: channelColor[c.channel] }} />
                 <b>{c.label}</b>
                 <span className="num">{Math.round((c.revenue / mixTotal) * 100)}%</span>
-                <small>{c.bookings} boekingen · {eur(c.revenue)}</small>
+                <small>{t("ins.bookingsCount", { n: c.bookings })} · {eur(c.revenue)}</small>
               </div>
             ))}
           </div>
         </div>
 
         <div className="card chart-card">
-          <h3>Verblijfsduur</h3>
-          <p className="hint">Aantal boekingen per verblijfslengte (nachten)</p>
-          <BucketChart buckets={data.stayLengthBuckets} unitLabel="boekingen" ariaLabel="Verdeling van verblijfsduur" />
+          <h3>{t("ins.stayTitle")}</h3>
+          <p className="hint">{t("ins.stayHint")}</p>
+          <BucketChart buckets={data.stayLengthBuckets} unitLabel={t("ins.bookings")} ariaLabel={t("ins.ariaStay")} />
         </div>
 
         <div className="card chart-card">
-          <h3>Boekingsvenster</h3>
-          <p className="hint">Hoe ver op voorhand boeken gasten?</p>
-          <BucketChart buckets={data.leadTimeBuckets} unitLabel="boekingen" ariaLabel="Verdeling van boekingsvenster" />
+          <h3>{t("ins.leadTitle")}</h3>
+          <p className="hint">{t("ins.leadHint")}</p>
+          <BucketChart buckets={data.leadTimeBuckets} unitLabel={t("ins.bookings")} ariaLabel={t("ins.ariaLead")} />
         </div>
       </div>
     </section>

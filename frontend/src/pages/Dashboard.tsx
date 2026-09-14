@@ -2,10 +2,13 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { DEMO_TODAY } from "@shared/types";
 import { useOverview } from "../lib/api";
-import { eur, monthName } from "../lib/format";
+import { eur, longDate, monthName } from "../lib/format";
 import { Icon } from "../components/Icon";
 import { OwnerHome } from "./OwnerHome";
 import { useAuth } from "../auth";
+import { useT, type TFn } from "../i18n";
+import { useBrand } from "../components/OriginGate";
+import { BRAND_LABEL } from "@shared/types";
 
 /** Mini-sparkline: 2px koraallijn met een eindmarker (witte ring). */
 function Spark({ points }: { points: number[] }) {
@@ -38,11 +41,11 @@ function Delta({ now, prev, unit }: { now: number; prev: number; unit: string })
   );
 }
 
-function fmtResponse(min: number | null): string {
+function fmtResponse(min: number | null, t: TFn): string {
   if (min == null) return "—";
   if (min < 60) return `${min} min`;
   if (min < 48 * 60) return `${(min / 60).toFixed(1).replace(".", ",")} u`;
-  return `${Math.round(min / 1440)} dagen`;
+  return t("home.responseDays", { n: Math.round(min / 1440) });
 }
 
 function fmtDuration(min: number): string {
@@ -60,18 +63,20 @@ export function Dashboard() {
 function TeamHome() {
   const { data, isLoading } = useOverview();
   const nav = useNavigate();
+  const t = useT();
+  const brand = BRAND_LABEL[useBrand()];
   const [q, setQ] = useState("");
 
   if (isLoading || !data) return <div className="loading">Dashboard laden…</div>;
 
   const h = data.home;
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Goedemorgen" : hour < 18 ? "Goedemiddag" : "Goedenavond";
+  const greeting = hour < 12 ? t("home.morning") : hour < 18 ? t("home.afternoon") : t("home.evening");
   const actions = data.attention.inboxDrafts + data.attention.priceOpen + data.attention.cleaningPending;
   const inbox = data.attention.inboxDrafts;
   const maand = monthName(DEMO_TODAY);
   const syncLabel = h.guestySyncAt
-    ? (h.guestySyncAt.slice(0, 10) === DEMO_TODAY ? "vandaag" : `${Number(h.guestySyncAt.slice(8, 10))} ${monthName(h.guestySyncAt).slice(0, 3)}`)
+    ? (h.guestySyncAt.slice(0, 10) === DEMO_TODAY ? t("home.chipToday") : `${Number(h.guestySyncAt.slice(8, 10))} ${monthName(h.guestySyncAt).slice(0, 3)}`)
     : null;
 
   const askHome = () => {
@@ -82,9 +87,9 @@ function TeamHome() {
   };
 
   const tomorrowRows = [
-    { icon: "🔑", tint: "var(--coral-soft)", n: h.tomorrow.checkIns, label: "Check-ins" },
-    { icon: "🧳", tint: "var(--booking-soft)", n: h.tomorrow.checkOuts, label: "Check-outs" },
-    { icon: "🧽", tint: "var(--vrbo-soft)", n: h.tomorrow.cleanings, label: "Poetsbeurten" },
+    { icon: "🔑", tint: "var(--coral-soft)", n: h.tomorrow.checkIns, label: t("home.checkIns") },
+    { icon: "🧳", tint: "var(--booking-soft)", n: h.tomorrow.checkOuts, label: t("home.checkOuts") },
+    { icon: "🧽", tint: "var(--vrbo-soft)", n: h.tomorrow.cleanings, label: t("home.cleanings") },
   ];
   const insightTints = ["var(--warn-soft)", "var(--booking-soft)", "var(--vrbo-soft)"];
   const weekTasks = h.weekWork.messages + h.weekWork.newBookings + h.weekWork.checkIns;
@@ -98,88 +103,88 @@ function TeamHome() {
               <h1>{greeting} {data.greetingName} 👋</h1>
               <p className="sub" style={{ margin: "4px 0 0" }}>
                 {actions > 0
-                  ? `Alles loopt — ${actions === 1 ? "1 ding wacht" : `${actions} dingen wachten`} op jou.`
-                  : "Alles loopt. Er wacht vandaag niets op jou. 🎉"}
+                  ? (actions === 1 ? t("home.waiting1") : t("home.waitingN", { n: actions }))
+                  : t("home.allRunning")}
               </p>
             </div>
-            <span className="date-pill">📅 {data.dateLabel}</span>
+            <span className="date-pill">📅 {longDate(DEMO_TODAY)}</span>
           </div>
 
           {inbox > 0 && (
             <div className="home-alert">
               <span className="home-alert-ico">💬</span>
               <div>
-                <b>{inbox} {inbox === 1 ? "bericht wacht" : "berichten wachten"} op antwoord</b>
+                <b>{inbox === 1 ? t("home.msgWaiting1") : t("home.msgWaitingN", { n: inbox })}</b>
                 {h.oldestInboxMinutes != null && (
-                  <span>Oudste bericht: {fmtResponse(h.oldestInboxMinutes)} geleden</span>
+                  <span>{t("home.oldest", { t: fmtResponse(h.oldestInboxMinutes, t) })}</span>
                 )}
               </div>
               <button className="btn coral" onClick={() => nav("/inbox")}>
-                Berichten beantwoorden <Icon name="arrow" />
+                {t("home.answerBtn")} <Icon name="arrow" />
               </button>
             </div>
           )}
 
           <div className="hkpis">
             <div className="card hkpi">
-              <span className="lbl">Bezetting ({maand})</span>
+              <span className="lbl">{t("home.kpi.occupancy", { m: maand })}</span>
               <div className="hkpi-row">
                 <span className="val num">{data.kpis.occupancyPct}%</span>
                 <Spark points={h.sparkOccupancy} />
               </div>
               <span className="cmp">
-                <Delta now={data.kpis.occupancyPct} prev={h.occupancyPrevPct} unit="%" /> vs. {h.occupancyPrevPct}% vorige maand
+                <Delta now={data.kpis.occupancyPct} prev={h.occupancyPrevPct} unit="%" /> {t("home.kpi.vsPrev", { v: `${h.occupancyPrevPct}%` })}
               </span>
             </div>
             <div className="card hkpi">
-              <span className="lbl">Omzet ({maand})</span>
+              <span className="lbl">{t("home.kpi.revenue", { m: maand })}</span>
               <div className="hkpi-row">
                 <span className="val num">{eur(data.kpis.monthRevenue)}</span>
                 <Spark points={h.sparkRevenue} />
               </div>
               <span className="cmp">
-                <Delta now={data.kpis.monthRevenue} prev={h.prevMonthRevenue} unit="€" /> vs. {eur(h.prevMonthRevenue)} vorige maand
+                <Delta now={data.kpis.monthRevenue} prev={h.prevMonthRevenue} unit="€" /> {t("home.kpi.vsPrev", { v: eur(h.prevMonthRevenue) })}
               </span>
             </div>
             <div className="card hkpi">
-              <span className="lbl">Gem. nachtprijs</span>
+              <span className="lbl">{t("home.kpi.adr")}</span>
               <div className="hkpi-row">
                 <span className="val num">{eur(data.kpis.avgNight)}</span>
                 <Spark points={h.sparkAdr} />
               </div>
               <span className="cmp">
-                {h.adrPrev ? <><Delta now={data.kpis.avgNight} prev={h.adrPrev} unit="€" /> vs. {eur(h.adrPrev)} vorige maand</> : "Uitbetaling per geboekte nacht"}
+                {h.adrPrev ? <><Delta now={data.kpis.avgNight} prev={h.adrPrev} unit="€" /> {t("home.kpi.vsPrev", { v: eur(h.adrPrev) })}</> : t("home.kpi.perNight")}
               </span>
             </div>
             {h.rating != null ? (
               <div className="card hkpi">
-                <span className="lbl">Gastenscore</span>
+                <span className="lbl">{t("home.kpi.score")}</span>
                 <div className="hkpi-row">
                   <span className="val num">{String(h.rating).replace(".", ",")} / 5</span>
                   <span className="hkpi-star">★</span>
                 </div>
-                <span className="cmp">Gemiddelde score van je live panden</span>
+                <span className="cmp">{t("home.kpi.scoreCmp")}</span>
               </div>
             ) : (
               <div className="card hkpi">
-                <span className="lbl">Nieuwe boekingen ({maand})</span>
+                <span className="lbl">{t("home.kpi.newBookings", { m: maand })}</span>
                 <div className="hkpi-row">
                   <span className="val num">{h.sparkBookings[h.sparkBookings.length - 1] ?? 0}</span>
                   <Spark points={h.sparkBookings} />
                 </div>
-                <span className="cmp">Verblijven met check-in deze maand</span>
+                <span className="cmp">{t("home.kpi.newBookingsCmp")}</span>
               </div>
             )}
           </div>
 
           <div className="card home-day">
             <div className="home-today">
-              <h3>🗓️ Vandaag</h3>
+              <h3>{t("home.today")}</h3>
               {data.timeline.length === 0 ? (
                 <div className="home-quiet">
                   <span className="home-quiet-ico">☀️</span>
-                  <b>Rustige dag vandaag</b>
-                  <span>Geen check-ins, check-outs of poetsbeurten gepland.</span>
+                  <b>{t("home.quiet")}</b>
+                  <span>{t("home.quietSub")}</span>
                 </div>
               ) : (
                 <div className="tl" style={{ boxShadow: "none", padding: 0 }}>
@@ -195,7 +200,7 @@ function TeamHome() {
               )}
             </div>
             <div className="home-tomorrow">
-              <h3>Morgen</h3>
+              <h3>{t("home.tomorrow")}</h3>
               {tomorrowRows.map((r) => (
                 <button key={r.label} className="tmrw-row" onClick={() => nav("/kalender")}>
                   <span className="tmrw-ico" style={{ background: r.tint }}>{r.icon}</span>
@@ -210,33 +215,33 @@ function TeamHome() {
           <div className="home-trust">
             <span className="home-trust-ico">🛡️</span>
             <div>
-              <b>Snel, veilig en betrouwbaar</b>
-              <span>Je gasten zijn tevreden en alles is gesynchroniseerd.</span>
+              <b>{t("home.trust")}</b>
+              <span>{t("home.trustSub")}</span>
             </div>
             <div className="home-trust-chips">
-              {h.rating != null && <span className="chip gray">● Reviews <b className="num">{String(h.rating).replace(".", ",")} ★</b></span>}
-              <span className="chip gray">● <b className="num">{data.properties.filter((p) => p.status === "live").length}</b> panden live</span>
-              <span className="chip gray">● Reactietijd <b>{fmtResponse(h.medianResponseMin)}</b></span>
-              {syncLabel && <span className="chip gray">● Guesty-sync <b>{syncLabel}</b></span>}
+              {h.rating != null && <span className="chip gray">● {t("home.chipReviews")} <b className="num">{String(h.rating).replace(".", ",")} ★</b></span>}
+              <span className="chip gray">● <b className="num">{data.properties.filter((p) => p.status === "live").length}</b> {t("home.chipLive")}</span>
+              <span className="chip gray">● {t("home.chipResponse")} <b>{fmtResponse(h.medianResponseMin, t)}</b></span>
+              {syncLabel && <span className="chip gray">● {t("home.chipSync")} <b>{syncLabel}</b></span>}
             </div>
           </div>
 
           <div className="home-props-head">
-            <h2 className="sec-title" style={{ margin: 0 }}><span className="em">🏡</span> Jouw panden</h2>
-            <Link to="/panden" className="home-link">Bekijk alle <Icon name="arrow" size={14} /></Link>
+            <h2 className="sec-title" style={{ margin: 0 }}><span className="em">🏡</span> {t("home.yourProps")}</h2>
+            <Link to="/panden" className="home-link">{t("home.seeAll")} <Icon name="arrow" size={14} /></Link>
           </div>
           <div className="home-props">
             {h.properties.map((p) => (
               <button key={p.id} className="hprop" onClick={() => nav(`/pand/${p.id}`)}>
                 <span className="hprop-art" style={{ background: p.artBg }}>
                   {p.photo ? <img src={p.photo} alt="" loading="lazy" /> : p.art}
-                  <span className="hprop-badge num">{p.occupancyPct}% bezet</span>
+                  <span className="hprop-badge num">{t("home.occupied", { n: p.occupancyPct })}</span>
                 </span>
                 <span className="hprop-body">
                   <b>{p.name}</b>
                   <small>{p.location}</small>
                   <span className="hprop-line">
-                    <span className="num">{eur(p.monthRevenue)}</span> <small>omzet deze maand</small>
+                    <span className="num">{eur(p.monthRevenue)}</span> <small>{t("home.revThisMonth")}</small>
                     {p.rating != null && <span className="hprop-rate num">★ {p.rating.toFixed(2).replace(".", ",")}</span>}
                   </span>
                 </span>
@@ -248,23 +253,23 @@ function TeamHome() {
 
         <aside className="home-rail">
           <div className="card rail-card">
-            <h3>✨ Staybase Assistant</h3>
-            <p className="hint">Wat wil je weten of doen?</p>
+            <h3>{t("home.assistant", { brand })}</h3>
+            <p className="hint">{t("home.assistantHint")}</p>
             <div className="rail-ask">
               <input
                 type="text"
                 value={q}
-                placeholder="Stel een vraag aan Staybase…"
+                placeholder={t("home.askPlaceholder", { brand })}
                 onChange={(e) => setQ(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && askHome()}
               />
-              <button className="btn coral sm" onClick={askHome} disabled={!q.trim()} aria-label="Vraag versturen">
+              <button className="btn coral sm" onClick={askHome} disabled={!q.trim()} aria-label={t("home.askSend")}>
                 <Icon name="arrow" size={15} />
               </button>
             </div>
             {h.insights.length > 0 && (
               <>
-                <b className="rail-sub">{h.insights.length} {h.insights.length === 1 ? "inzicht" : "inzichten"} voor jou</b>
+                <b className="rail-sub">{h.insights.length === 1 ? t("home.insight1") : t("home.insightN", { n: h.insights.length })}</b>
                 {h.insights.map((ins, i) => (
                   <div key={ins.title} className="rail-insight" style={{ background: insightTints[i % insightTints.length] }}>
                     <span className="rail-insight-ico">{ins.icon}</span>
@@ -280,14 +285,14 @@ function TeamHome() {
           </div>
 
           <div className="card rail-card week-card">
-            <b>Staybase werkte deze week<br />±{fmtDuration(h.weekWork.minutes)} voor jou ✨</b>
-            <div className="week-big"><span className="num">{weekTasks} taken</span> afgehandeld</div>
+            <b>{t("home.weekTitle1", { brand })}<br />{t("home.weekTitle2", { d: fmtDuration(h.weekWork.minutes) })}</b>
+            <div className="week-big"><span className="num">{t("home.weekTasks", { n: weekTasks })}</span> {t("home.weekDone")}</div>
             <div className="week-split">
-              <div><b className="num">{h.weekWork.messages}</b><span>Gastberichten</span></div>
-              <div><b className="num">{h.weekWork.newBookings}</b><span>Nieuwe boekingen</span></div>
-              <div><b className="num">{h.weekWork.checkIns}</b><span>Check-ins</span></div>
+              <div><b className="num">{h.weekWork.messages}</b><span>{t("home.weekMessages")}</span></div>
+              <div><b className="num">{h.weekWork.newBookings}</b><span>{t("home.weekBookings")}</span></div>
+              <div><b className="num">{h.weekWork.checkIns}</b><span>{t("home.checkIns")}</span></div>
             </div>
-            <small className="week-note">Tijdswinst is een schatting op basis van de afgehandelde taken.</small>
+            <small className="week-note">{t("home.weekNote")}</small>
           </div>
         </aside>
       </div>

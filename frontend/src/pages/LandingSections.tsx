@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Icon, type IconName } from "../components/Icon";
 import { ARTIKELEN, type Artikel } from "../content/artikelen";
+import { useT } from "../i18n";
 
 /* ============================================================
    "Wat je krijgt met Staybase" — tekst vrij op de achtergrond,
@@ -18,7 +19,7 @@ const KANALEN = [
   { ic: "🦉", nm: "Trivago" },
 ];
 
-const RUIMTES = ["Slaapkamer", "Badkamer", "Keuken", "Woonkamer"];
+const RUIMTES = ["lp.get.mock.room1", "lp.get.mock.room2", "lp.get.mock.room3", "lp.get.mock.room4"];
 
 function MockChannels() {
   return (
@@ -36,9 +37,10 @@ function MockChannels() {
 }
 
 function MockPricing() {
+  const t = useT();
   return (
     <div className="lp-mock">
-      <span className="lbl">Aanbevolen prijs</span>
+      <span className="lbl">{t("lp.get.mock.recommended")}</span>
       <div className="big"><b className="num">€ 196</b><span>+12%</span></div>
       <svg viewBox="0 0 160 56" preserveAspectRatio="none" style={{ height: 56 }}>
         <defs>
@@ -57,39 +59,41 @@ function MockPricing() {
 }
 
 function MockMessages() {
+  const t = useT();
   return (
     <div className="lp-mock-stack">
       <div className="lp-mock-float">
         <span className="av">👩</span>
         <div>
-          <b>Nieuwe reservering</b>
-          <span>Lisan · Zojuist</span>
+          <b>{t("lp.get.mock.newBooking")}</b>
+          <span>{t("lp.get.mock.justNow")}</span>
         </div>
       </div>
       <div className="lp-mock">
         <div className="lp-mock-row" style={{ padding: 0, borderTop: "none" }}>
-          <span className="nm" style={{ fontWeight: 800 }}>Incheckinformatie</span>
-          <span style={{ color: "var(--good)", fontWeight: 700 }}>Nu</span>
+          <span className="nm" style={{ fontWeight: 800 }}>{t("lp.get.mock.checkinInfo")}</span>
+          <span style={{ color: "var(--good)", fontWeight: 700 }}>{t("lp.get.mock.now")}</span>
         </div>
         <p style={{ marginTop: 8, lineHeight: 1.55, color: "var(--muted)" }}>
-          Beste Emma,<br />
-          Je incheckinformatie voor je verblijf van 12–19 mei.
+          {t("lp.get.mock.msg")}<br />
+          {t("lp.get.mock.msg2")}
         </p>
-        <span className="lp-msg-btn">Bekijk incheckgids</span>
+        <span className="lp-msg-btn">{t("lp.get.mock.guide")}</span>
       </div>
     </div>
   );
 }
 
 function MockCleaning() {
+  const t = useT();
   return (
     <div className="lp-mock">
-      <div className="mock-hd">Schoonmaak na check-out</div>
-      <p className="lp-mock-sub">Vandaag 11:00</p>
+      <div className="mock-hd">{t("lp.get.mock.cleanTitle")}</div>
+      <p className="lp-mock-sub">{t("lp.get.mock.cleanTime")}</p>
       {RUIMTES.map((r) => (
         <div className="lp-mock-check" key={r}>
           <span className="tick">✓</span>
-          <span>{r}</span>
+          <span>{t(r)}</span>
           <span className="done">✓</span>
         </div>
       ))}
@@ -98,10 +102,11 @@ function MockCleaning() {
 }
 
 function MockInsights() {
+  const t = useT();
   const bars = [26, 38, 30, 62, 44, 52, 40, 78, 34];
   return (
     <div className="lp-mock">
-      <span className="lbl">Bezettingsgraad</span>
+      <span className="lbl">{t("lp.get.mock.occupancy")}</span>
       <div className="big"><b className="num">78%</b><span>+18%</span></div>
       <svg viewBox="0 0 160 60" preserveAspectRatio="none" style={{ height: 60, marginTop: 8 }}>
         {bars.map((h, i) => (
@@ -114,15 +119,16 @@ function MockInsights() {
 }
 
 function MockSite() {
+  const t = useT();
   return (
     <div className="lp-mock lp-mock-site">
       <div className="lp-site-bar"><i /><i /><i /><span style={{ marginLeft: 4 }}>jouwverhuur.nl</span></div>
       <div className="lp-site-hero">
         <img src="/terras.png" alt="" loading="lazy" decoding="async" />
         <div className="ov">
-          <b>Ontspannen<br />verblijven.</b>
-          <span className="tag">Voor je thuis, waar je ook bent.</span>
-          <span className="cta">Boek direct</span>
+          <b>{t("lp.get.mock.siteTitle")}<br />{t("lp.get.mock.siteTitle2")}</b>
+          <span className="tag">{t("lp.get.mock.siteTag")}</span>
+          <span className="cta">{t("lp.get.mock.siteCta")}</span>
         </div>
       </div>
     </div>
@@ -130,45 +136,22 @@ function MockSite() {
 }
 
 const GET: { icon: IconName; h: string; p: string; visual: () => JSX.Element }[] = [
-  {
-    icon: "calendar", h: "Channel manager",
-    p: "Synchroniseer al je boekingen over Airbnb, Booking.com en meer. Altijd up-to-date.",
-    visual: MockChannels,
-  },
-  {
-    icon: "chart", h: "Dynamic pricing",
-    p: "Onze slimme prijsadviezen passen zich dagelijks aan op vraag en aanbod.",
-    visual: MockPricing,
-  },
-  {
-    icon: "chat", h: "Gastcommunicatie",
-    p: "Automatiseer berichten en geef je gasten een uitstekende ervaring.",
-    visual: MockMessages,
-  },
-  {
-    icon: "sparkle", h: "Schoonmaak & taken",
-    p: "Plan en beheer schoonmaak, onderhoud en taken op één centrale plek.",
-    visual: MockCleaning,
-  },
-  {
-    icon: "chart", h: "Inzichten & rapportages",
-    p: "Real-time inzichten in je bezetting, omzet en prestaties.",
-    visual: MockInsights,
-  },
-  {
-    icon: "home", h: "Eigen website (optioneel)",
-    p: "Krijg meer directe boekingen via je eigen professionele website.",
-    visual: MockSite,
-  },
+  { icon: "calendar", h: "lp.get.1h", p: "lp.get.1p", visual: MockChannels },
+  { icon: "chart", h: "lp.get.2h", p: "lp.get.2p", visual: MockPricing },
+  { icon: "chat", h: "lp.get.3h", p: "lp.get.3p", visual: MockMessages },
+  { icon: "sparkle", h: "lp.get.4h", p: "lp.get.4p", visual: MockCleaning },
+  { icon: "chart", h: "lp.get.5h", p: "lp.get.5p", visual: MockInsights },
+  { icon: "home", h: "lp.get.6h", p: "lp.get.6p", visual: MockSite },
 ];
 
 export function WatJeKrijgt({ onCta }: { onCta: () => void }) {
+  const t = useT();
   return (
     <section className="lp-sec" id="functies">
       <div className="lp-wide">
         <div className="lp-getcentered lp-fade">
-          <h2 className="lp-h2">Wat je krijgt met Staybase</h2>
-          <p className="lp-sub">Alles wat je nodig hebt om slimmer te verhuren en meer rendement te behalen.</p>
+          <h2 className="lp-h2">{t("lp.get.title")}</h2>
+          <p className="lp-sub">{t("lp.get.sub")}</p>
         </div>
         <div className="lp-get">
           {GET.map((f) => {
@@ -177,9 +160,9 @@ export function WatJeKrijgt({ onCta }: { onCta: () => void }) {
               <article className="lp-get-item lp-fade" key={f.h}>
                 <div className="lp-get-txt">
                   <span className="ico"><Icon name={f.icon} size={19} /></span>
-                  <h3>{f.h}</h3>
-                  <p>{f.p}</p>
-                  <button className="lp-get-link" onClick={onCta}>Meer informatie →</button>
+                  <h3>{t(f.h)}</h3>
+                  <p>{t(f.p)}</p>
+                  <button className="lp-get-link" onClick={onCta}>{t("lp.get.more")}</button>
                 </div>
                 <Visual />
               </article>
@@ -196,30 +179,32 @@ export function WatJeKrijgt({ onCta }: { onCta: () => void }) {
    ============================================================ */
 
 export function ArtikelKaart({ a }: { a: Artikel }) {
+  const t = useT();
   return (
     <Link to={`/kennis/${a.slug}`} className="lp-art-card lp-fade">
       <div className="lp-art-beeld">
         <img src={a.afbeelding} alt="" loading="lazy" decoding="async" />
         <span className="cat">{a.categorie}</span>
       </div>
-      <div className="lp-art-meta">{a.leestijd} min lezen</div>
+      <div className="lp-art-meta">{t("lp.kennis.minRead", { n: a.leestijd })}</div>
       <h3 className="lp-art-titel">{a.titel}</h3>
       <p className="lp-art-intro">{a.intro}</p>
-      <span className="lp-art-lees">Lees meer →</span>
+      <span className="lp-art-lees">{t("lp.kennis.read")}</span>
     </Link>
   );
 }
 
 export function KennisEnInspiratie() {
+  const t = useT();
   return (
     <section className="lp-sec alt" id="kennis">
       <div className="lp-container">
         <div className="lp-kennis-hd lp-fade">
           <div className="mid">
-            <h2 className="lp-h2">Kennis &amp; inspiratie</h2>
-            <p className="lp-sub">Praktische tips en inzichten om meer uit jouw verhuur te halen.</p>
+            <h2 className="lp-h2">{t("lp.kennis.title")}</h2>
+            <p className="lp-sub">{t("lp.kennis.sub")}</p>
           </div>
-          <Link to="/kennis" className="lp-kennis-alle">Bekijk alle artikelen →</Link>
+          <Link to="/kennis" className="lp-kennis-alle">{t("lp.kennis.all")}</Link>
         </div>
         <div className="lp-kennis">
           {ARTIKELEN.map((a) => <ArtikelKaart a={a} key={a.slug} />)}
@@ -234,33 +219,16 @@ export function KennisEnInspiratie() {
    ============================================================ */
 
 const STORIES = [
-  {
-    quote: "Wij verdienen meer en hebben ons leven terug.",
-    body: "Sinds we Staybase gebruiken, besparen we wekelijks uren en is onze bezettingsgraad flink gestegen. De ondersteuning is top!",
-    naam: "Mark & Linda",
-    info: "Verhuren 2 woningen in Zeeland",
-    bezetting: "82%", bezettingDelta: "+17%",
-    omzet: "€ 9.640", omzetDelta: "+24%",
-  },
-  {
-    quote: "Voor het eerst overzicht in plaats van brandjes blussen.",
-    body: "Alle kanalen in één kalender en de gastberichten die zichzelf schrijven. Ik kijk 's ochtends even mee en dat is het.",
-    naam: "Nathalie D.",
-    info: "2 panden · Gent en de Ardennen",
-    bezetting: "74%", bezettingDelta: "+12%",
-    omzet: "€ 7.310", omzetDelta: "+19%",
-  },
-  {
-    quote: "De prijsvoorstellen betaalden het abonnement in één weekend terug.",
-    body: "Ik zag niet dat ik structureel onder de markt zat. Eén voorstel goedkeuren en het verschil was er meteen.",
-    naam: "Elise M.",
-    info: "3 panden · Knokke",
-    bezetting: "88%", bezettingDelta: "+9%",
-    omzet: "€ 12.480", omzetDelta: "+21%",
-  },
+  { quote: "lp.story.1q", body: "lp.story.1b", naam: "Mark & Linda", info: "lp.story.1info",
+    bezetting: "82%", bezettingDelta: "+17%", omzet: "€ 9.640", omzetDelta: "+24%" },
+  { quote: "lp.story.2q", body: "lp.story.2b", naam: "Nathalie D.", info: "lp.story.2info",
+    bezetting: "74%", bezettingDelta: "+12%", omzet: "€ 7.310", omzetDelta: "+19%" },
+  { quote: "lp.story.3q", body: "lp.story.3b", naam: "Elise M.", info: "lp.story.3info",
+    bezetting: "88%", bezettingDelta: "+9%", omzet: "€ 12.480", omzetDelta: "+21%" },
 ];
 
 export function UitgelichteReview({ onCta }: { onCta: () => void }) {
+  const t = useT();
   const [i, setI] = useState(0);
   const s = STORIES[i];
   const ga = (stap: number) => setI((v) => (v + stap + STORIES.length) % STORIES.length);
@@ -268,38 +236,38 @@ export function UitgelichteReview({ onCta }: { onCta: () => void }) {
   return (
     <div className="lp-story">
       <div className="lp-fade">
-        <p className="lp-label">Echte verhuurders, echte resultaten</p>
-        <h2 className="lp-story-quote">“{s.quote}”</h2>
-        <p className="lp-story-body">{s.body}</p>
+        <p className="lp-label">{t("lp.story.label")}</p>
+        <h2 className="lp-story-quote">“{t(s.quote)}”</h2>
+        <p className="lp-story-body">{t(s.body)}</p>
         <div className="lp-story-who">
           <b>— {s.naam}</b>
-          <span>{s.info}</span>
+          <span>{t(s.info)}</span>
         </div>
-        <button className="btn ghost lp-story-cta" onClick={onCta}>Lees hun verhaal →</button>
+        <button className="btn ghost lp-story-cta" onClick={onCta}>{t("lp.story.cta")}</button>
         <div className="lp-story-nav">
-          <button className="arrow" onClick={() => ga(-1)} aria-label="Vorig verhaal"><Icon name="chevL" /></button>
+          <button className="arrow" onClick={() => ga(-1)} aria-label={t("lp.story.prev")}><Icon name="chevL" /></button>
           <div className="lp-story-dots">
             {STORIES.map((st, idx) => (
               <button
                 key={st.naam}
                 className={idx === i ? "on" : ""}
                 onClick={() => setI(idx)}
-                aria-label={`Verhaal ${idx + 1} van ${STORIES.length}`}
+                aria-label={t("lp.story.dot", { i: idx + 1, n: STORIES.length })}
                 aria-current={idx === i}
               />
             ))}
           </div>
-          <button className="arrow" onClick={() => ga(1)} aria-label="Volgend verhaal"><Icon name="chevR" /></button>
+          <button className="arrow" onClick={() => ga(1)} aria-label={t("lp.story.next")}><Icon name="chevR" /></button>
         </div>
       </div>
 
       <div className="lp-story-art lp-fade">
         <div className="lp-story-photo">
-          <img src="/terras.png" alt="Terras van een vakantiewoning bij zonsondergang" width={1535} height={1024} loading="lazy" decoding="async" />
+          <img src="/terras.png" alt={t("lp.story.photoAlt")} width={1535} height={1024} loading="lazy" decoding="async" />
         </div>
 
         <div className="lp-story-card bezet">
-          <span className="lbl">Bezettingsgraad</span>
+          <span className="lbl">{t("lp.story.occupancy")}</span>
           <div className="big"><b className="num">{s.bezetting}</b><span>{s.bezettingDelta}</span></div>
           <svg viewBox="0 0 150 46" preserveAspectRatio="none" style={{ height: 46 }}>
             <defs>
@@ -316,7 +284,7 @@ export function UitgelichteReview({ onCta }: { onCta: () => void }) {
         </div>
 
         <div className="lp-story-card omzet">
-          <span className="lbl">Omzet deze maand</span>
+          <span className="lbl">{t("lp.story.revenue")}</span>
           <div className="big"><b className="num">{s.omzet}</b><span>{s.omzetDelta}</span></div>
           <svg viewBox="0 0 176 52" preserveAspectRatio="none" style={{ height: 52 }}>
             {[24, 34, 28, 58, 40, 48, 36, 70, 30].map((h, idx) => (

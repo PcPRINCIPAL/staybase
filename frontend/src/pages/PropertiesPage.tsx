@@ -7,6 +7,7 @@ import { useClientConfig, useProperties } from "../lib/api";
 import { Icon } from "../components/Icon";
 import { PropertyCard } from "../components/PropertyCard";
 import { useUI } from "../ui";
+import { useT } from "../i18n";
 
 type View = "grid" | "list" | "map";
 
@@ -71,12 +72,13 @@ function MapView({ properties, token }: { properties: Property[]; token: string 
 
 function ListView({ properties }: { properties: Property[] }) {
   const nav = useNavigate();
+  const t = useT();
   return (
     <div className="card">
       <table className="mini props-table">
         <thead>
           <tr>
-            <th>Pand</th><th>Locatie</th><th>Capaciteit</th><th>Prijs / nacht</th><th>Schoonmaak</th><th>Status</th>
+            <th>{t("props.th.prop")}</th><th>{t("props.th.loc")}</th><th>{t("props.th.cap")}</th><th>{t("props.th.price")}</th><th>{t("props.th.clean")}</th><th>{t("props.th.status")}</th>
           </tr>
         </thead>
         <tbody>
@@ -93,9 +95,9 @@ function ListView({ properties }: { properties: Property[] }) {
               </td>
               <td style={{ color: "var(--muted)" }}>{p.location}</td>
               <td className="num" style={{ color: "var(--muted)" }}>
-                {p.bedrooms} slpk · {p.bathrooms} badk. · {p.maxGuests} gasten
+                {t("props.capacity", { s: p.bedrooms, b: p.bathrooms, g: p.maxGuests })}
               </td>
-              <td className="num">€ {p.basePriceWeek} <span style={{ color: "var(--faint)" }}>/ € {p.basePriceWeekend} wknd</span></td>
+              <td className="num">€ {p.basePriceWeek} <span style={{ color: "var(--faint)" }}>/ € {p.basePriceWeekend} {t("props.wknd")}</span></td>
               <td className="num" style={{ color: "var(--muted)" }}>€ {p.cleaningPrice}</td>
               <td><span className={`chip ${p.status === "live" ? "coral" : "warn"}`}>{p.statusLabel}</span></td>
             </tr>
@@ -107,12 +109,13 @@ function ListView({ properties }: { properties: Property[] }) {
 }
 
 export function PropertiesPage() {
+  const t = useT();
   const { data: properties, isLoading } = useProperties();
   const { data: config } = useClientConfig();
   const { openWizard } = useUI();
   const [view, setView] = useState<View>("grid");
 
-  if (isLoading || !properties) return <div className="loading">Panden laden…</div>;
+  if (isLoading || !properties) return <div className="loading">{t("props.loading")}</div>;
 
   const live = properties.filter((p) => p.status === "live").length;
 
@@ -120,11 +123,11 @@ export function PropertiesPage() {
     <section className="page">
       <div className="page-head">
         <div>
-          <h1>Panden</h1>
-          <p className="sub">{properties.length} {properties.length === 1 ? "pand" : "panden"} · {live} live · {properties.length - live} in onboarding</p>
+          <h1>{t("props.title")}</h1>
+          <p className="sub">{t("props.sub", { count: properties.length === 1 ? t("props.count1") : t("props.countN", { n: properties.length }), live, onb: properties.length - live })}</p>
         </div>
-        <div className="seg" role="tablist" aria-label="Weergave">
-          {([["grid", "Tegels"], ["list", "Lijst"], ["map", "Kaart"]] as const).map(([v, label]) => (
+        <div className="seg" role="tablist" aria-label={t("cal.view")}>
+          {([["grid", t("props.grid")], ["list", t("props.list")], ["map", t("props.map")]] as const).map(([v, label]) => (
             <button key={v} role="tab" aria-selected={view === v} className={view === v ? "on" : ""} onClick={() => setView(v)}>
               {label}
             </button>
@@ -137,8 +140,8 @@ export function PropertiesPage() {
           {properties.map((p) => <PropertyCard key={p.id} p={p} />)}
           <button className="prop-add" onClick={openWizard}>
             <span className="plus"><Icon name="plus" /></span>
-            Pand toevoegen
-            <small>Binnen 7 dagen online</small>
+            {t("props.add")}
+            <small>{t("props.addSub")}</small>
           </button>
         </div>
       )}
@@ -148,7 +151,7 @@ export function PropertiesPage() {
           {config?.mapboxToken
             ? <MapView properties={properties} token={config.mapboxToken} />
             : <div className="card" style={{ padding: 20, color: "var(--muted)", fontSize: 14 }}>
-                Geen <code>MAPBOX_TOKEN</code> gevonden in <code>backend/.env</code> — voeg hem toe en herstart de dev-server.
+                {t("props.noMapbox")}
               </div>}
         </div>
       )}

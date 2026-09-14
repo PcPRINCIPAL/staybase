@@ -5,6 +5,7 @@ import {
 } from "../lib/api";
 import { useToast } from "../components/Toast";
 import { useAuth } from "../auth";
+import { useT } from "../i18n";
 
 function fmtSyncTime(iso: string): string {
   const d = new Date(iso);
@@ -12,6 +13,7 @@ function fmtSyncTime(iso: string): string {
 }
 
 export function IntegrationsPage() {
+  const t = useT();
   const { user } = useAuth();
   const { data: status, isLoading } = useGuestyStatus();
   const sync = useGuestySync();
@@ -21,16 +23,16 @@ export function IntegrationsPage() {
   const [testResult, setTestResult] = useState<string | null>(null);
 
   if (user?.role !== "admin") return <Navigate to="/" replace />;
-  if (isLoading || !status) return <div className="loading">Koppelingen laden…</div>;
+  if (isLoading || !status) return <div className="loading">{t("int.loading")}</div>;
 
   const onTest = async () => {
     setTesting(true);
     setTestResult(null);
     try {
       const r = await testGuestyConnection();
-      setTestResult(`✓ Verbonden — Guesty-account met ${r.listingsTotal} listing${r.listingsTotal === 1 ? "" : "s"}`);
+      setTestResult(t("int.testOk", { n: r.listingsTotal }));
     } catch (err) {
-      setTestResult(`✗ ${err instanceof Error ? err.message : "Verbinding mislukte"}`);
+      setTestResult(`✗ ${err instanceof Error ? err.message : t("int.testFail")}`);
     } finally {
       setTesting(false);
     }
@@ -38,20 +40,20 @@ export function IntegrationsPage() {
 
   const onSync = () => {
     sync.mutate([], {
-      onSuccess: (s) => toast(
-        `Guesty gesynchroniseerd: ${s.listings.created + s.listings.updated} panden, ` +
-        `${s.bookings.created + s.bookings.updated} boekingen, ` +
-        `${s.messages.created + s.messages.updated} gesprekken ✓`
-      ),
-      onError: (err) => toast(`Sync mislukte: ${err.message}`),
+      onSuccess: (s) => toast(t("int.syncOk", {
+        p: s.listings.created + s.listings.updated,
+        b: s.bookings.created + s.bookings.updated,
+        c: s.messages.created + s.messages.updated,
+      })),
+      onError: (err) => toast(t("int.syncFail", { e: err.message })),
     });
   };
 
   const onReset = () => {
-    if (!window.confirm("Alle uit Guesty geïmporteerde panden en boekingen uit Staybase verwijderen? Guesty zelf blijft ongemoeid.")) return;
+    if (!window.confirm(t("int.removeConfirm"))) return;
     reset.mutate([], {
-      onSuccess: (r) => toast(`Guesty-data verwijderd: ${r.properties} panden, ${r.bookings} boekingen`),
-      onError: (err) => toast(`Verwijderen mislukte: ${err.message}`),
+      onSuccess: (r) => toast(t("int.removeOk", { p: r.properties, b: r.bookings })),
+      onError: (err) => toast(t("int.removeFail", { e: err.message })),
     });
   };
 
@@ -59,47 +61,44 @@ export function IntegrationsPage() {
 
   return (
     <section className="page">
-      <h1>Koppelingen</h1>
-      <p className="sub">Verbind Staybase met de tools waar de data vandaag leeft — te beginnen met Guesty.</p>
+      <h1>{t("int.title")}</h1>
+      <p className="sub">{t("int.sub")}</p>
 
       <h2 className="sec-title"><span className="em">🔌</span> Guesty</h2>
       <div className="card" style={{ padding: "20px 22px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <b style={{ fontSize: 16 }}>Guesty Open API</b>
           {status.configured
-            ? <span className="chip good">● Geconfigureerd</span>
-            : <span className="chip warn">Nog niet geconfigureerd</span>}
-          {last && <span className="chip gray">laatste sync {fmtSyncTime(last.at)}</span>}
+            ? <span className="chip good">{t("int.configured")}</span>
+            : <span className="chip warn">{t("int.notConfigured")}</span>}
+          {last && <span className="chip gray">{t("int.lastSyncChip", { t: fmtSyncTime(last.at) })}</span>}
         </div>
         <p style={{ color: "var(--muted)", fontSize: 14, margin: "10px 0 0", maxWidth: 640 }}>
-          Guesty is de distributiehub van Staybase: panden en boekingen worden er naar Airbnb,
-          Booking.com en VRBO gepusht. Deze koppeling haalt listings en reservaties op en zet ze
-          als panden en boekingen in Staybase. Opnieuw synchroniseren werkt alles bij, zonder dubbels.
+          {t("int.guestyBody")}
         </p>
 
         {!status.configured && (
           <div style={{ marginTop: 16, background: "var(--bg)", borderRadius: 12, padding: "14px 18px", fontSize: 14 }}>
-            <b>Zo verbind je het Guesty-account:</b>
+            <b>{t("int.howTitle")}</b>
             <ol style={{ margin: "8px 0 0", paddingLeft: 20, lineHeight: 1.7, color: "var(--muted)" }}>
-              <li>Log in op Guesty en ga naar <b>Settings → Integrations → API</b>.</li>
-              <li>Maak een nieuwe applicatie/API-key aan met scope <b>Open API</b>.</li>
-              <li>Kopieer de <b>client-id</b> en het <b>secret</b> naar <code>backend/.env</code> als
-                {" "}<code>GUESTY_CLIENT_ID</code> en <code>GUESTY_CLIENT_SECRET</code>.</li>
-              <li>Herstart de backend en kom terug naar deze pagina.</li>
+              <li>{t("int.how1")}</li>
+              <li>{t("int.how2")}</li>
+              <li>{t("int.how3")}</li>
+              <li>{t("int.how4")}</li>
             </ol>
           </div>
         )}
 
         <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
           <button className="btn ghost sm" disabled={!status.configured || testing} onClick={onTest}>
-            {testing ? "Testen…" : "Test verbinding"}
+            {testing ? t("int.testing") : t("int.test")}
           </button>
           <button className="btn coral sm" disabled={!status.configured || sync.isPending} onClick={onSync}>
-            {sync.isPending ? "Synchroniseren…" : "Synchroniseer nu"}
+            {sync.isPending ? t("int.syncing") : t("int.syncNow")}
           </button>
           {(status.linkedProperties > 0 || status.linkedBookings > 0) && (
             <button className="btn ghost sm" disabled={reset.isPending} onClick={onReset}>
-              Geïmporteerde data verwijderen
+              {t("int.removeData")}
             </button>
           )}
         </div>
@@ -112,44 +111,44 @@ export function IntegrationsPage() {
 
       <div className="kpis" style={{ marginTop: 18 }}>
         <div className="card kpi">
-          <span className="lbl">Panden via Guesty</span>
+          <span className="lbl">{t("int.kpi.props")}</span>
           <span className="val num">{status.linkedProperties}</span>
-          <span className="cmp">Zichtbaar tussen de andere panden</span>
+          <span className="cmp">{t("int.kpi.propsCmp")}</span>
         </div>
         <div className="card kpi">
-          <span className="lbl">Boekingen via Guesty</span>
+          <span className="lbl">{t("int.kpi.bookings")}</span>
           <span className="val num">{status.linkedBookings}</span>
-          <span className="cmp">Tellen mee in kalender & opbrengsten</span>
+          <span className="cmp">{t("int.kpi.bookingsCmp")}</span>
         </div>
         <div className="card kpi">
-          <span className="lbl">Gesprekken via Guesty</span>
+          <span className="lbl">{t("int.kpi.convos")}</span>
           <span className="val num">{status.linkedConversations}</span>
           <span className="cmp">
-            {last?.messages ? `De ${last.messages.created + last.messages.updated} recentste van ${last.messages.totalRemote} — zichtbaar in de inbox` : "Zichtbaar in de inbox"}
+            {last?.messages ? t("int.kpi.convosCmp", { a: last.messages.created + last.messages.updated, b: last.messages.totalRemote }) : t("int.kpi.convosCmpPlain")}
           </span>
         </div>
         <div className="card kpi">
-          <span className="lbl">Laatste sync</span>
+          <span className="lbl">{t("int.kpi.lastSync")}</span>
           <span className="val" style={{ fontSize: 20 }}>{last ? fmtSyncTime(last.at) : "—"}</span>
           <span className="cmp">
             {last
-              ? `${last.listings.created} nieuw · ${last.listings.updated} bijgewerkt · ${last.bookings.skipped} overgeslagen`
-              : "Nog niet gesynchroniseerd"}
+              ? t("int.kpi.lastSyncCmp", { n: last.listings.created, u: last.listings.updated, s: last.bookings.skipped })
+              : t("int.kpi.noSync")}
           </span>
         </div>
       </div>
 
-      <h2 className="sec-title"><span className="em">🧩</span> Binnenkort</h2>
+      <h2 className="sec-title"><span className="em">🧩</span> {t("int.soon")}</h2>
       <div className="card" style={{ padding: "18px 20px" }}>
         {[
-          ["Wheelhouse", "Dynamische prijszetting — voedt de prijsvoorstellen met echte marktdata."],
-          ["Peppol", "Facturen van het Staybase-abonnement rechtstreeks naar de boekhouding."],
-          ["Supabase", "Overstap van SQLite naar Postgres met echte multi-tenant auth."],
+          ["Wheelhouse", t("int.wheelhouse")],
+          ["Peppol", t("int.peppol")],
+          ["Supabase", t("int.supabase")],
         ].map(([name, desc]) => (
           <div key={name} className="split-row" style={{ gap: 14 }}>
             <b style={{ width: 110, flexShrink: 0 }}>{name}</b>
             <span style={{ color: "var(--muted)", fontSize: 14 }}>{desc}</span>
-            <span className="chip gray" style={{ marginLeft: "auto", flexShrink: 0 }}>gepland</span>
+            <span className="chip gray" style={{ marginLeft: "auto", flexShrink: 0 }}>{t("int.planned")}</span>
           </div>
         ))}
       </div>

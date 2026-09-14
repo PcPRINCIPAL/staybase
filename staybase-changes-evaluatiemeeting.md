@@ -143,7 +143,7 @@ Vervangt de huidige Excel. Per boeking, niet per maand.
 
 ## 10. Onboarding
 
-- [~] **Taalkeuze bij de start**: NL / FR / EN. Daarna volledig dashboard in die taal. *(taalkiezer + voorkeur per gebruiker staan er; app-schil, inbox en website-kop zijn vertaald — marketingblokken, wizard en kennishub volgen)*
+- [x] **Taalkeuze bij de start**: NL / FR / EN. Daarna volledig dashboard in die taal. *(website, platform en wizard volledig; kennishub-artikels en server-gegenereerde teksten volgen — zie README)*
 - [ ] **Fotograaf**: eigenaar duidt zelf datums of een periode aan waarop de fotograaf mag langskomen. **Geen prijs tonen** (hoe minder prijzen, hoe minder frictie). **Mailmelding naar Linnois** wanneer een slot geselecteerd wordt.
 - [ ] **Eigen foto's: directe upload** in die stap.
 - [ ] **Voorzieningen/amenities**: lijst komt uit Guesty maar is enorm en gaf frictie. **Max 10-12 belangrijkste tonen**, rest achter een dropdown. Wie wil vult verder aan, de rest doen we achteraf.

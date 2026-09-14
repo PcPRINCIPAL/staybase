@@ -19,6 +19,15 @@ const DICTS: Record<Language, Dict> = { nl, fr, en };
 
 const STORAGE_KEY = "sb:lang";
 
+/**
+ * De actieve taal, leesbaar buiten React. Datumhelpers (maand- en dagnamen in
+ * lib/format.ts) zijn gewone functies zonder hooks; zij lezen dit. De provider
+ * houdt het synchroon, en elke taalwissel her-rendert de hele boom, dus de
+ * helpers draaien altijd met de juiste waarde.
+ */
+let activeLanguage: Language = DEFAULT_LANGUAGE;
+export const getActiveLanguage = (): Language => activeLanguage;
+
 export function storedLanguage(): Language {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (isLanguage(saved)) return saved;
@@ -58,7 +67,12 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   // van de browser gaan daarop af.
   useEffect(() => {
     document.documentElement.lang = lang;
+    activeLanguage = lang;
   }, [lang]);
+
+  // Vóór de eerste render al juist zetten, anders formatteert de eerste
+  // schermopbouw datums nog in de standaardtaal.
+  activeLanguage = lang;
 
   const t = useCallback<TFn>(
     (key, vars) => fill(DICTS[lang][key] ?? nl[key] ?? key, vars),

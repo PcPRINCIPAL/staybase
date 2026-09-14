@@ -5,6 +5,8 @@ import { Logo } from "../components/Icon";
 import { ArtikelKaart } from "./LandingSections";
 import { ARTIKELEN, artikelBySlug, datumLabel, type Blok } from "../content/artikelen";
 import { useFadeIn } from "../lib/useFadeIn";
+import { useT } from "../i18n";
+import { LanguagePicker } from "../components/LanguagePicker";
 import "./landing.css";
 
 function Inhoud({ blok }: { blok: Blok }) {
@@ -33,6 +35,7 @@ function Inhoud({ blok }: { blok: Blok }) {
 }
 
 export function ArticlePage() {
+  const t = useT();
   const { slug } = useParams();
   const nav = useNavigate();
   const artikel = slug ? artikelBySlug(slug) : undefined;
@@ -54,21 +57,22 @@ export function ArticlePage() {
             <Logo /> staybase
           </Link>
           <div className="lp-nav-cta" style={{ marginLeft: "auto" }}>
-            <button className="btn ghost sm" onClick={() => nav("/login")}>Log in</button>
-            <button className="btn coral sm" onClick={() => nav("/registreer")}>Gratis proberen</button>
+            <button className="btn ghost sm" onClick={() => nav("/login")}>{t("lp.login")}</button>
+            <button className="btn coral sm" onClick={() => nav("/registreer")}>{t("lp.tryFree")}</button>
+            <LanguagePicker />
           </div>
         </div>
       </header>
 
       <article className="art-wrap">
-        <Link to="/kennis" className="art-terug">← Alle artikelen</Link>
+        <Link to="/kennis" className="art-terug">{t("kennis.allArticles")}</Link>
 
         <span className="art-cat">{artikel.categorie}</span>
         <h1 className="art-titel">{artikel.titel}</h1>
         <div className="art-meta">
           <span>{datumLabel(artikel.datum)}</span>
           <span>·</span>
-          <span>{artikel.leestijd} min lezen</span>
+          <span>{t("lp.kennis.minRead", { n: artikel.leestijd })}</span>
         </div>
         <p className="art-intro">{artikel.intro}</p>
 
@@ -81,16 +85,13 @@ export function ArticlePage() {
         </div>
 
         <div className="art-cta">
-          <h3>Wil je dit niet allemaal zelf opvolgen?</h3>
-          <p>
-            Staybase neemt het repetitieve werk over — prijzen, gastberichten en schoonmaak —
-            en laat de beslissingen bij jou.
-          </p>
-          <button className="btn coral" onClick={() => nav("/registreer")}>Probeer Staybase gratis</button>
+          <h3>{t("kennis.notFollow")}</h3>
+          <p>{t("kennis.ctaBody")}</p>
+          <button className="btn coral" onClick={() => nav("/registreer")}>{t("kennis.ctaBtn")}</button>
         </div>
 
         <div className="art-verder">
-          <h3>Verder lezen</h3>
+          <h3>{t("kennis.further")}</h3>
           <div className="art-verder-grid">
             {andere.map((a) => <ArtikelKaart a={a} key={a.slug} />)}
           </div>
@@ -100,8 +101,8 @@ export function ArticlePage() {
       <footer className="lp-footer">
         <div className="lp-container">
           <div className="lp-footer-bottom" style={{ paddingTop: 0 }}>
-            <span>© 2026 Staybase · alle data op deze demo is fictief</span>
-            <span>Een voorstel van Oblivion Labs</span>
+            <span>{t("lp.footer.copy")}</span>
+            <span>{t("lp.footer.proposal")}</span>
           </div>
         </div>
       </footer>

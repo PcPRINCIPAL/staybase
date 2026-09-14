@@ -4,6 +4,9 @@ import {
   useDecideSuggestion, usePriceStrip, usePriceSuggestions, usePricingSettings, useSetAutoPricing,
 } from "../lib/api";
 import { useToast } from "../components/Toast";
+import { useT } from "../i18n";
+import { useBrand } from "../components/OriginGate";
+import { BRAND_LABEL } from "@shared/types";
 
 function PriceStripChart({ days }: { days: PriceStripDay[] }) {
   const [tip, setTip] = useState<{ x: number; y: number; label: string; value: string } | null>(null);
@@ -57,6 +60,8 @@ function PriceStripChart({ days }: { days: PriceStripDay[] }) {
 }
 
 export function PricesPage() {
+  const t = useT();
+  const brand = BRAND_LABEL[useBrand()];
   const { data: sugs, isLoading } = usePriceSuggestions();
   const { data: strip } = usePriceStrip("villa-zeewind");
   const { data: settings } = usePricingSettings();
@@ -64,7 +69,7 @@ export function PricesPage() {
   const setAuto = useSetAutoPricing();
   const toast = useToast();
 
-  if (isLoading || !sugs) return <div className="loading">Prijzen laden…</div>;
+  if (isLoading || !sugs) return <div className="loading">{t("prices.loading")}</div>;
 
   const reviewLeft = Math.max(0, (settings?.reviewTarget ?? 10) - (settings?.decided ?? 0) - 6);
   const auto = settings?.auto ?? false;
@@ -72,16 +77,14 @@ export function PricesPage() {
   const onDecide = (id: string, decision: "accepted" | "rejected") => {
     decide.mutate([id, decision], {
       onSuccess: () =>
-        toast(decision === "accepted" ? "Prijs aangepast op Airbnb & Booking.com ✓" : "Voorstel afgewezen — Staybase onthoudt dit"),
+        toast(decision === "accepted" ? t("prices.appliedToast") : t("prices.rejectedToast", { brand })),
     });
   };
 
   return (
     <section className="page">
-      <h1>Slimme prijzen</h1>
-      <p className="sub">
-        Staybase vergelijkt 536 gelijkaardige verblijven in Knokke, het weer, events en jouw boekingshistoriek. Jij beslist.
-      </p>
+      <h1>{t("prices.title")}</h1>
+      <p className="sub">{t("prices.sub", { brand })}</p>
 
       <div className="price-head">
         <div className="card" style={{ flex: 1, minWidth: 280, padding: "16px 20px", display: "flex", alignItems: "center", gap: 14 }}>
@@ -89,30 +92,30 @@ export function PricesPage() {
             className={`switch ${auto ? "on" : ""}`}
             role="switch"
             aria-checked={auto}
-            aria-label="Voorstellen automatisch toepassen"
+            aria-label={t("prices.autoApply")}
             onClick={() =>
               setAuto.mutate([!auto], {
-                onSuccess: () => toast(!auto ? "Staybase past voorstellen voortaan zelf toe" : "Jij keurt elk voorstel eerst goed"),
+                onSuccess: () => toast(!auto ? t("prices.autoOn", { brand }) : t("prices.autoOff")),
               })
             }
           />
           <div>
-            <b style={{ fontSize: 14.5 }}>Voorstellen automatisch toepassen</b><br />
+            <b style={{ fontSize: 14.5 }}>{t("prices.autoApply")}</b><br />
             <span style={{ fontSize: 13, color: "var(--muted)" }}>
               {reviewLeft > 0
-                ? `Aanbevolen zodra je 10 voorstellen beoordeeld hebt — nog ${reviewLeft} te gaan.`
-                : "Je beoordeelde 10 voorstellen — automatisch toepassen staat voor je klaar! 🎉"}
+                ? t("prices.autoHint", { n: reviewLeft })
+                : t("prices.autoReady")}
             </span>
           </div>
         </div>
         <div className="card chart-card" style={{ flex: 1.4, minWidth: 320 }}>
-          <h3>Nachtprijs — komende 30 dagen · Villa Zeewind</h3>
-          <p className="hint">Koraal = dagen met een openstaand voorstel</p>
+          <h3>{t("prices.chartTitle")}</h3>
+          <p className="hint">{t("prices.chartHint")}</p>
           {strip && <PriceStripChart days={strip} />}
         </div>
       </div>
 
-      <h2 className="sec-title"><span className="em">✨</span> Voorstellen voor jou</h2>
+      <h2 className="sec-title"><span className="em">✨</span> {t("prices.forYou")}</h2>
       <div>
         {sugs.map((s) => {
           if (s.status === "accepted") {
@@ -121,7 +124,7 @@ export function PricesPage() {
                 <span style={{ fontSize: 22 }}>✅</span>
                 <div>
                   <b style={{ fontSize: 14.5 }}>{s.rangeLabel} · € {s.priceTo}</b><br />
-                  <span className="why">Toegepast op Airbnb & Booking.com</span>
+                  <span className="why">{t("prices.applied")}</span>
                 </div>
               </div>
             );
@@ -132,7 +135,7 @@ export function PricesPage() {
                 <span style={{ fontSize: 22 }}>🙅</span>
                 <div>
                   <b style={{ fontSize: 14.5 }}>{s.rangeLabel}</b><br />
-                  <span className="why">Afgewezen — Staybase leert hieruit voor volgende voorstellen</span>
+                  <span className="why">{t("prices.rejected", { brand })}</span>
                 </div>
               </div>
             );
@@ -154,10 +157,10 @@ export function PricesPage() {
               </div>
               <div className="sug-actions">
                 <button className="btn primary sm" disabled={decide.isPending} onClick={() => onDecide(s.id, "accepted")}>
-                  Toepassen
+                  {t("prices.apply")}
                 </button>
                 <button className="btn ghost sm" disabled={decide.isPending} onClick={() => onDecide(s.id, "rejected")}>
-                  Afwijzen
+                  {t("prices.reject")}
                 </button>
               </div>
             </div>
