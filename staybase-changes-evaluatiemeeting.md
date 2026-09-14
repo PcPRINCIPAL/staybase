@@ -115,19 +115,19 @@ Twee volledig gescheiden stromen. Dit is het grootste nieuwe blok.
 
 De eigenaar blijft juridisch de exploitant en is verplicht een factuur naar de gast te sturen, op de dag van check-out.
 
-- [ ] **Knop per boeking** (in kalender/boekingsdetail, naast "stuur een bericht"): **factuur downloaden / versturen**.
-- [ ] **Nudge aan eigenaarszijde**: "boeking is bijna ten einde, nog geen factuur opgemaakt — gelieve factuur te versturen."
-- [ ] **White-label factuur automatisch genereren** met de gegevens van de eigenaar (uit de onboarding), in de huisstijl van het platform. Expliciet níét zoals Guesty het doet (geen foto's van het pand, geen betaalgegevens op de factuur).
+- [x] **Knop per boeking** (in kalender/boekingsdetail, naast "stuur een bericht"): **factuur downloaden** — beschikbaar vanaf de uitcheckdag; vóór check-out toont het paneel vanaf wanneer het kan. *(versturen per mail volgt)*
+- [x] **Nudge aan eigenaarszijde**: banner op het dashboard met alle uitgecheckte (of binnen 2 dagen aflopende) boekingen zonder factuur, met downloadknop per boeking.
+- [x] **White-label factuur automatisch genereren**: sobere PDF op naam van de eigenaar (logiesverstrekker), zonder pandfoto's of betaalgegevens; nummering per eigenaar per jaar (F-2026-001), nummer en datum liggen vast bij de eerste download; voettekst "opgemaakt via …, in naam en voor rekening van de logiesverstrekker" per btw-advies. *(vennootschapsgegevens vullen aan zodra de onboarding-popup er is)*
 - [ ] Onboarding-popup die de nodige gegevens ophaalt: **particulier / btw-plichtige vennootschap / niet-btw-plichtige vennootschap** (patrimoniumvennootschap e.d.) + vennootschapsgegevens. Bepaalt of er btw op de factuur mag/moet.
 - [ ] Btw-vrije factuur mogelijk maken voor wie geen btw mag innen.
-- ⚠️ De juridische kant is in de meeting **niet uitgeklaard** (btw-plicht bij verhuur met/zonder diensten zoals linnen, of een particulier een ondernemingsnummer nodig heeft). Bouw de datastructuur flexibel, maar wacht met harde regels tot dit bevestigd is.
+- ✅ De juridische kant is intussen uitgeklaard in het **btw-advies van 20 juni 2026** (bouwregels in `docs/btw-advies-bouwregels.md`). Kern: eigenaar = logiesverstrekker (logies 12% mits gemeubeld-logies-voorwaarden), alle gastdocumenten op naam van de eigenaar, per eigenaar bijhouden of hij periodieke btw-aangiften indient. Harde regels pas bevriezen na het fysieke overleg dat het advies aanraadt.
 
 ### 9b. Linnois → eigenaar (adminzijde)
 
 Vervangt de huidige Excel. Per boeking, niet per maand.
 
 - [ ] **Owner statement** genereren: totale gastbetaling, − schoonmaak, − OTA-commissie, = netto opbrengst, plus zichtbaar waarop de commissie berekend is.
-- [ ] **Factuur** genereren: enkel de beheervergoeding, met de omschrijving "beheer en coördinatie". ⚠️ De exacte bewoording is regelgeving-gevoelig — niet vrij herformuleren.
+- [ ] **Factuur** genereren: enkel de beheervergoeding, 21% btw. ⚠️ Het btw-advies vraagt dat de omschrijving duidelijk slaat op de **beheer-, coördinatie- en bemiddelingsdienst** — gebruik dus "beheer, coördinatie en bemiddeling", en verwijs nooit naar de logiesdienst aan de gast.
 - [ ] Owner statement en factuur zijn **twee aparte documenten**.
 - [ ] Automatisch een **nieuwe factuurdatum** per nieuwe periode.
 - [ ] Ondersteun beide commissiemodellen (bruto-basis, standaard 15%; netto-basis voor bepaalde eigenaars).
@@ -171,11 +171,11 @@ Vervangt de huidige Excel. Per boeking, niet per maand.
 - Belgisch fotomateriaal voor de landingspagina.
 - Toegang tot **One.com** (hosting) om de site live te zetten.
 - De 7 HTML-files van de Linnois-site via WhatsApp.
-- Het document/onderzoek over de btw- en factuurplicht.
+- ~~Het document/onderzoek over de btw- en factuurplicht.~~ ✅ Ontvangen: btw-advies 20 juni 2026 — bouwregels in `docs/btw-advies-bouwregels.md`.
 
 ## 13. Openstaand / te onderzoeken
 
-- Kan de **totale gastbetaling** (de €1015) uit de Guesty API gehaald worden? Vermoedelijk wel, maar te bevestigen — hier hangt heel §8 aan vast.
+- [x] Kan de **totale gastbetaling** (de €1015) uit de Guesty API gehaald worden? **Ja**: logies + kosten + taksen uit het `money`-object (voor Booking.com exact gelijk aan wat de gast betaalde; commissie wordt daar apart aangerekend). Wordt sinds de sync bewaard als `bookings.guest_total` en is de basis van de gastfactuur — §8 kan hierop verder.
 - [x] Kan de **interne codenaam** van een pand (`be.duinark.be`) uit Guesty opgehaald worden voor het semantisch zoeken? **Ja** — het is het veld `nickname` in de Open API (bv. `BE.DUIN.ARC.4` voor De Pagode). Wordt sinds de sync bewaard als `properties.code_name` en getoond in de pandenlijst, het panddetail en Beheer. Het semantisch zoeken zelf (§5) kan hierop verder bouwen.
 - **Rechtstreeks boeken** op de Linnois-site: kan dat via Guesty? Nog te bekijken. Verder weg: white-label boekingssite voor property managers en makelaars — expliciet niet voor nu.
 - **WhatsApp-integratie voor eigenaarsberichten: afgevoerd.** Eigenaars kunnen in het platform chatten, dus het probleem lost zichzelf op. Mocht het toch terugkomen: WhatsApp Business account nodig én een apart werknummer, want Julie gebruikt nu haar privénummer.

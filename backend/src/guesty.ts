@@ -137,7 +137,11 @@ interface GuestyReservation {
   checkOut?: string;
   guestsCount?: number;
   guest?: { fullName?: string };
-  money?: { hostPayout?: number; netIncome?: number; subTotalPrice?: number };
+  money?: {
+    hostPayout?: number; netIncome?: number; subTotalPrice?: number;
+    fareAccommodation?: number; fareAccommodationAdjusted?: number;
+    totalFees?: number; totalTaxes?: number;
+  };
   integration?: { platform?: string };
   createdAt?: string;   // wanneer de reservatie werd aangemaakt (boekingsmoment)
   confirmedAt?: string;
@@ -443,13 +447,13 @@ export async function syncGuesty(): Promise<GuestySyncSummary> {
   });
 
   const insertBooking = db.prepare(`
-    INSERT INTO bookings (id, property_id, guest, avatar, channel, start_date, end_date, guests, payout, note,
+    INSERT INTO bookings (id, property_id, guest, avatar, channel, start_date, end_date, guests, payout, guest_total, note,
       checkin_time, checkout_time, booked_at, guesty_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const updateBooking = db.prepare(`
     UPDATE bookings SET property_id = ?, guest = ?, channel = ?, start_date = ?, end_date = ?,
-      guests = ?, payout = ?, note = ?, checkin_time = ?, checkout_time = ?, booked_at = ? WHERE guesty_id = ?
+      guests = ?, payout = ?, guest_total = ?, note = ?, checkin_time = ?, checkout_time = ?, booked_at = ? WHERE guesty_id = ?
   `);
 
   for (const r of reservations) {
@@ -475,15 +479,22 @@ export async function syncGuesty(): Promise<GuestySyncSummary> {
 
     const { channel, sourceNote } = mapChannel(r);
     const payout = Math.round(r.money?.hostPayout ?? r.money?.netIncome ?? r.money?.subTotalPrice ?? 0);
+    // Totale gastbetaling = logies + kosten + taksen. Klopt exact voor
+    // Booking.com (= hostPayout, commissie apart) en voor Airbnb met
+    // host-only pricing (= hostPayout + host-servicekost). Valt terug op de
+    // uitbetaling bij handmatige reservaties zonder geldgegevens.
+    const m = r.money ?? {};
+    const fare = (m.fareAccommodationAdjusted || m.fareAccommodation || 0) + (m.totalFees || 0) + (m.totalTaxes || 0);
+    const guestTotal = fare > 0 ? Math.round(fare * 100) / 100 : (payout || null);
     const guest = r.guest?.fullName || "Gast via Guesty";
     const inTime = localTime(r.checkIn);
     const outTime = localTime(r.checkOut);
     const bookedAt = r.confirmedAt ?? r.createdAt ?? null;
     if (existing) {
-      await updateBooking.run(propId, guest, channel, start, end, r.guestsCount ?? 2, payout, sourceNote, inTime, outTime, bookedAt, r._id);
+      await updateBooking.run(propId, guest, channel, start, end, r.guestsCount ?? 2, payout, guestTotal, sourceNote, inTime, outTime, bookedAt, r._id);
       summary.bookings.updated++;
     } else {
-      await insertBooking.run("g-" + r._id, propId, guest, avatarFor(r._id), channel, start, end, r.guestsCount ?? 2, payout, sourceNote, inTime, outTime, bookedAt, r._id);
+      await insertBooking.run("g-" + r._id, propId, guest, avatarFor(r._id), channel, start, end, r.guestsCount ?? 2, payout, guestTotal, sourceNote, inTime, outTime, bookedAt, r._id);
       summary.bookings.created++;
     }
   }

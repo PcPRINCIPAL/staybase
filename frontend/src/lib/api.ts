@@ -288,6 +288,24 @@ export const useAdminUsers = () =>
 export const useOnboardingStats = () =>
   useQuery({ queryKey: ["onboarding-stats"], queryFn: () => api<OnboardingStats>("/onboarding/stats") });
 
+/* ---------- gastfacturen (§9a) ---------- */
+
+export interface InvoicesOverview {
+  issued: { bookingId: string; label: string; issuedAt: string }[];
+  pending: { bookingId: string; propertyId: string; propertyName: string; guest: string; endDate: string; checkedOut: boolean }[];
+}
+
+export const useInvoicesOverview = () =>
+  useQuery({ queryKey: ["invoices"], queryFn: () => api<InvoicesOverview>("/invoices/overview") });
+
+/**
+ * Download via een verborgen navigatie zodat de sessiecookie meegaat; daarna
+ * het overzicht verversen, want de eerste download legt het factuurnummer vast.
+ */
+export function downloadInvoice(bookingId: string): void {
+  window.location.assign(`/api/bookings/${bookingId}/invoice.pdf`);
+}
+
 /* ---------- Guesty-koppeling ---------- */
 
 export interface GuestySyncSummary {

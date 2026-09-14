@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BRAND_LABEL, DEMO_TODAY, type Booking } from "@shared/types";
-import { useMyProperty } from "../lib/api";
+import { downloadInvoice, useInvoicesOverview, useMyProperty } from "../lib/api";
 import { eur, monthName, nightsBetween, shortDate, CHANNEL_META } from "../lib/format";
 import { Icon } from "../components/Icon";
 import { useAuth } from "../auth";
@@ -73,6 +73,7 @@ export function OwnerHome() {
   const nav = useNavigate();
   const [selected, setSelected] = useState<string | undefined>(undefined);
   const { data, isLoading } = useMyProperty(selected);
+  const { data: invoices, refetch: refetchInvoices } = useInvoicesOverview();
 
   if (isLoading || !data) return <div className="loading">Jouw overzicht laden…</div>;
 
@@ -126,6 +127,44 @@ export function OwnerHome() {
               {pr.name}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* §9a-nudge: uitgecheckt (of bijna) zonder factuur → aanporren. */}
+      {invoices && invoices.pending.length > 0 && (
+        <div className="card inv-nudge">
+          <div className="inv-nudge-head">
+            <span className="inv-nudge-ico">🧾</span>
+            <div>
+              <b>{invoices.pending.length === 1 ? t("inv.nudge1") : t("inv.nudgeN", { n: invoices.pending.length })}</b>
+              <span>{t("inv.nudgeBody")}</span>
+            </div>
+          </div>
+          <div className="inv-nudge-rows">
+            {invoices.pending.slice(0, 4).map((b) => (
+              <div className="inv-nudge-row" key={b.bookingId}>
+                <span className="inv-nudge-who">
+                  <b>{b.guest}</b>
+                  <small>{b.propertyName} · {shortDate(b.endDate)}</small>
+                </span>
+                {b.checkedOut ? (
+                  <button className="btn primary sm" onClick={() => {
+                    downloadInvoice(b.bookingId);
+                    setTimeout(() => refetchInvoices(), 1200);
+                  }}>
+                    {t("inv.download")}
+                  </button>
+                ) : (
+                  <span className="chip warn">{t("inv.nudgeEndsSoon", { d: shortDate(b.endDate) })}</span>
+                )}
+              </div>
+            ))}
+            {invoices.pending.length > 4 && (
+              <button className="home-link sm" style={{ alignSelf: "flex-start", marginTop: 2 }} onClick={() => nav("/kalender")}>
+                {t("inv.nudgeMore", { n: invoices.pending.length - 4 })}
+              </button>
+            )}
+          </div>
         </div>
       )}
 

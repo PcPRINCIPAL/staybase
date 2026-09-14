@@ -951,4 +951,17 @@ export const en: Dict = {
   "props.searchCount1": "1 property found",
   "props.searchCountN": "{n} properties found",
   "props.searchNone": "No property found for “{q}” — search by name, internal code (e.g. BE.DUIN.ARC.4) or location.",
+
+  // ---- gastfacturen ----
+  "inv.download": "🧾 Download invoice",
+  "inv.downloadNr": "🧾 Download invoice {nr}",
+  "inv.afterCheckout": "Invoicing is possible from the check-out day ({d}).",
+  "inv.nudge1": "1 booking has ended and has no invoice yet",
+  "inv.nudgeN": "{n} bookings have ended and have no invoice yet",
+  "inv.nudgeBody": "As the host you provide the guest with an invoice on the day of check-out. Download and send them below.",
+  "inv.nudgeEndsSoon": "checks out on {d}",
+  "inv.issued": "Invoice {nr}",
+
+  // ---- facturen-nudge-plafond ----
+  "inv.nudgeMore": "+ {n} more — find them all in the calendar",
 };

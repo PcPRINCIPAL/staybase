@@ -34,6 +34,8 @@ export interface Property {
   basePriceWeekend: number;
   lat: number | null;
   lng: number | null;
+  /** Omgeving van de eigenaar (Staybase of Linnois); null zolang er geen eigenaar toegewezen is. */
+  ownerBrand: Brand | null;
 }
 
 /** Alles wat de detailpagina van één pand toont. */
@@ -61,7 +63,9 @@ export interface Booking {
   startDate: string; // ISO yyyy-mm-dd (check-in)
   endDate: string;   // ISO yyyy-mm-dd (check-out)
   guests: number;
-  payout: number;    // euro
+  payout: number;    // euro — "jouw uitbetaling" uit Guesty
+  /** Totale gastbetaling (logies + kosten + taksen) — basis voor de gastfactuur. */
+  guestTotal: number | null;
   note: string | null;
   checkInTime: string | null;   // "17:00" (lokale tijd, uit Guesty)
   checkOutTime: string | null;  // "10:00"

@@ -150,6 +150,26 @@ export async function bootstrap(): Promise<void> {
     END $$;
   `);
 
+  // Totale gastbetaling per boeking (logies + kosten + taksen) — de basis
+  // voor de gastfactuur (§9a) en straks voor de opbrengstenketen (§8).
+  await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS guest_total numeric;`);
+
+  // Gastfacturen (eigenaar → gast, §9a): één per boeking; nummer en datum
+  // liggen vast vanaf de eerste download, zodat elke download identiek is.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS invoices (
+      id text PRIMARY KEY,
+      booking_id text NOT NULL UNIQUE REFERENCES bookings (id) ON DELETE CASCADE,
+      property_id text NOT NULL,
+      owner_id text,
+      number int NOT NULL,
+      year int NOT NULL,
+      amount numeric NOT NULL,
+      vat_rate numeric NOT NULL DEFAULT 12,
+      issued_at timestamptz NOT NULL DEFAULT now()
+    );
+  `);
+
   // Interne codenaam van een pand (de Guesty-"nickname", bv. BE.DUIN.ARC.4).
   // Het team praat in die codes; §5 (semantisch zoeken) bouwt hierop verder.
   await pool.query(`ALTER TABLE properties ADD COLUMN IF NOT EXISTS code_name text;`);

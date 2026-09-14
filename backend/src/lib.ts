@@ -53,6 +53,7 @@ export interface PropertyRow {
   base_price_week: number; base_price_weekend: number;
   lat: number | null; lng: number | null;
   owner_id: string | null;
+  owner_origin?: "staybase" | "linnois" | null;
 }
 
 export function mapProperty(r: PropertyRow): Property {
@@ -66,12 +67,14 @@ export function mapProperty(r: PropertyRow): Property {
     cleaningPrice: r.cleaning_price,
     basePriceWeek: r.base_price_week, basePriceWeekend: r.base_price_weekend,
     lat: r.lat, lng: r.lng,
+    ownerBrand: r.owner_origin ? (r.owner_origin === "linnois" ? "linnois" : "staybase") : null,
   };
 }
 
 export interface BookingRow {
   id: string; property_id: string; guest: string; avatar: string; channel: Channel;
-  start_date: string; end_date: string; guests: number; payout: number; note: string | null;
+  start_date: string; end_date: string; guests: number; payout: number;
+  guest_total: number | null; note: string | null;
   checkin_time: string | null; checkout_time: string | null;
   booked_at: string | null;
 }
@@ -79,17 +82,25 @@ export interface BookingRow {
 export function mapBooking(r: BookingRow): Booking {
   return {
     id: r.id, propertyId: r.property_id, guest: r.guest, avatar: r.avatar, channel: r.channel,
-    startDate: r.start_date, endDate: r.end_date, guests: r.guests, payout: r.payout, note: r.note,
+    startDate: r.start_date, endDate: r.end_date, guests: r.guests, payout: r.payout,
+    guestTotal: r.guest_total ?? null, note: r.note,
     checkInTime: r.checkin_time, checkOutTime: r.checkout_time,
   };
 }
 
+// De herkomst van de eigenaar reist mee: zo weet elk scherm of een pand in
+// de Staybase- of de Linnois-omgeving leeft (label in de kalender, huisstijl
+// van de factuur, …).
 export async function allProperties(): Promise<PropertyRow[]> {
-  return (await db.prepare("SELECT * FROM properties ORDER BY created_at").all()) as unknown as PropertyRow[];
+  return (await db.prepare(
+    "SELECT p.*, u.origin AS owner_origin FROM properties p LEFT JOIN users u ON u.id = p.owner_id ORDER BY p.created_at"
+  ).all()) as unknown as PropertyRow[];
 }
 
 export async function propertyById(id: string): Promise<PropertyRow | undefined> {
-  return (await db.prepare("SELECT * FROM properties WHERE id = ?").get(id)) as unknown as PropertyRow | undefined;
+  return (await db.prepare(
+    "SELECT p.*, u.origin AS owner_origin FROM properties p LEFT JOIN users u ON u.id = p.owner_id WHERE p.id = ?"
+  ).get(id)) as unknown as PropertyRow | undefined;
 }
 
 export interface SuggestionRow {

@@ -15,6 +15,8 @@ import { answer } from "./assistant";
 import { aiAvailable, llmAnswer, llmDraft, llmTranslate } from "./ai";
 import { guestyAvailable, guestyStatus, resetGuestyData, syncGuesty, testGuesty } from "./guesty";
 import { currentUser, requireAdmin, requirePlan, requireView } from "./auth";
+import { ensureInvoice, invoiceAvailable, invoiceForBooking, invoiceLabel, renderInvoicePdf } from "./invoice";
+import { brandFor } from "../../shared/types";
 
 export const routes = Router();
 
@@ -975,6 +977,91 @@ routes.patch("/admin/users/:id/commission", requireAdmin, async (req, res) => {
   await db.prepare("UPDATE users SET commission_pct = ?, commission_basis = ? WHERE id = ?")
     .run(rounded, basis, req.params.id);
   res.json({ ok: true, pct: rounded, basis });
+});
+
+/* =========================== Gastfacturen (§9a) =========================== */
+
+/** Boeking binnen de scope van de aanvrager ophalen (eigenaars: enkel eigen panden). */
+async function scopedBooking(req: import("express").Request, bookingId: string):
+  Promise<{ booking: BookingRow; property: PropertyRow } | null> {
+  const booking = (await db.prepare("SELECT * FROM bookings WHERE id = ?").get(bookingId)) as BookingRow | undefined;
+  if (!booking) return null;
+  const property = (await scopedProperties(req)).find((p) => p.id === booking.property_id);
+  return property ? { booking, property } : null;
+}
+
+/**
+ * De factuur als PDF. Beschikbaar vanaf de uitcheckdag; de eerste download
+ * legt nummer en datum vast, daarna komt telkens exact hetzelfde document.
+ */
+routes.get("/bookings/:id/invoice.pdf", async (req, res) => {
+  const found = await scopedBooking(req, req.params.id);
+  if (!found) {
+    res.status(404).json({ error: "onbekende boeking" });
+    return;
+  }
+  const { booking, property } = found;
+  if (!invoiceAvailable(booking)) {
+    res.status(409).json({ error: "De gast is nog niet uitgecheckt — factureren kan vanaf de uitcheckdag." });
+    return;
+  }
+  const invoice = await ensureInvoice(booking, property);
+  const owner = property.owner_id
+    ? (await db.prepare("SELECT name, email, origin FROM users WHERE id = ?").get(property.owner_id)) as
+        { name: string; email: string; origin: "staybase" | "linnois" } | undefined
+    : undefined;
+  // De huisstijl volgt de omgeving van de eigenaar (het is zíjn factuur) —
+  // ook als een beheerder ze downloadt. Zonder eigenaar: de omgeving van de
+  // aanvrager.
+  const brand = owner ? brandFor({ role: "owner", origin: owner.origin }) : brandFor(currentUser(req));
+  const pdf = await renderInvoicePdf({
+    invoice, booking, property,
+    owner: owner ?? null,
+    brand,
+  });
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="${invoiceLabel(invoice)} ${property.name}.pdf"`);
+  res.send(pdf);
+});
+
+/**
+ * Overzicht voor knoppen en de nudge: welke boekingen in de scope hebben al
+ * een factuur, en welke zijn (bijna) uitgecheckt zonder factuur.
+ */
+routes.get("/invoices/overview", async (req, res) => {
+  const scope = await scopedProperties(req);
+  const scopeIds = new Set(scope.map((p) => p.id));
+  const nameById = new Map(scope.map((p) => [p.id, p.name]));
+
+  const bookings = ((await db.prepare("SELECT * FROM bookings ORDER BY end_date DESC").all()) as unknown as BookingRow[])
+    .filter((b) => scopeIds.has(b.property_id));
+  const invoices = ((await db.prepare("SELECT * FROM invoices").all()) as unknown as
+    { booking_id: string; number: number; year: number; issued_at: string }[]);
+  const byBooking = new Map(invoices.map((i) => [i.booking_id, i]));
+
+  const soon = addDays(DEMO_TODAY, 2);
+  const horizon = addDays(DEMO_TODAY, -60); // oeroude boekingen niet blijven aanporren
+  const issued: { bookingId: string; label: string; issuedAt: string }[] = [];
+  const pending: { bookingId: string; propertyId: string; propertyName: string; guest: string; endDate: string; checkedOut: boolean }[] = [];
+  for (const b of bookings) {
+    const inv = byBooking.get(b.id);
+    if (inv) {
+      issued.push({
+        bookingId: b.id,
+        label: `F-${inv.year}-${String(inv.number).padStart(3, "0")}`,
+        issuedAt: inv.issued_at,
+      });
+    } else if (b.end_date <= soon && b.end_date >= horizon) {
+      // Uitgecheckt of bijna ten einde, nog geen factuur → de §9a-nudge.
+      pending.push({
+        bookingId: b.id, propertyId: b.property_id,
+        propertyName: nameById.get(b.property_id) ?? "",
+        guest: b.guest, endDate: b.end_date,
+        checkedOut: b.end_date <= DEMO_TODAY,
+      });
+    }
+  }
+  res.json({ issued, pending });
 });
 
 /* =========================== Eigenaar-dashboard =========================== */

@@ -951,4 +951,17 @@ export const fr: Dict = {
   "props.searchCount1": "1 bien trouvé",
   "props.searchCountN": "{n} biens trouvés",
   "props.searchNone": "Aucun bien trouvé pour « {q} » — cherchez par nom, code interne (p.ex. BE.DUIN.ARC.4) ou lieu.",
+
+  // ---- gastfacturen ----
+  "inv.download": "🧾 Télécharger la facture",
+  "inv.downloadNr": "🧾 Télécharger la facture {nr}",
+  "inv.afterCheckout": "La facturation est possible dès le jour du départ ({d}).",
+  "inv.nudge1": "1 réservation est terminée et n'a pas encore de facture",
+  "inv.nudgeN": "{n} réservations sont terminées et n'ont pas encore de facture",
+  "inv.nudgeBody": "En tant qu'hébergeur, vous remettez une facture au voyageur le jour du départ. Téléchargez et envoyez-les ci-dessous.",
+  "inv.nudgeEndsSoon": "départ le {d}",
+  "inv.issued": "Facture {nr}",
+
+  // ---- facturen-nudge-plafond ----
+  "inv.nudgeMore": "+ encore {n} — retrouvez-les toutes dans le calendrier",
 };

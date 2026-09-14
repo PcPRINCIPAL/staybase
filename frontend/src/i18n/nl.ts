@@ -955,4 +955,17 @@ export const nl: Dict = {
   "props.searchCount1": "1 pand gevonden",
   "props.searchCountN": "{n} panden gevonden",
   "props.searchNone": "Geen pand gevonden voor “{q}” — zoek op naam, interne code (bv. BE.DUIN.ARC.4) of locatie.",
+
+  // ---- gastfacturen ----
+  "inv.download": "🧾 Factuur downloaden",
+  "inv.downloadNr": "🧾 Factuur {nr} downloaden",
+  "inv.afterCheckout": "Factureren kan vanaf de uitcheckdag ({d}).",
+  "inv.nudge1": "1 boeking is ten einde en heeft nog geen factuur",
+  "inv.nudgeN": "{n} boekingen zijn ten einde en hebben nog geen factuur",
+  "inv.nudgeBody": "Als logiesverstrekker bezorg je de gast een factuur op de dag van check-out. Download en verstuur ze hieronder.",
+  "inv.nudgeEndsSoon": "checkt uit op {d}",
+  "inv.issued": "Factuur {nr}",
+
+  // ---- facturen-nudge-plafond ----
+  "inv.nudgeMore": "+ nog {n} — je vindt ze allemaal in de kalender",
 };

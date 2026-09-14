@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { DEMO_TODAY, type CalendarDay, type Property } from "@shared/types";
-import { useCalendar, useCalendarOverview, useProperties } from "../lib/api";
-import { CHANNEL_META, addMonths, dowShort, eur, monthName, nightsBetween } from "../lib/format";
+import { downloadInvoice, useCalendar, useCalendarOverview, useInvoicesOverview, useProperties } from "../lib/api";
+import { CHANNEL_META, addMonths, dowShort, eur, monthName, nightsBetween, shortDate } from "../lib/format";
 import { Icon } from "../components/Icon";
 import { useToast } from "../components/Toast";
 import { useBrand, useView } from "../components/OriginGate";
@@ -117,6 +117,7 @@ export function CalendarPage() {
   const brand = BRAND_LABEL[useBrand()];
   const { data: rawProperties } = useProperties();
   const { data, isLoading } = useCalendar(view === "maand" ? propertyId : "", month);
+  const { data: invoices, refetch: refetchInvoices } = useInvoicesOverview();
   const toast = useToast();
   const nav = useNavigate();
 
@@ -290,6 +291,11 @@ export function CalendarPage() {
                   <span className={`chip ${CHANNEL_META[selBooking.channel].chip}`}>
                     {CHANNEL_META[selBooking.channel].name}
                   </span>
+                  {/* Omgeving van de eigenaar: hoort dit pand bij Staybase of bij Linnois? */}
+                  {(() => {
+                    const ob = properties.find((p) => p.id === propertyId)?.ownerBrand;
+                    return ob ? <span className={`chip brand-${ob}`} style={{ marginLeft: 6 }}>{BRAND_LABEL[ob]}</span> : null;
+                  })()}
                 </div>
               </div>
               <dl>
@@ -315,6 +321,27 @@ export function CalendarPage() {
               >
                 {t("cal.sendMsg")}
               </button>
+              {/* §9a: factuur per boeking, beschikbaar vanaf de uitcheckdag. */}
+              {selBooking.endDate <= DEMO_TODAY ? (
+                <button
+                  className="btn primary sm"
+                  style={{ width: "100%", justifyContent: "center", marginTop: 8 }}
+                  onClick={() => {
+                    downloadInvoice(selBooking.id);
+                    // Eerste download legt het nummer vast — overzicht bijwerken.
+                    setTimeout(() => refetchInvoices(), 1200);
+                  }}
+                >
+                  {(() => {
+                    const inv = invoices?.issued.find((i) => i.bookingId === selBooking.id);
+                    return inv ? t("inv.downloadNr", { nr: inv.label }) : t("inv.download");
+                  })()}
+                </button>
+              ) : (
+                <p style={{ fontSize: 12, color: "var(--faint)", margin: "10px 2px 0", textAlign: "center" }}>
+                  {t("inv.afterCheckout", { d: shortDate(selBooking.endDate) })}
+                </p>
+              )}
             </>
           ) : selDay ? (
             <>
