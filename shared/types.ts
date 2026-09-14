@@ -13,6 +13,8 @@ export type PropertyStatus = "live" | "onboarding";
 export interface Property {
   id: string;
   name: string;
+  /** Interne codenaam uit Guesty (bv. "BE.DUIN.ARC.4") — zo praat het team over panden. */
+  codeName: string | null;
   location: string;
   type: string;
   bedrooms: number;

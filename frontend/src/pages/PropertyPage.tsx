@@ -41,7 +41,7 @@ export function PropertyPage() {
         )}
         <div className="pand-hero-ov">
           <span className={`chip ${p.status === "live" ? "coral" : "warn"}`}>{p.statusLabel}</span>
-          <h1>{p.name}</h1>
+          <h1>{p.name}{p.codeName && <code className="code-name hero">{p.codeName}</code>}</h1>
           <p>{t("prop.meta", { loc: p.location, type: p.type, s: p.bedrooms, b: p.bathrooms, g: p.maxGuests, m: p.areaM2 })}</p>
         </div>
         {p.rating != null && (

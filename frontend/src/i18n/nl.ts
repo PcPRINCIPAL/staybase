@@ -947,4 +947,12 @@ export const nl: Dict = {
 
   // ---- artikelpagina ----
   "kennis.allArticles": "← Alle artikelen",
+
+  // ---- panden-zoeken ----
+  "props.search": "Zoek op naam, code of locatie…",
+  "props.searchAria": "Panden zoeken",
+  "props.searchClear": "Zoekopdracht wissen",
+  "props.searchCount1": "1 pand gevonden",
+  "props.searchCountN": "{n} panden gevonden",
+  "props.searchNone": "Geen pand gevonden voor “{q}” — zoek op naam, interne code (bv. BE.DUIN.ARC.4) of locatie.",
 };

@@ -890,7 +890,8 @@ routes.get("/admin/users", requireAdmin, async (_req, res) => {
 routes.get("/admin/properties", requireAdmin, async (_req, res) => {
   const props = await allProperties();
   res.json(props.map((p) => ({
-    id: p.id, name: p.name, location: p.location, photo: p.photo, status: p.status, ownerId: p.owner_id,
+    id: p.id, name: p.name, codeName: p.code_name ?? null, location: p.location,
+    photo: p.photo, status: p.status, ownerId: p.owner_id,
   })));
 });
 

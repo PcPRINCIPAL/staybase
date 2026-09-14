@@ -8,6 +8,7 @@ import { Icon } from "../components/Icon";
 import { PropertyCard } from "../components/PropertyCard";
 import { useUI } from "../ui";
 import { useT } from "../i18n";
+import { matchesProperty } from "../lib/search";
 
 type View = "grid" | "list" | "map";
 
@@ -89,7 +90,10 @@ function ListView({ properties }: { properties: Property[] }) {
                   <span className="thumb" style={{ background: p.artBg }}>
                     {p.photo ? <img src={p.photo} alt="" loading="lazy" /> : p.art}
                   </span>
-                  <b>{p.name}</b>
+                  <span className="cell-stack">
+                    <b>{p.name}</b>
+                    {p.codeName && <span className="cell-sub"><code className="code-name">{p.codeName}</code></span>}
+                  </span>
                   {p.rating != null && <span className="rate">★ {p.rating.toFixed(2).replace(".", ",")}</span>}
                 </div>
               </td>
@@ -114,10 +118,15 @@ export function PropertiesPage() {
   const { data: config } = useClientConfig();
   const { openWizard } = useUI();
   const [view, setView] = useState<View>("grid");
+  const [query, setQuery] = useState("");
 
   if (isLoading || !properties) return <div className="loading">{t("props.loading")}</div>;
 
   const live = properties.filter((p) => p.status === "live").length;
+  // Zoekt genormaliseerd over naam, interne codenaam en locatie: "beduin",
+  // "be duin" en "BE.DUIN" komen allemaal bij BE.DUIN.ARC.4 uit.
+  const q = query.trim();
+  const shown = q ? properties.filter((p) => matchesProperty(p, q)) : properties;
 
   return (
     <section className="page">
@@ -125,6 +134,21 @@ export function PropertiesPage() {
         <div>
           <h1>{t("props.title")}</h1>
           <p className="sub">{t("props.sub", { count: properties.length === 1 ? t("props.count1") : t("props.countN", { n: properties.length }), live, onb: properties.length - live })}</p>
+        </div>
+        <div className="props-search">
+          <Icon name="search" size={15} />
+          <input
+            type="search"
+            value={query}
+            placeholder={t("props.search")}
+            aria-label={t("props.searchAria")}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          {q && (
+            <button className="props-search-clear" onClick={() => setQuery("")} aria-label={t("props.searchClear")}>
+              <Icon name="x" size={13} />
+            </button>
+          )}
         </div>
         <div className="seg" role="tablist" aria-label={t("cal.view")}>
           {([["grid", t("props.grid")], ["list", t("props.list")], ["map", t("props.map")]] as const).map(([v, label]) => (
@@ -135,21 +159,35 @@ export function PropertiesPage() {
         </div>
       </div>
 
-      {view === "grid" && (
-        <div className="props" style={{ marginTop: 20 }}>
-          {properties.map((p) => <PropertyCard key={p.id} p={p} />)}
-          <button className="prop-add" onClick={openWizard}>
-            <span className="plus"><Icon name="plus" /></span>
-            {t("props.add")}
-            <small>{t("props.addSub")}</small>
-          </button>
+      {q && (
+        <p className="props-search-count">
+          {shown.length === 1 ? t("props.searchCount1") : t("props.searchCountN", { n: shown.length })}
+        </p>
+      )}
+
+      {q && shown.length === 0 && (
+        <div className="card" style={{ marginTop: 16, padding: "26px 24px", textAlign: "center", color: "var(--muted)", fontSize: 14 }}>
+          🔍 {t("props.searchNone", { q })}
         </div>
       )}
-      {view === "list" && <div style={{ marginTop: 20 }}><ListView properties={properties} /></div>}
-      {view === "map" && (
-        <div style={{ marginTop: 20 }}>
+
+      {view === "grid" && shown.length > 0 && (
+        <div className="props" style={{ marginTop: q ? 12 : 20 }}>
+          {shown.map((p) => <PropertyCard key={p.id} p={p} />)}
+          {!q && (
+            <button className="prop-add" onClick={openWizard}>
+              <span className="plus"><Icon name="plus" /></span>
+              {t("props.add")}
+              <small>{t("props.addSub")}</small>
+            </button>
+          )}
+        </div>
+      )}
+      {view === "list" && shown.length > 0 && <div style={{ marginTop: q ? 12 : 20 }}><ListView properties={shown} /></div>}
+      {view === "map" && shown.length > 0 && (
+        <div style={{ marginTop: q ? 12 : 20 }}>
           {config?.mapboxToken
-            ? <MapView properties={properties} token={config.mapboxToken} />
+            ? <MapView properties={shown} token={config.mapboxToken} />
             : <div className="card" style={{ padding: 20, color: "var(--muted)", fontSize: 14 }}>
                 {t("props.noMapbox")}
               </div>}

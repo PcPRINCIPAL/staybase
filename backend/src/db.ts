@@ -150,6 +150,10 @@ export async function bootstrap(): Promise<void> {
     END $$;
   `);
 
+  // Interne codenaam van een pand (de Guesty-"nickname", bv. BE.DUIN.ARC.4).
+  // Het team praat in die codes; §5 (semantisch zoeken) bouwt hierop verder.
+  await pool.query(`ALTER TABLE properties ADD COLUMN IF NOT EXISTS code_name text;`);
+
   // onboarding_events.user_id en properties.owner_id zijn in het Supabase-script
   // uuid's → profiles; zolang de eigen auth draait, gebruiken we tekst-ids
   // zonder foreign key.

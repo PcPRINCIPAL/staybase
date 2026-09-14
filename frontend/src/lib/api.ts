@@ -232,6 +232,7 @@ export const useMyProperty = (propertyId?: string) =>
 export interface AdminProperty {
   id: string;
   name: string;
+  codeName: string | null;
   location: string;
   photo: string | null;
   status: "live" | "onboarding";

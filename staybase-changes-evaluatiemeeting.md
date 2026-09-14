@@ -59,7 +59,7 @@ Er zijn twee assen die samen bepalen wat iemand ziet:
 - [x] **Vertaalknop ook op het AI-voorstel.**
 - [x] **Filterbalk bovenaan de inbox: filter op één pand.** Zowel admin- als eigenaarszijde; "Alle panden" blijft de standaard.
 - [ ] **Zoekfunctie in de inbox.**
-- [ ] **Semantisch zoeken** — dit was een uitgesproken pijnpunt met Guesty. Panden hebben interne codenamen (`be.duinark.be` = "Duin Arka" = De Pagode) en het team praat in die codenamen. Zoeken op "Duin Arka" moet De Pagode opleveren. Fuzzy matching op codenaam, adres en alias.
+- [~] **Semantisch zoeken** — dit was een uitgesproken pijnpunt met Guesty. *(eerste stap staat: de Panden-pagina heeft een zoekveld op naam, locatie en interne codenaam — genormaliseerd, dus "beduin" vindt BE.DUIN.ARC.4; de inbox-zoekfunctie en alias-matching volgen)* Panden hebben interne codenamen (`be.duinark.be` = "Duin Arka" = De Pagode) en het team praat in die codenamen. Zoeken op "Duin Arka" moet De Pagode opleveren. Fuzzy matching op codenaam, adres en alias.
 - [ ] **Chat met Julie moet ook AI-antwoorden geven** voor eigenaars, net zoals de gastenchat.
 - Later: AI-voorstellen **proactief klaarzetten** i.p.v. op knop drukken.
 
@@ -176,7 +176,7 @@ Vervangt de huidige Excel. Per boeking, niet per maand.
 ## 13. Openstaand / te onderzoeken
 
 - Kan de **totale gastbetaling** (de €1015) uit de Guesty API gehaald worden? Vermoedelijk wel, maar te bevestigen — hier hangt heel §8 aan vast.
-- Kan de **interne codenaam** van een pand (`be.duinark.be`) uit Guesty opgehaald worden voor het semantisch zoeken?
+- [x] Kan de **interne codenaam** van een pand (`be.duinark.be`) uit Guesty opgehaald worden voor het semantisch zoeken? **Ja** — het is het veld `nickname` in de Open API (bv. `BE.DUIN.ARC.4` voor De Pagode). Wordt sinds de sync bewaard als `properties.code_name` en getoond in de pandenlijst, het panddetail en Beheer. Het semantisch zoeken zelf (§5) kan hierop verder bouwen.
 - **Rechtstreeks boeken** op de Linnois-site: kan dat via Guesty? Nog te bekijken. Verder weg: white-label boekingssite voor property managers en makelaars — expliciet niet voor nu.
 - **WhatsApp-integratie voor eigenaarsberichten: afgevoerd.** Eigenaars kunnen in het platform chatten, dus het probleem lost zichzelf op. Mocht het toch terugkomen: WhatsApp Business account nodig én een apart werknummer, want Julie gebruikt nu haar privénummer.
 

@@ -943,4 +943,12 @@ export const en: Dict = {
 
   // ---- artikelpagina ----
   "kennis.allArticles": "← All articles",
+
+  // ---- panden-zoeken ----
+  "props.search": "Search by name, code or location…",
+  "props.searchAria": "Search properties",
+  "props.searchClear": "Clear search",
+  "props.searchCount1": "1 property found",
+  "props.searchCountN": "{n} properties found",
+  "props.searchNone": "No property found for “{q}” — search by name, internal code (e.g. BE.DUIN.ARC.4) or location.",
 };

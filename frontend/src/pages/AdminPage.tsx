@@ -212,8 +212,10 @@ export function AdminPage() {
                     <span className="thumb" style={{ background: "var(--soft)" }}>
                       {p.photo ? <img src={p.photo} alt="" loading="lazy" /> : "🏠"}
                     </span>
-                    <b>{p.name}</b>
-                    <span style={{ color: "var(--muted)", fontSize: 13 }}>{p.location}</span>
+                    <span className="cell-stack">
+                      <b>{p.name}{p.codeName && <code className="code-name">{p.codeName}</code>}</b>
+                      <span className="cell-sub">{p.location}</span>
+                    </span>
                   </div>
                 </td>
                 <td>

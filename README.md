@@ -33,7 +33,8 @@ De backend draait volledig op **Supabase Postgres** — `SUPABASE_DB_URL` in
 `backend/.env` is verplicht. Bij het opstarten maakt de app de eigen
 auth-tabellen aan (users/auth_sessions) en de demo-accounts; de rest van het
 schema komt uit `supabase/migrations/0002_volledig_schema.sql`. Panden en
-boekingen komen binnen via de Guesty-koppeling; "vandaag" is de echte datum.
+boekingen komen binnen via de Guesty-koppeling (inclusief de interne
+codenaam — de Guesty-`nickname`, bv. `BE.DUIN.ARC.4` — als `code_name`); "vandaag" is de echte datum.
 Het oude SQLite-bestand (`backend/data/staybase.db`) is enkel nog een backup
 van vóór de migratie.
 

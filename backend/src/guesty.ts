@@ -368,13 +368,13 @@ export async function syncGuesty(): Promise<GuestySyncSummary> {
 
   const propIdByGuesty = new Map<string, string>();
   const insertProp = db.prepare(`
-    INSERT INTO properties (id, name, location, type, bedrooms, bathrooms, max_guests, area_m2,
+    INSERT INTO properties (id, name, code_name, location, type, bedrooms, bathrooms, max_guests, area_m2,
       rating, status, status_label, art, art_bg, photo, description, channels, cleaning_price,
       base_price_week, base_price_weekend, lat, lng, guesty_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const updateProp = db.prepare(`
-    UPDATE properties SET name = ?, location = ?, type = ?, bedrooms = ?, bathrooms = ?,
+    UPDATE properties SET name = ?, code_name = ?, location = ?, type = ?, bedrooms = ?, bathrooms = ?,
       max_guests = ?, area_m2 = ?, rating = ?, status = ?, status_label = ?, photo = ?,
       cleaning_price = ?, base_price_week = ?, base_price_weekend = ?, lat = ?, lng = ?
     WHERE guesty_id = ?
@@ -383,6 +383,9 @@ export async function syncGuesty(): Promise<GuestySyncSummary> {
   const usedNames = new Set<string>();
   for (const [i, l] of listings.entries()) {
     const name = listingName(l, usedNames);
+    // De interne codenaam waarin het team praat ("BE.DUIN.ARC.4") — de
+    // DEV-TEST-placeholder van Guesty zelf slaan we niet op.
+    const codeName = l.nickname?.trim() && l.nickname.trim().toUpperCase() !== "DEV TEST" ? l.nickname.trim() : null;
     const live = Boolean(l.active && l.isListed);
     const bedrooms = Math.max(1, Math.round(l.bedrooms ?? 1));
     const area = Math.round(l.areaSquareMeters || bedrooms * 45);
@@ -411,13 +414,13 @@ export async function syncGuesty(): Promise<GuestySyncSummary> {
     if (existing) {
       // Kunst (emoji/gradient) en beschrijving laten we staan — die kan de
       // eigenaar in Staybase zelf hebben aangepast.
-      await updateProp.run(vals[0], vals[1], vals[2], vals[3], vals[4], vals[5], vals[6], vals[7], vals[8], vals[9], vals[10], vals[11], vals[12], vals[13], vals[14], vals[15], l._id);
+      await updateProp.run(vals[0], codeName, vals[1], vals[2], vals[3], vals[4], vals[5], vals[6], vals[7], vals[8], vals[9], vals[10], vals[11], vals[12], vals[13], vals[14], vals[15], l._id);
       propIdByGuesty.set(l._id, existing.id);
       summary.listings.updated++;
     } else {
       const id = "g-" + l._id;
       await insertProp.run(
-        id, vals[0], vals[1], vals[2], vals[3], vals[4], vals[5], vals[6], vals[7], vals[8], vals[9],
+        id, vals[0], codeName, vals[1], vals[2], vals[3], vals[4], vals[5], vals[6], vals[7], vals[8], vals[9],
         "🏠", GRADIENTS[i % GRADIENTS.length], vals[10],
         `Geïmporteerd uit Guesty. Pas deze beschrijving gerust aan in Staybase.`,
         JSON.stringify(["airbnb", "booking", "vrbo"]),
