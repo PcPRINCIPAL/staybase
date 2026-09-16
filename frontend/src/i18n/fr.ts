@@ -984,4 +984,11 @@ export const fr: Dict = {
   "invp.empty": "Pas encore de factures. Elles apparaîtront ici dès que vous en téléchargez une pour une réservation terminée.",
   "invp.emptyFiltered": "Aucune facture pour ce bien.",
   "invp.total": "Total facturé",
+
+  // ---- 9b-documenten ----
+  "invp.guestInvoice": "🧾 Facture voyageur",
+  "invp.statement": "📄 Relevé",
+  "invp.mgmtInvoice": "🏢 Facture de gestion",
+  "invp.docsHint": "Par réservation : la facture voyageur (marque blanche, au nom du propriétaire), le relevé propriétaire et la facture de gestion.",
+  "invp.th.docs": "Documents",
 };

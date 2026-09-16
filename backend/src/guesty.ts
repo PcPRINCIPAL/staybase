@@ -141,6 +141,7 @@ interface GuestyReservation {
     hostPayout?: number; netIncome?: number; subTotalPrice?: number;
     fareAccommodation?: number; fareAccommodationAdjusted?: number;
     totalFees?: number; totalTaxes?: number;
+    fareCleaning?: number; commission?: number; hostServiceFeeIncTax?: number;
   };
   integration?: { platform?: string };
   createdAt?: string;   // wanneer de reservatie werd aangemaakt (boekingsmoment)
@@ -447,13 +448,14 @@ export async function syncGuesty(): Promise<GuestySyncSummary> {
   });
 
   const insertBooking = db.prepare(`
-    INSERT INTO bookings (id, property_id, guest, avatar, channel, start_date, end_date, guests, payout, guest_total, note,
-      checkin_time, checkout_time, booked_at, guesty_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO bookings (id, property_id, guest, avatar, channel, start_date, end_date, guests, payout, guest_total,
+      guest_cleaning, ota_fee, note, checkin_time, checkout_time, booked_at, guesty_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const updateBooking = db.prepare(`
     UPDATE bookings SET property_id = ?, guest = ?, channel = ?, start_date = ?, end_date = ?,
-      guests = ?, payout = ?, guest_total = ?, note = ?, checkin_time = ?, checkout_time = ?, booked_at = ? WHERE guesty_id = ?
+      guests = ?, payout = ?, guest_total = ?, guest_cleaning = ?, ota_fee = ?, note = ?,
+      checkin_time = ?, checkout_time = ?, booked_at = ? WHERE guesty_id = ?
   `);
 
   for (const r of reservations) {
@@ -486,15 +488,26 @@ export async function syncGuesty(): Promise<GuestySyncSummary> {
     const m = r.money ?? {};
     const fare = (m.fareAccommodationAdjusted || m.fareAccommodation || 0) + (m.totalFees || 0) + (m.totalTaxes || 0);
     const guestTotal = fare > 0 ? Math.round(fare * 100) / 100 : (payout || null);
+    // Voor het owner statement (§9b): wat de gast voor schoonmaak betaalde,
+    // en de OTA-commissie. Bij Airbnb zit de commissie in het verschil tussen
+    // gastbetaling en uitbetaling (gevalideerd op de klantvoorbeelden); bij
+    // Booking.com factureert de OTA ze apart (het commission-veld, excl. btw).
+    const guestCleaning = m.fareCleaning ?? null;
+    // Op het onafgeronde hostPayout rekenen — de opgeslagen uitbetaling is
+    // op hele euro's afgerond en dat scheelde centen met het klantvoorbeeld.
+    const rawPayout = m.hostPayout ?? m.netIncome ?? null;
+    const otaFee = r.source?.toLowerCase().includes("booking")
+      ? (m.commission ?? null)
+      : (guestTotal != null && rawPayout ? Math.round((guestTotal - rawPayout) * 100) / 100 : (m.hostServiceFeeIncTax ?? null));
     const guest = r.guest?.fullName || "Gast via Guesty";
     const inTime = localTime(r.checkIn);
     const outTime = localTime(r.checkOut);
     const bookedAt = r.confirmedAt ?? r.createdAt ?? null;
     if (existing) {
-      await updateBooking.run(propId, guest, channel, start, end, r.guestsCount ?? 2, payout, guestTotal, sourceNote, inTime, outTime, bookedAt, r._id);
+      await updateBooking.run(propId, guest, channel, start, end, r.guestsCount ?? 2, payout, guestTotal, guestCleaning, otaFee, sourceNote, inTime, outTime, bookedAt, r._id);
       summary.bookings.updated++;
     } else {
-      await insertBooking.run("g-" + r._id, propId, guest, avatarFor(r._id), channel, start, end, r.guestsCount ?? 2, payout, guestTotal, sourceNote, inTime, outTime, bookedAt, r._id);
+      await insertBooking.run("g-" + r._id, propId, guest, avatarFor(r._id), channel, start, end, r.guestsCount ?? 2, payout, guestTotal, guestCleaning, otaFee, sourceNote, inTime, outTime, bookedAt, r._id);
       summary.bookings.created++;
     }
   }

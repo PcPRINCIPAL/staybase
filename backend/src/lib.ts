@@ -74,7 +74,10 @@ export function mapProperty(r: PropertyRow): Property {
 export interface BookingRow {
   id: string; property_id: string; guest: string; avatar: string; channel: Channel;
   start_date: string; end_date: string; guests: number; payout: number;
-  guest_total: number | null; note: string | null;
+  guest_total: number | null;
+  guest_cleaning: number | null;
+  ota_fee: number | null;
+  note: string | null;
   checkin_time: string | null; checkout_time: string | null;
   booked_at: string | null;
 }

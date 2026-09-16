@@ -984,4 +984,11 @@ export const en: Dict = {
   "invp.empty": "No invoices yet. They'll appear here as soon as you download one for a checked-out booking.",
   "invp.emptyFiltered": "No invoices for this property.",
   "invp.total": "Total invoiced",
+
+  // ---- 9b-documenten ----
+  "invp.guestInvoice": "🧾 Guest invoice",
+  "invp.statement": "📄 Statement",
+  "invp.mgmtInvoice": "🏢 Management invoice",
+  "invp.docsHint": "Per booking: the guest invoice (white-label, in the owner's name), the owner statement and the management invoice.",
+  "invp.th.docs": "Documents",
 };

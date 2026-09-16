@@ -117,7 +117,7 @@ De eigenaar blijft juridisch de exploitant en is verplicht een factuur naar de g
 
 - [x] **Knop per boeking** (in kalender/boekingsdetail, naast "stuur een bericht"): **factuur downloaden** — beschikbaar vanaf de uitcheckdag; vóór check-out toont het paneel vanaf wanneer het kan. *(versturen per mail volgt)*
 - [x] **Nudge aan eigenaarszijde**: banner op het dashboard met alle uitgecheckte (of binnen 2 dagen aflopende) boekingen zonder factuur, met downloadknop per boeking.
-- [x] **White-label factuur automatisch genereren**: sobere PDF op naam van de eigenaar (logiesverstrekker), zonder pandfoto's of betaalgegevens; nummering per eigenaar per jaar (F-2026-001), nummer en datum liggen vast bij de eerste download; voettekst "opgemaakt via …, in naam en voor rekening van de logiesverstrekker" per btw-advies. *(vennootschapsgegevens vullen aan zodra de onboarding-popup er is)*
+- [x] **White-label factuur automatisch genereren**: PDF op naam van de eigenaar (logiesverstrekker), zonder pandfoto's of betaalgegevens; nummering per eigenaar per jaar (F-2026-001), nummer en datum vast bij eerste download. Na klantfeedback 15/09 volledig white-label: **geen logo en nergens Staybase of Linnois vermeld** — brandingkleuren blijven wel. *(vennootschapsgegevens vullen aan zodra de onboarding-popup er is)*
 - [ ] Onboarding-popup die de nodige gegevens ophaalt: **particulier / btw-plichtige vennootschap / niet-btw-plichtige vennootschap** (patrimoniumvennootschap e.d.) + vennootschapsgegevens. Bepaalt of er btw op de factuur mag/moet.
 - [ ] Btw-vrije factuur mogelijk maken voor wie geen btw mag innen.
 - ✅ De juridische kant is intussen uitgeklaard in het **btw-advies van 20 juni 2026** (bouwregels in `docs/btw-advies-bouwregels.md`). Kern: eigenaar = logiesverstrekker (logies 12% mits gemeubeld-logies-voorwaarden), alle gastdocumenten op naam van de eigenaar, per eigenaar bijhouden of hij periodieke btw-aangiften indient. Harde regels pas bevriezen na het fysieke overleg dat het advies aanraadt.
@@ -126,11 +126,11 @@ De eigenaar blijft juridisch de exploitant en is verplicht een factuur naar de g
 
 Vervangt de huidige Excel. Per boeking, niet per maand.
 
-- [ ] **Owner statement** genereren: totale gastbetaling, − schoonmaak, − OTA-commissie, = netto opbrengst, plus zichtbaar waarop de commissie berekend is.
-- [ ] **Factuur** genereren: enkel de beheervergoeding, 21% btw. ⚠️ Het btw-advies vraagt dat de omschrijving duidelijk slaat op de **beheer-, coördinatie- en bemiddelingsdienst** — gebruik dus "beheer, coördinatie en bemiddeling", en verwijs nooit naar de logiesdienst aan de gast.
-- [ ] Owner statement en factuur zijn **twee aparte documenten**.
+- [x] **Owner statement** genereren, volgens de klant-templates van 15/09 ("Facturatie Flow Linnois", cent-exact gevalideerd op het Marijke-voorbeeld): totale gastbetaling (met uitsplitsing verblijf/schoonmaak), − OTA-commissie, − schoonmaak, = Net Rental Income; ter info de beheerfactuur en de netto-uitbetaling. Met de rode wenk "dit is GEEN factuur". Schade/linnen staan als lege lijn klaar tot ze bijgehouden worden.
+- [x] **Factuur** genereren: enkel de beheervergoeding met omschrijving "Beheer, coördinatie en bemiddeling", 21% btw, vervaldatum +30 dagen, nummer F{jaar}-{pandcode}-{nr} zoals de klant-template; commissie als momentopname (pct × gastbetaling bij bruto, × Net Rental Income bij netto). Conciërgeservice en andere uitzonderingen volgen.
+- [x] Owner statement en factuur zijn **twee aparte documenten**.
 - [ ] Automatisch een **nieuwe factuurdatum** per nieuwe periode.
-- [ ] Ondersteun beide commissiemodellen (bruto-basis, standaard 15%; netto-basis voor bepaalde eigenaars).
+- [x] Ondersteun beide commissiemodellen (bruto-basis, standaard 15%; netto-basis voor bepaalde eigenaars) — via de commissie-instellingen per gebruiker in Beheer.
 - [ ] **Edge case, één eigenaar**: contract zegt excl. btw, dus daar komt een extra lijn — totale gastbetaling × 0,88 (12% eruit) vóór aftrek van schoonmaak/OTA en vóór de commissieberekening. Owner statement en factuur zelf blijven verder identiek.
 - [ ] Layout in de stijl van het platform, niet de Guesty/Excel-look.
 

@@ -17,10 +17,9 @@ import type { UserRow } from "./auth";
  *     inbegrepen zolang het btw-statuut per eigenaar nog niet is vastgelegd
  *     (de onboarding-popup uit §9a); het tarief staat daarom op de factuurrij
  *     zodat btw-vrij later per eigenaar kan;
- *   • white-label in de huisstijl van het platform: geen pandfoto's, geen
- *     betaalgegevens (expliciet níét de Guesty-stijl). De huisstijl volgt de
- *     herkomst van de eigenaar: Linnois-eigenaars krijgen het diepblauw en
- *     het Linnois-woordmerk, Staybase-eigenaars het koraal en het huisje.
+ *   • volledig white-label (klantfeedback 15/09): geen logo en nergens de
+ *     naam Staybase of Linnois — de brandingkleuren blijven wel de omgeving
+ *     van de eigenaar volgen. Geen pandfoto's, geen betaalgegevens.
  *
  * Eén factuur per boeking: nummer en datum liggen vast bij de eerste
  * download, elke volgende download geeft exact hetzelfde document.
@@ -171,15 +170,8 @@ function drawInvoicePage(doc: PDFKit.PDFDocument, input: InvoicePageInput): void
   // --- merkband bovenaan, zoals het accent op de website ---
   doc.rect(0, 0, doc.page.width, 6).fillColor(pal.accent).fill();
 
-  // --- logo rechtsboven ---
-  if (brand === "linnois" && existsSync(LINNOIS_LOGO)) {
-    // Woordmerk-verhouding 600×184 → hoogte 26 ≈ breedte 85.
-    doc.image(LINNOIS_LOGO, L + W - 85, 62, { height: 26 });
-  } else {
-    drawStaybaseLogo(doc, L + W - 118, 60, 26, pal);
-    doc.font("Helvetica-Bold").fontSize(17).fillColor(pal.accent)
-      .text("staybase", L + W - 86, 65, { width: 90 });
-  }
+  // Bewust géén logo of merknaam op de gastfactuur (klantfeedback 15/09):
+  // volledig white-label — de brandingkleuren mogen wel blijven.
 
   // --- kop ---
   doc.font("Helvetica-Bold").fontSize(24).fillColor(INK).text("Factuur", L, 60);
@@ -264,9 +256,316 @@ function drawInvoicePage(doc: PDFKit.PDFDocument, input: InvoicePageInput): void
   doc.moveTo(L, footY).lineTo(L + W, footY).lineWidth(0.5).strokeColor(LINE).stroke();
   doc.font("Helvetica").fontSize(8.5).fillColor(FAINT)
     .text(
-      `Opgemaakt via ${pal.name}, als beheerder van het vakantieverblijf, in naam en voor rekening van de ` +
-      `logiesverstrekker. Btw-tarief onder voorbehoud van het btw-statuut van de logiesverstrekker en de ` +
-      `toepasselijke overgangsregeling.`,
+      "Opgemaakt door de beheerder van het vakantieverblijf, in naam en voor rekening van de " +
+      "logiesverstrekker. Btw-tarief onder voorbehoud van het btw-statuut van de logiesverstrekker en de " +
+      "toepasselijke overgangsregeling.",
       L, footY + 12, { width: W }
     );
+}
+
+
+/* =========================== §9b: eigenaarsafrekening =========================== */
+
+/**
+ * De reguliere flow uit de klant-templates ("Facturatie Flow Linnois",
+ * gevalideerd op het Marijke-voorbeeld):
+ *
+ *   gastbetaling verblijf = totale gastbetaling − schoonmaak (aan gast)
+ *   Net Rental Income     = totale gastbetaling − OTA-commissie − schoonmaak
+ *                           (− schade − linnen; nog niet bijgehouden)
+ *   commissie             = pct × totale gastbetaling   (basis "bruto")
+ *                           pct × Net Rental Income     (basis "netto")
+ *   factuur               = commissie (excl.) + 21% btw
+ *   netto uitbetaling     = Net Rental Income − factuur incl. btw
+ *
+ * Het owner statement is uitdrukkelijk GEEN factuur (btw-advies punt 7);
+ * de beheerfactuur betreft enkel de beheer-, coördinatie- en
+ * bemiddelingsdienst. Uitzonderingen (conciërgeservice, de 0,88-clausule)
+ * volgen zodra ze in het datamodel zitten.
+ */
+
+export interface OwnerInvoiceRow {
+  id: string;
+  booking_id: string;
+  property_id: string;
+  owner_id: string | null;
+  number: number;
+  year: number;
+  commission_pct: number;
+  commission_basis: "bruto" | "netto";
+  base_amount: number;
+  amount_excl: number;
+  vat_rate: number;
+  issued_at: string;
+}
+
+/** "F2026-KNK.ZEED.843-105-778" — jaartal, pandcode en doorlopend nummer, zoals de klant-template. */
+export function ownerInvoiceLabel(inv: OwnerInvoiceRow, property: PropertyRow): string {
+  const code = property.code_name ? `-${property.code_name}` : "";
+  return `F${inv.year}${code}-${String(inv.number).padStart(3, "0")}`;
+}
+
+/** De §9b-rekenlijnen voor één boeking. */
+export function statementFigures(booking: BookingRow) {
+  const guestTotal = Number(booking.guest_total ?? booking.payout);
+  const cleaning = Number(booking.guest_cleaning ?? 0);
+  const otaFee = Number(booking.ota_fee ?? 0);
+  return {
+    guestTotal,
+    cleaning,
+    otaFee,
+    stay: guestTotal - cleaning,
+    netRentalIncome: guestTotal - otaFee - cleaning,
+  };
+}
+
+/** Bestaande beheerfactuur ophalen of aanmaken met een momentopname van de commissieafspraak. */
+export async function ensureOwnerInvoice(booking: BookingRow, property: PropertyRow): Promise<OwnerInvoiceRow> {
+  const existing = (await db.prepare("SELECT * FROM owner_invoices WHERE booking_id = ?").get(booking.id)) as OwnerInvoiceRow | undefined;
+  if (existing) return existing;
+
+  const year = Number(DEMO_TODAY.slice(0, 4));
+  const ownerId = property.owner_id ?? null;
+  const deal = ownerId
+    ? (await db.prepare("SELECT commission_pct, commission_basis FROM users WHERE id = ?").get(ownerId)) as
+        { commission_pct: number; commission_basis: "bruto" | "netto" } | undefined
+    : undefined;
+  const pct = Number(deal?.commission_pct ?? 15);
+  const basis = deal?.commission_basis ?? "bruto";
+
+  const fig = statementFigures(booking);
+  const base = basis === "netto" ? fig.netRentalIncome : fig.guestTotal;
+  const amountExcl = Math.round(base * pct) / 100; // pct is in procenten
+
+  // Doorlopend nummer per jaar, over alle eigenaars heen (zoals F2026-…-778).
+  const last = (await db.prepare(
+    "SELECT COALESCE(MAX(number), 0) AS n FROM owner_invoices WHERE year = ?"
+  ).get(year)) as { n: number };
+
+  const id = "oinv-" + booking.id;
+  await db.prepare(
+    `INSERT INTO owner_invoices (id, booking_id, property_id, owner_id, number, year,
+       commission_pct, commission_basis, base_amount, amount_excl, vat_rate)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 21)`
+  ).run(id, booking.id, property.id, ownerId, last.n + 1, year, pct, basis, base, amountExcl);
+  return (await db.prepare("SELECT * FROM owner_invoices WHERE booking_id = ?").get(booking.id)) as OwnerInvoiceRow;
+}
+
+/** Beheerdergegevens per omgeving — voorlopig vast; later instelbaar in Beheer. */
+const MANAGER: Record<Brand, { name: string; line: string }> = {
+  linnois: {
+    name: "Linnois",
+    line: "Linnois BV  ·  Stationsstraat 2, 9961 Boekhoute  ·  BTW BE1026 886 441  ·  IBAN BE07 7380 4892 1566",
+  },
+  staybase: {
+    name: "Staybase",
+    line: "Staybase BV  ·  vennootschapsgegevens volgen",
+  },
+};
+
+function drawManagerHeader(doc: PDFKit.PDFDocument, title: string, brand: Brand, L: number, W: number): void {
+  const pal = PALETTES[brand];
+  doc.rect(0, 0, doc.page.width, 6).fillColor(pal.accent).fill();
+  if (brand === "linnois" && existsSync(LINNOIS_LOGO)) {
+    doc.image(LINNOIS_LOGO, L + W - 85, 62, { height: 26 });
+  } else {
+    drawStaybaseLogo(doc, L + W - 118, 60, 26, pal);
+    doc.font("Helvetica-Bold").fontSize(17).fillColor(pal.accent)
+      .text("staybase", L + W - 86, 65, { width: 90 });
+  }
+  doc.font("Helvetica-Bold").fontSize(24).fillColor(INK).text(title, L, 60);
+}
+
+export interface OwnerDocInput {
+  ownerInvoice: OwnerInvoiceRow;
+  booking: BookingRow;
+  property: PropertyRow;
+  owner: Pick<UserRow, "name" | "email"> | null;
+  brand: Brand;
+}
+
+/** Owner statement: administratief overzicht per boeking — uitdrukkelijk geen factuur. */
+export function renderOwnerStatementPdf(input: OwnerDocInput): Promise<Buffer> {
+  const { ownerInvoice, booking, property, owner, brand } = input;
+  const pal = PALETTES[brand];
+  const fig = statementFigures(booking);
+  const invoiceIncl = Number(ownerInvoice.amount_excl) * (1 + Number(ownerInvoice.vat_rate) / 100);
+  const netPayout = fig.netRentalIncome - invoiceIncl;
+
+  const doc = new PDFDocument({ size: "A4", margins: { top: 64, left: 64, right: 64, bottom: 64 } });
+  const chunks: Buffer[] = [];
+  doc.on("data", (c: Buffer) => chunks.push(c));
+  const done = new Promise<Buffer>((resolve) => doc.on("end", () => resolve(Buffer.concat(chunks))));
+  const W = doc.page.width - 128;
+  const L = 64;
+
+  drawManagerHeader(doc, "Owner statement", brand, L, W);
+  // De rode wenk uit de klant-template: dit is géén factuur.
+  doc.font("Helvetica-BoldOblique").fontSize(9.5).fillColor("#B3261E")
+    .text(
+      "Dit is GEEN factuur — louter een administratief overzicht van bedragen ontvangen, verrekend en " +
+      "doorgestort voor rekening van de eigenaar.",
+      L, 96, { width: W }
+    );
+
+  // --- kerngegevens ---
+  const metaY = 136;
+  const meta = (label: string, value: string, row: number) => {
+    doc.font("Helvetica").fontSize(9.5).fillColor(MUTED).text(label, L, metaY + row * 16);
+    doc.font("Helvetica-Bold").fontSize(9.5).fillColor(INK).text(value, L + 130, metaY + row * 16, { width: W - 130 });
+  };
+  meta("Eigenaar", owner?.name ?? "Eigenaar", 0);
+  meta("Pand", `${property.name}${property.code_name ? ` · ${property.code_name}` : ""}`, 1);
+  meta("Periode", `${MONTHS_NL[Number(booking.end_date.slice(5, 7)) - 1]} ${booking.end_date.slice(0, 4)}`, 2);
+  meta("Gast", booking.guest, 3);
+  meta("Verblijfsperiode", `${dateNL(booking.start_date)} – ${dateNL(booking.end_date)}`, 4);
+
+  // --- rekenlijnen ---
+  let y = metaY + 5 * 16 + 22;
+  doc.moveTo(L, y).lineTo(L + W, y).lineWidth(1.5).strokeColor(pal.accent).stroke();
+  doc.font("Helvetica-Bold").fontSize(8.5).fillColor(FAINT)
+    .text("OMSCHRIJVING", L, y + 10, { characterSpacing: 0.6 })
+    .text("BEDRAG", L, y + 10, { width: W, align: "right", characterSpacing: 0.6 });
+  y += 30;
+
+  const line = (label: string, value: number | null, opts: { bold?: boolean; sub?: boolean; negative?: boolean } = {}) => {
+    const display = value == null ? "—" : (opts.negative ? `(${eur(Math.abs(value))})` : eur(value));
+    doc.font(opts.bold ? "Helvetica-Bold" : "Helvetica").fontSize(opts.bold ? 10.5 : 9.5)
+      .fillColor(opts.bold ? INK : opts.sub ? FAINT : MUTED)
+      .text(label, L + (opts.sub ? 12 : 0), y, { width: W - 140 })
+      .text(display, L, y, { width: W, align: "right" });
+    y += opts.bold ? 22 : 18;
+  };
+
+  line("Totale gastbetaling", fig.guestTotal, { bold: true });
+  line("Gastbetaling — verblijf", fig.stay, { sub: true });
+  line("Gastbetaling — schoonmaak", fig.cleaning, { sub: true });
+  line("OTA-commissie", fig.otaFee, { negative: true });
+  line("Schoonmaakkosten", fig.cleaning, { negative: true });
+  line("Eventuele extra kosten (schade, linnen)", null);
+  y += 4;
+  doc.roundedRect(L, y, W, 32, 10).fillColor(pal.soft).fill();
+  doc.font("Helvetica-Bold").fontSize(11.5).fillColor(pal.deep)
+    .text("Netto beheersopbrengst (Net Rental Income)", L + 14, y + 9, { width: W - 200 })
+    .text(eur(fig.netRentalIncome), L + 14, y + 9, { width: W - 28, align: "right" });
+  y += 52;
+
+  // --- ter info: vergoeding en netto-uitbetaling ---
+  doc.font("Helvetica-Oblique").fontSize(9).fillColor(FAINT)
+    .text("Ter info: vergoeding van de beheerder (zie afzonderlijke factuur) en netto-uitbetaling aan de eigenaar.", L, y, { width: W });
+  y = doc.y + 10;
+  line(`Factuur ${MANAGER[brand].name} ${ownerInvoiceLabel(ownerInvoice, property)} (incl. btw)`, invoiceIncl, { negative: true });
+  y += 2;
+  doc.moveTo(L, y).lineTo(L + W, y).lineWidth(1).strokeColor(INK).stroke();
+  y += 8;
+  line("Netto uitbetaling aan eigenaar", netPayout, { bold: true });
+
+  // --- voettekst ---
+  const footY = doc.page.height - 100;
+  doc.moveTo(L, footY).lineTo(L + W, footY).lineWidth(0.5).strokeColor(LINE).stroke();
+  doc.font("Helvetica").fontSize(8.5).fillColor(FAINT)
+    .text(
+      `Opgemaakt door ${MANAGER[brand].name}, als beheerder van het vakantieverblijf, voor rekening van de eigenaar. ` +
+      `Bedragen excl. btw, tenzij anders vermeld.`,
+      L, footY + 12, { width: W }
+    );
+
+  doc.end();
+  return done;
+}
+
+/** Beheerfactuur (beheerder → eigenaar): enkel de eigen dienst, 21% btw. */
+export function renderManagementInvoicePdf(input: OwnerDocInput): Promise<Buffer> {
+  const { ownerInvoice, booking, property, owner, brand } = input;
+  const pal = PALETTES[brand];
+  const excl = Number(ownerInvoice.amount_excl);
+  const vat = excl * Number(ownerInvoice.vat_rate) / 100;
+  const incl = excl + vat;
+  const issued = ownerInvoice.issued_at.slice(0, 10);
+  const due = new Date(new Date(issued + "T00:00:00Z").getTime() + 30 * 86400000).toISOString().slice(0, 10);
+
+  const doc = new PDFDocument({ size: "A4", margins: { top: 64, left: 64, right: 64, bottom: 64 } });
+  const chunks: Buffer[] = [];
+  doc.on("data", (c: Buffer) => chunks.push(c));
+  const done = new Promise<Buffer>((resolve) => doc.on("end", () => resolve(Buffer.concat(chunks))));
+  const W = doc.page.width - 128;
+  const L = 64;
+
+  drawManagerHeader(doc, "Factuur", brand, L, W);
+  doc.font("Helvetica").fontSize(8.5).fillColor(MUTED).text(MANAGER[brand].line, L, 96, { width: W });
+
+  // --- nummerchip + data ---
+  const label = ownerInvoiceLabel(ownerInvoice, property);
+  doc.font("Helvetica-Bold").fontSize(9);
+  const chipW = doc.widthOfString(label) + 20;
+  doc.roundedRect(L, 118, chipW, 20, 10).fillColor(pal.soft).fill();
+  doc.fillColor(pal.deep).text(label, L + 10, 124);
+  doc.font("Helvetica").fontSize(10).fillColor(MUTED)
+    .text(`Factuurdatum ${dateNL(issued)}   ·   Vervaldatum (30 dagen) ${dateNL(due)}`, L + chipW + 12, 124);
+
+  // --- klant (de eigenaar) ---
+  const blockY = 170;
+  doc.font("Helvetica-Bold").fontSize(8.5).fillColor(pal.deep).text("KLANT (EIGENAAR)", L, blockY, { characterSpacing: 0.6 });
+  doc.font("Helvetica-Bold").fontSize(11).fillColor(INK).text(owner?.name ?? "Eigenaar", L, blockY + 15);
+  doc.font("Helvetica").fontSize(9.5).fillColor(MUTED);
+  if (owner?.email) doc.text(owner.email, L, blockY + 30);
+  doc.fontSize(8.5).fillColor(FAINT)
+    .text("Adres en btw-nummer volgen uit de onboarding.", L, blockY + (owner?.email ? 45 : 30), { width: W / 2 - 10 });
+
+  doc.font("Helvetica-Bold").fontSize(8.5).fillColor(pal.deep).text("PAND", L + W / 2, blockY, { characterSpacing: 0.6 });
+  doc.font("Helvetica-Bold").fontSize(11).fillColor(INK)
+    .text(property.code_name ?? property.name, L + W / 2, blockY + 15);
+  doc.font("Helvetica").fontSize(9.5).fillColor(MUTED).text(property.name, L + W / 2, blockY + 30);
+
+  // --- factuurlijn: enkel de eigen dienst (btw-advies punt 3/7) ---
+  const tableY = 260;
+  doc.moveTo(L, tableY).lineTo(L + W, tableY).lineWidth(1.5).strokeColor(pal.accent).stroke();
+  doc.font("Helvetica-Bold").fontSize(8.5).fillColor(FAINT)
+    .text("OMSCHRIJVING", L, tableY + 12, { characterSpacing: 0.6 })
+    .text("BEDRAG (EXCL. BTW)", L, tableY + 12, { width: W, align: "right", characterSpacing: 0.6 });
+
+  let y = tableY + 34;
+  const basisLabel = ownerInvoice.commission_basis === "netto" ? "netto-beheersopbrengst" : "totale gastbetaling";
+  doc.font("Helvetica-Bold").fontSize(10.5).fillColor(INK)
+    .text("Beheer, coördinatie en bemiddeling", L, y, { width: W - 140 })
+    .text(eur(excl), L, y, { width: W, align: "right" });
+  y = Math.max(doc.y, y + 16);
+  doc.font("Helvetica").fontSize(9.5).fillColor(MUTED)
+    .text(
+      `Verblijf ${booking.guest} · ${dateNL(booking.start_date)} – ${dateNL(booking.end_date)} · ` +
+      `${String(ownerInvoice.commission_pct).replace(".", ",")}% op de ${basisLabel} (${eur(Number(ownerInvoice.base_amount))})`,
+      L, y, { width: W - 140 }
+    );
+  y = doc.y + 16;
+  doc.moveTo(L, y).lineTo(L + W, y).lineWidth(0.5).strokeColor(LINE).stroke();
+
+  // --- totalen ---
+  const sumW = 250;
+  const sumX = L + W - sumW;
+  y += 14;
+  doc.font("Helvetica").fontSize(9.5).fillColor(MUTED)
+    .text("Subtotaal (excl. btw)", sumX + 14, y, { width: sumW - 28 })
+    .text(eur(excl), sumX + 14, y, { width: sumW - 28, align: "right" });
+  y += 17;
+  doc.text(`Btw ${Number(ownerInvoice.vat_rate)}%`, sumX + 14, y, { width: sumW - 28 })
+    .text(eur(vat), sumX + 14, y, { width: sumW - 28, align: "right" });
+  y += 21;
+  doc.roundedRect(sumX, y, sumW, 34, 10).fillColor(pal.soft).fill();
+  doc.font("Helvetica-Bold").fontSize(12).fillColor(pal.deep)
+    .text("Totaal te betalen", sumX + 14, y + 10, { width: sumW - 28 })
+    .text(eur(incl), sumX + 14, y + 10, { width: sumW - 28, align: "right" });
+  y += 56;
+
+  // --- verplichte duiding uit de klant-template + btw-advies ---
+  doc.roundedRect(L, y, W, 52, 10).fillColor(SOFT).fill();
+  doc.font("Helvetica").fontSize(9).fillColor(MUTED)
+    .text(
+      `Deze factuur betreft uitsluitend de beheer-, coördinatie- en bemiddelingsdienst van ${MANAGER[brand].name} ` +
+      "aan de eigenaar. Schoonmaak, platform- en softwarekosten zijn reeds verwerkt in de berekening van de " +
+      "Net Rental Income (zie owner statement) en worden niet afzonderlijk aangerekend.",
+      L + 14, y + 12, { width: W - 28 }
+    );
+
+  doc.end();
+  return done;
 }

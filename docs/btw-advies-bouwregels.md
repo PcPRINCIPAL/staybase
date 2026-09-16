@@ -67,10 +67,10 @@ beheerder voor rekening van de eigenaar (punt 8).
 ## Wat dit betekent voor de §9-bouw (checklist)
 
 - [ ] Onboarding-popup eigenaarsgegevens: btw-statuut + btw-nummer + "dient periodieke btw-aangiften in".
-- [ ] Gastfactuur/verblijfsrekening: op naam van de eigenaar, 12%-logica (met vrijstelling/overgang als vlag), nooit Linnois als logiesverstrekker vermelden.
+- [x] Gastfactuur: op naam van de eigenaar, 12%-logica (tarief per factuur opgeslagen), volledig white-label (klantfeedback 15/09: geen logo, nergens Staybase/Linnois).
 - [ ] Rekening/ontvangstbewijs bij check-out als er geen factuur wordt uitgereikt; B2B altijd factuur.
-- [ ] Owner statement: administratief overzicht (gast betaalde − OTA − commissie − schoonmaak = netto), expliciet géén factuurvermeldingen.
-- [ ] Linnois-factuur: enkel de vergoeding, 21%, omschrijving "beheer, coördinatie en bemiddeling".
+- [x] Owner statement: administratief overzicht per boeking (gast betaalde − OTA − schoonmaak = Net Rental Income; ter info factuur + netto-uitbetaling), met expliciete "dit is GEEN factuur"-wenk.
+- [x] Linnois-factuur: enkel de vergoeding, 21%, omschrijving "Beheer, coördinatie en bemiddeling", vervaldatum +30 dagen.
 - [ ] Schoonmaak standaard niet als aparte factuurlijn; aparte doorrekening enkel met de verleggings-/21%-logica per eigenaar.
 - [ ] De bestaande €0,88-edge case (één eigenaar, contract excl. btw) uit de meeting blijft een aparte statement-rekenlijn — geen factuurregel.
 

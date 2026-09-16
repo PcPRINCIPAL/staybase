@@ -323,6 +323,16 @@ export function downloadInvoice(bookingId: string): void {
   window.location.assign(`/api/bookings/${bookingId}/invoice.pdf`);
 }
 
+/** Owner statement (§9b): administratief overzicht per boeking. */
+export function downloadOwnerStatement(bookingId: string): void {
+  window.location.assign(`/api/bookings/${bookingId}/owner-statement.pdf`);
+}
+
+/** Beheerfactuur (§9b): vergoeding beheerder → eigenaar. */
+export function downloadManagementInvoice(bookingId: string): void {
+  window.location.assign(`/api/bookings/${bookingId}/management-invoice.pdf`);
+}
+
 /** Bundel: alle facturen in scope als één PDF, optioneel voor één pand. */
 export function downloadInvoiceBundle(propertyId?: string): void {
   window.location.assign(`/api/invoices/bundle.pdf${propertyId ? `?property=${propertyId}` : ""}`);

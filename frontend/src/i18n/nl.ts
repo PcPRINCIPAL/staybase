@@ -988,4 +988,11 @@ export const nl: Dict = {
   "invp.empty": "Nog geen facturen. Ze verschijnen hier zodra je er één downloadt bij een uitgecheckte boeking.",
   "invp.emptyFiltered": "Geen facturen voor dit pand.",
   "invp.total": "Totaal gefactureerd",
+
+  // ---- 9b-documenten ----
+  "invp.guestInvoice": "🧾 Gastfactuur",
+  "invp.statement": "📄 Statement",
+  "invp.mgmtInvoice": "🏢 Beheerfactuur",
+  "invp.docsHint": "Per boeking: de gastfactuur (white-label, op naam van de eigenaar), het owner statement en de beheerfactuur.",
+  "invp.th.docs": "Documenten",
 };

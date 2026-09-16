@@ -134,7 +134,7 @@ export function OwnerHome() {
       {invoices && invoices.pending.length > 0 && (
         <div className="card inv-nudge">
           <div className="inv-nudge-head">
-            <span className="inv-nudge-ico">🧾</span>
+            <span className="inv-nudge-ico"><Icon name="receipt" size={26} /></span>
             <div>
               <b>{invoices.pending.length === 1 ? t("inv.nudge1") : t("inv.nudgeN", { n: invoices.pending.length })}</b>
               <span>{t("inv.nudgeBody")}</span>

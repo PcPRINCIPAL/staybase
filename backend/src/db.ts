@@ -154,6 +154,33 @@ export async function bootstrap(): Promise<void> {
   // voor de gastfactuur (§9a) en straks voor de opbrengstenketen (§8).
   await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS guest_total numeric;`);
 
+  // Kostencomponenten per boeking uit Guesty — voor het owner statement (§9b):
+  // wat de gast voor schoonmaak betaalde, en wat de OTA aanrekent.
+  await pool.query(`
+    ALTER TABLE bookings ADD COLUMN IF NOT EXISTS guest_cleaning numeric;
+    ALTER TABLE bookings ADD COLUMN IF NOT EXISTS ota_fee numeric;
+  `);
+
+  // Beheerfacturen (Linnois/Staybase → eigenaar, §9b): één per boeking, met
+  // een momentopname van de commissieafspraak zodat een latere wijziging in
+  // Beheer geen oude facturen herschrijft.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS owner_invoices (
+      id text PRIMARY KEY,
+      booking_id text NOT NULL UNIQUE REFERENCES bookings (id) ON DELETE CASCADE,
+      property_id text NOT NULL,
+      owner_id text,
+      number int NOT NULL,
+      year int NOT NULL,
+      commission_pct numeric NOT NULL,
+      commission_basis text NOT NULL,
+      base_amount numeric NOT NULL,
+      amount_excl numeric NOT NULL,
+      vat_rate numeric NOT NULL DEFAULT 21,
+      issued_at timestamptz NOT NULL DEFAULT now()
+    );
+  `);
+
   // Gastfacturen (eigenaar → gast, §9a): één per boeking; nummer en datum
   // liggen vast vanaf de eerste download, zodat elke download identiek is.
   await pool.query(`

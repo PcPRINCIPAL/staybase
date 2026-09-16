@@ -15,7 +15,11 @@ import { answer } from "./assistant";
 import { aiAvailable, llmAnswer, llmDraft, llmTranslate } from "./ai";
 import { guestyAvailable, guestyStatus, resetGuestyData, syncGuesty, testGuesty } from "./guesty";
 import { currentUser, requireAdmin, requirePlan, requireView } from "./auth";
-import { ensureInvoice, invoiceAvailable, invoiceForBooking, invoiceLabel, renderInvoiceBundlePdf, renderInvoicePdf, type InvoicePageInput, type InvoiceRow } from "./invoice";
+import {
+  ensureInvoice, ensureOwnerInvoice, invoiceAvailable, invoiceForBooking, invoiceLabel,
+  ownerInvoiceLabel, renderInvoiceBundlePdf, renderInvoicePdf, renderManagementInvoicePdf,
+  renderOwnerStatementPdf, type InvoicePageInput, type InvoiceRow,
+} from "./invoice";
 import { brandFor } from "../../shared/types";
 
 export const routes = Router();
@@ -1036,6 +1040,61 @@ async function invoicePageInput(inv: InvoiceRow, req: import("express").Request)
   const brand = owner ? brandFor({ role: "owner", origin: owner.origin }) : brandFor(currentUser(req));
   return { invoice: inv, booking, property, owner: owner ?? null, brand };
 }
+
+/** Gedeelde opbouw voor de §9b-documenten (statement + beheerfactuur). */
+async function ownerDocInput(req: import("express").Request, bookingId: string) {
+  const found = await scopedBooking(req, bookingId);
+  if (!found) return null;
+  const { booking, property } = found;
+  if (!invoiceAvailable(booking)) return "too-early" as const;
+  const ownerInvoice = await ensureOwnerInvoice(booking, property);
+  const owner = property.owner_id
+    ? (await db.prepare("SELECT name, email, origin FROM users WHERE id = ?").get(property.owner_id)) as
+        { name: string; email: string; origin: "staybase" | "linnois" } | undefined
+    : undefined;
+  const brand = owner ? brandFor({ role: "owner", origin: owner.origin }) : brandFor(currentUser(req));
+  return { ownerInvoice, booking, property, owner: owner ?? null, brand };
+}
+
+/**
+ * Owner statement (§9b): administratief overzicht per boeking — geen factuur.
+ * Beschikbaar vanaf de uitcheckdag, net als de gastfactuur.
+ */
+routes.get("/bookings/:id/owner-statement.pdf", async (req, res) => {
+  const input = await ownerDocInput(req, req.params.id);
+  if (!input) {
+    res.status(404).json({ error: "onbekende boeking" });
+    return;
+  }
+  if (input === "too-early") {
+    res.status(409).json({ error: "De gast is nog niet uitgecheckt — de afrekening volgt vanaf de uitcheckdag." });
+    return;
+  }
+  const pdf = await renderOwnerStatementPdf(input);
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="Owner statement ${input.property.name} ${input.booking.guest}.pdf"`);
+  res.send(pdf);
+});
+
+/**
+ * Beheerfactuur (§9b): de vergoeding van de beheerder aan de eigenaar,
+ * 21% btw, berekend volgens de commissieafspraak (momentopname bij aanmaak).
+ */
+routes.get("/bookings/:id/management-invoice.pdf", async (req, res) => {
+  const input = await ownerDocInput(req, req.params.id);
+  if (!input) {
+    res.status(404).json({ error: "onbekende boeking" });
+    return;
+  }
+  if (input === "too-early") {
+    res.status(409).json({ error: "De gast is nog niet uitgecheckt — de beheerfactuur volgt vanaf de uitcheckdag." });
+    return;
+  }
+  const pdf = await renderManagementInvoicePdf(input);
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="${ownerInvoiceLabel(input.ownerInvoice, input.property)}.pdf"`);
+  res.send(pdf);
+});
 
 /**
  * Alle uitgereikte facturen binnen de scope, met boekings- en pandcontext —

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import {
-  downloadInvoice, downloadInvoiceBundle, useInvoices, useInvoicesOverview,
-  type InvoiceListItem,
+  downloadInvoice, downloadInvoiceBundle, downloadManagementInvoice, downloadOwnerStatement,
+  useInvoices, useInvoicesOverview, type InvoiceListItem,
 } from "../lib/api";
 import { eur, shortDate } from "../lib/format";
 import { useT } from "../i18n";
@@ -99,18 +99,26 @@ export function InvoicesPage() {
                         <th>{t("invp.th.stay")}</th>
                         <th>{t("invp.th.date")}</th>
                         <th>{t("invp.th.amount")}</th>
+                        <th>{t("invp.th.docs")}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {g.rows.map((r) => (
-                        <tr key={r.bookingId} className="row-link" onClick={() => downloadInvoice(r.bookingId)}>
+                        <tr key={r.bookingId}>
                           <td><span className="chip gray num">🧾 {r.label}</span></td>
                           <td><b>{r.guest}</b></td>
                           <td className="num" style={{ color: "var(--muted)", fontWeight: 500 }}>
                             {r.startDate && r.endDate ? `${shortDate(r.startDate)} – ${shortDate(r.endDate)}` : "—"}
                           </td>
                           <td className="num" style={{ color: "var(--muted)", fontWeight: 500 }}>{shortDate(r.issuedAt)}</td>
-                          <td className="num">{eur(Math.round(r.amount))}</td>
+                          <td className="num" style={{ fontWeight: 700 }}>{eur(Math.round(r.amount))}</td>
+                          <td>
+                            <span className="invp-docs">
+                              <button className="btn ghost sm" onClick={() => downloadInvoice(r.bookingId)}>{t("invp.guestInvoice")}</button>
+                              <button className="btn ghost sm" onClick={() => downloadOwnerStatement(r.bookingId)}>{t("invp.statement")}</button>
+                              <button className="btn ghost sm" onClick={() => downloadManagementInvoice(r.bookingId)}>{t("invp.mgmtInvoice")}</button>
+                            </span>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -129,7 +137,7 @@ export function InvoicesPage() {
       {pending.length > 0 && (
         <>
           <h2 className="sec-title"><span className="em">⏳</span> {t("invp.pending")}</h2>
-          <p className="sub" style={{ marginTop: -6 }}>{t("invp.pendingSub")}</p>
+          <p className="sub" style={{ marginTop: -6 }}>{t("invp.pendingSub")} {t("invp.docsHint")}</p>
           <div className="card">
             <table className="mini">
               <tbody>
@@ -141,9 +149,13 @@ export function InvoicesPage() {
                     </td>
                     <td className="num" style={{ color: "var(--muted)", fontWeight: 500 }}>{shortDate(p.endDate)}</td>
                     <td>
-                      <button className="btn primary sm" onClick={() => { downloadInvoice(p.bookingId); refresh(); }}>
-                        {t("inv.download")}
-                      </button>
+                      <span className="invp-docs">
+                        <button className="btn primary sm" onClick={() => { downloadInvoice(p.bookingId); refresh(); }}>
+                          {t("invp.guestInvoice")}
+                        </button>
+                        <button className="btn ghost sm" onClick={() => downloadOwnerStatement(p.bookingId)}>{t("invp.statement")}</button>
+                        <button className="btn ghost sm" onClick={() => downloadManagementInvoice(p.bookingId)}>{t("invp.mgmtInvoice")}</button>
+                      </span>
                     </td>
                   </tr>
                 ))}
