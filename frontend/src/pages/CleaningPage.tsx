@@ -1,4 +1,4 @@
-import { useCleanings, useConfirmCleaning, useOverview } from "../lib/api";
+import { downloadCleaningReport, useCleanings, useConfirmCleaning, useOverview } from "../lib/api";
 import { eur } from "../lib/format";
 import { Icon } from "../components/Icon";
 import { useToast } from "../components/Toast";
@@ -109,18 +109,24 @@ export function CleaningPage() {
               <span>{c.dowLabel}</span>
             </span>
             <span className="who">
-              <b>{c.propertyName}</b>
-              <span>{platform.cleaningDetails ? t("clean.photos", { team: c.team, n: c.photos ?? 0 }) : t("clean.executed")}</span>
+              <b>{c.propertyName}{platform.cleaningDetails && c.timeLabel ? ` · ${c.timeLabel}` : ""}</b>
+              <span>
+                {platform.cleaningDetails ? t("clean.photos", { team: c.team, n: c.photos ?? 0 }) : t("clean.executed")}
+                {platform.cleaningDetails && c.checklistTotal ? ` · ${t("clean.checklist", { d: c.checklistDone ?? 0, n: c.checklistTotal })}` : ""}
+              </span>
             </span>
             <span className="end">
-              {platform.cleaningDetails ? (
-                <>
-                  {statusEnd(c, onConfirm, confirm.isPending, t)}
-                  <button className="btn ghost sm" onClick={() => toast(t("clean.photosDemo"))}>
-                    {t("clean.viewPhotos")}
-                  </button>
-                </>
-              ) : <span className="chip good">{t("clean.chipDone")}</span>}
+              {platform.cleaningDetails
+                ? statusEnd(c, onConfirm, confirm.isPending, t)
+                : <span className="chip good">{t("clean.chipDone")}</span>}
+              {c.reportAvailable && (
+                // Het inspectierapport (Breezeway, met beheerder-branding en
+                // zonder teamnamen) is er juist voor de eigenaar — dus ook
+                // zichtbaar in de uitgeklede Linnois-variant.
+                <button className="btn ghost sm" onClick={() => downloadCleaningReport(c.id)}>
+                  {t("clean.report")}
+                </button>
+              )}
             </span>
           </div>
         ))}

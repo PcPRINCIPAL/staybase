@@ -156,6 +156,20 @@ export async function bootstrap(): Promise<void> {
     END $$;
   `);
 
+  // Breezeway-koppeling (changes 2.0, fase 3): het poetsteam plant in
+  // Breezeway; wij verrijken de poetsbeurten met het exacte moment, de
+  // checklist en de inspectiefoto's, en linken ze aan de boeking ervoor.
+  await pool.query(`
+    ALTER TABLE cleanings ADD COLUMN IF NOT EXISTS breezeway_id text;
+    ALTER TABLE cleanings ADD COLUMN IF NOT EXISTS booking_id text;
+    ALTER TABLE cleanings ADD COLUMN IF NOT EXISTS scheduled_start text;
+    ALTER TABLE cleanings ADD COLUMN IF NOT EXISTS scheduled_end text;
+    ALTER TABLE cleanings ADD COLUMN IF NOT EXISTS finished_at text;
+    ALTER TABLE cleanings ADD COLUMN IF NOT EXISTS checklist_done integer;
+    ALTER TABLE cleanings ADD COLUMN IF NOT EXISTS checklist_total integer;
+    ALTER TABLE cleanings ADD COLUMN IF NOT EXISTS report_photos jsonb;
+  `);
+
   // Admin-view (changes 2.0, fase 2): een beheerder switcht tussen de
   // Linnois-, de Staybase- en de overall-wereld; de keuze blijft bewaard.
   await pool.query(`

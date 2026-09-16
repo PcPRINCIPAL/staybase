@@ -15,10 +15,11 @@ import type {
 import { answer } from "./assistant";
 import { aiAvailable, llmAnswer, llmDraft, llmTranslate } from "./ai";
 import { guestyAvailable, guestyStatus, resetGuestyData, syncGuesty, testGuesty } from "./guesty";
+import { breezewayAvailable, breezewayStatus, resetBreezewayData, syncBreezeway, testBreezeway } from "./breezeway";
 import { currentUser, publicUser, requireAdmin, requirePlan, requireView, type UserRow } from "./auth";
 import {
   ensureInvoice, ensureOwnerInvoice, invoiceAvailable, invoiceForBooking, invoiceLabel,
-  ownerInvoiceLabel, renderInvoiceBundlePdf, renderInvoicePdf, renderManagementInvoicePdf,
+  ownerInvoiceLabel, renderCleaningReportPdf, renderInvoiceBundlePdf, renderInvoicePdf, renderManagementInvoicePdf,
   renderOwnerStatementPdf, type InvoicePageInput, type InvoiceRow,
 } from "./invoice";
 import { brandFor } from "../../shared/types";
@@ -484,6 +485,12 @@ routes.get("/calendar", async (req, res) => {
     (await db.prepare("SELECT end_date FROM bookings WHERE property_id = ?").all(propertyId) as unknown as { end_date: string }[])
       .map((r) => r.end_date)
   );
+  // Echte poetsmomenten (Breezeway, fase 3) — zodra die er zijn vervangen ze
+  // de aanname "poets = uitcheckdag".
+  const cleaningDays = new Set(
+    (await db.prepare("SELECT date::text AS d FROM cleanings WHERE property_id = ?").all(propertyId) as unknown as { d: string }[])
+      .map((r) => r.d.slice(0, 10))
+  );
   const sugs = await suggestionsFor(propertyId);
   // Linnois bepaalt de prijzen voor zijn eigenaars — die krijgen ze hier dus
   // niet mee, ook niet als de frontend erom zou vragen.
@@ -505,7 +512,9 @@ routes.get("/calendar", async (req, res) => {
       day: d,
       weekday: weekdayMonday(dateIso),
       today: dateIso === DEMO_TODAY,
-      cleaning: checkoutDays.has(dateIso),
+      // Het exacte poetsmoment uit Breezeway wint (fase 3): bij een gat
+      // tussen boekingen valt de poets niet per se op de uitcheckdag.
+      cleaning: cleaningDays.size > 0 ? cleaningDays.has(dateIso) : checkoutDays.has(dateIso),
       booking: b
         ? { id: b.id, guest: b.guest, channel: b.channel, isStart: b.startDate === dateIso, isEnd: addDays(b.endDate, -1) === dateIso }
         : null,
@@ -694,21 +703,29 @@ function stripCleaning(c: Cleaning): Cleaning {
     timeLabel: null, team: "Ingepland door Linnois", source: "own", price: 0,
     status: c.status === "done" ? "done" : "confirmed",
     statusNote: null, photos: null, aiCheck: null,
+    checklistDone: null, checklistTotal: null,
+    // Het inspectierapport is juist vóór de eigenaar bedoeld — blijft staan.
+    reportAvailable: c.reportAvailable,
   };
 }
 
 async function mapCleaning(r: any): Promise<Cleaning> {
   const prop = (await propertyById(r.property_id))!;
-  const d = new Date(r.date + "T00:00:00Z");
+  // Postgres geeft een date-kolom als Date-object terug — normaliseer naar ISO.
+  const date: string = typeof r.date === "string" ? r.date.slice(0, 10) : new Date(r.date).toISOString().slice(0, 10);
+  const d = new Date(date + "T00:00:00Z");
   return {
     id: r.id, propertyId: r.property_id, propertyName: prop.name,
-    date: r.date,
+    date,
     dateLabel: String(d.getUTCDate()),
-    dowLabel: r.date === DEMO_TODAY ? `${MONTH_LABELS[d.getUTCMonth()]} · vandaag` : `${MONTH_LABELS[d.getUTCMonth()]} · ${DOW_LABELS[weekdayMonday(r.date)]}`,
+    dowLabel: date === DEMO_TODAY ? `${MONTH_LABELS[d.getUTCMonth()]} · vandaag` : `${MONTH_LABELS[d.getUTCMonth()]} · ${DOW_LABELS[weekdayMonday(date)]}`,
     timeLabel: r.time_label,
     team: r.team, source: r.source, price: r.price,
     status: r.status, statusNote: r.status_note,
     photos: r.photos, aiCheck: r.ai_check,
+    checklistDone: r.checklist_done ?? null,
+    checklistTotal: r.checklist_total ?? null,
+    reportAvailable: Boolean(r.breezeway_id) && r.status === "done",
   };
 }
 
@@ -1639,6 +1656,74 @@ routes.post("/integrations/guesty/sync", requireAdmin, async (_req, res) => {
 
 routes.post("/integrations/guesty/reset", requireAdmin, async (_req, res) => {
   res.json(await resetGuestyData());
+});
+
+/* =========================== Breezeway (fase 3) =========================== */
+
+routes.get("/integrations/breezeway", async (_req, res) => {
+  res.json(await breezewayStatus());
+});
+
+routes.post("/integrations/breezeway/test", requireAdmin, async (_req, res) => {
+  if (!breezewayAvailable()) {
+    res.status(409).json({ error: "Breezeway niet geconfigureerd — zet BREEZEWAY_CLIENT_ID en BREEZEWAY_CLIENT_SECRET in backend/.env" });
+    return;
+  }
+  try {
+    res.json(await testBreezeway());
+  } catch (err) {
+    console.warn("Breezeway-verbindingstest mislukt:", err);
+    res.status(502).json({ error: err instanceof Error ? err.message : "Verbinding met Breezeway mislukte" });
+  }
+});
+
+routes.post("/integrations/breezeway/sync", requireAdmin, async (_req, res) => {
+  try {
+    res.json(await syncBreezeway());
+  } catch (err) {
+    console.warn("Breezeway-sync mislukt:", err);
+    res.status(502).json({ error: err instanceof Error ? err.message : "Synchroniseren met Breezeway mislukte" });
+  }
+});
+
+routes.post("/integrations/breezeway/reset", requireAdmin, async (_req, res) => {
+  res.json(await resetBreezewayData());
+});
+
+/**
+ * Inspectierapport van een afgewerkte poetsbeurt (fase 3): PDF met de
+ * branding van de beheerder, uitdrukkelijk zonder namen van de poetsploeg.
+ * Ook voor de eigenaar van het pand — het rapport is juist voor hem bedoeld.
+ */
+routes.get("/cleanings/:id/report.pdf", async (req, res) => {
+  const row = (await db.prepare("SELECT * FROM cleanings WHERE id = ?").get(req.params.id)) as any;
+  const scopeIds = new Set((await scopedProperties(req)).map((p) => p.id));
+  if (!row || !scopeIds.has(row.property_id)) {
+    res.status(404).json({ error: "onbekende poetsbeurt" });
+    return;
+  }
+  if (row.status !== "done" || !row.breezeway_id) {
+    res.status(409).json({ error: "Het rapport volgt zodra de poetsbeurt is afgewerkt en gesynct." });
+    return;
+  }
+  const property = (await propertyById(row.property_id))!;
+  const booking = row.booking_id
+    ? ((await db.prepare("SELECT * FROM bookings WHERE id = ?").get(row.booking_id)) as BookingRow | undefined) ?? null
+    : null;
+  const brand = propertyBrand(property);
+  const date: string = typeof row.date === "string" ? row.date.slice(0, 10) : new Date(row.date).toISOString().slice(0, 10);
+  const pdf = await renderCleaningReportPdf({
+    cleaning: {
+      date, time_label: row.time_label, finished_at: row.finished_at,
+      checklist_done: row.checklist_done, checklist_total: row.checklist_total,
+      photos: row.photos,
+      report_photos: typeof row.report_photos === "string" ? JSON.parse(row.report_photos) : row.report_photos ?? [],
+    },
+    property, booking, brand,
+  });
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="Schoonmaakrapport ${property.name} ${date}.pdf"`);
+  res.send(pdf);
 });
 
 /* =========================== Assistent & AI =========================== */

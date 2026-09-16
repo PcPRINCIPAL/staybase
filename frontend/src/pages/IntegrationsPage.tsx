@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import {
-  testGuestyConnection, useGuestyReset, useGuestyStatus, useGuestySync,
+  testBreezewayConnection, testGuestyConnection, useBreezewayReset, useBreezewayStatus, useBreezewaySync,
+  useGuestyReset, useGuestyStatus, useGuestySync,
 } from "../lib/api";
 import { useToast } from "../components/Toast";
 import { useAuth } from "../auth";
@@ -18,9 +19,14 @@ export function IntegrationsPage() {
   const { data: status, isLoading } = useGuestyStatus();
   const sync = useGuestySync();
   const reset = useGuestyReset();
+  const { data: bw } = useBreezewayStatus();
+  const bwSync = useBreezewaySync();
+  const bwReset = useBreezewayReset();
   const toast = useToast();
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
+  const [bwTesting, setBwTesting] = useState(false);
+  const [bwTestResult, setBwTestResult] = useState<string | null>(null);
 
   if (user?.role !== "admin") return <Navigate to="/" replace />;
   if (isLoading || !status) return <div className="loading">{t("int.loading")}</div>;
@@ -136,6 +142,76 @@ export function IntegrationsPage() {
               : t("int.kpi.noSync")}
           </span>
         </div>
+      </div>
+
+      <h2 className="sec-title"><span className="em">🧽</span> Breezeway</h2>
+      <div className="card" style={{ padding: "20px 22px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <b style={{ fontSize: 16 }}>Breezeway</b>
+          {bw?.configured
+            ? <span className="chip good">{t("int.configured")}</span>
+            : <span className="chip warn">{t("int.bwDemoChip")}</span>}
+          {bw?.lastSync && <span className="chip gray">{t("int.lastSyncChip", { t: fmtSyncTime(bw.lastSync.at) })}</span>}
+        </div>
+        <p style={{ color: "var(--muted)", fontSize: 14, margin: "10px 0 0", maxWidth: 640 }}>
+          {t("int.bwBody")}
+        </p>
+
+        {!bw?.configured && (
+          <div style={{ marginTop: 16, background: "var(--bg)", borderRadius: 12, padding: "14px 18px", fontSize: 14 }}>
+            <b>{t("int.bwDemoTitle")}</b>
+            <p style={{ margin: "6px 0 0", lineHeight: 1.7, color: "var(--muted)" }}>{t("int.bwDemoBody")}</p>
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
+          {bw?.configured && (
+            <button className="btn ghost sm" disabled={bwTesting} onClick={async () => {
+              setBwTesting(true);
+              setBwTestResult(null);
+              try {
+                const r = await testBreezewayConnection();
+                setBwTestResult(t("int.bwTestOk", { n: r.propertiesTotal }));
+              } catch (err) {
+                setBwTestResult(`✗ ${err instanceof Error ? err.message : t("int.testFail")}`);
+              } finally {
+                setBwTesting(false);
+              }
+            }}>
+              {bwTesting ? t("int.testing") : t("int.test")}
+            </button>
+          )}
+          <button className="btn coral sm" disabled={bwSync.isPending} onClick={() => {
+            bwSync.mutate([], {
+              onSuccess: (s) => toast(t("int.bwSyncOk", { n: s.tasks.created + s.tasks.updated })),
+              onError: (err) => toast(t("int.syncFail", { e: err.message })),
+            });
+          }}>
+            {bwSync.isPending ? t("int.syncing") : t("int.syncNow")}
+          </button>
+          {(bw?.linkedCleanings ?? 0) > 0 && (
+            <button className="btn ghost sm" disabled={bwReset.isPending} onClick={() => {
+              if (!window.confirm(t("int.bwRemoveConfirm"))) return;
+              bwReset.mutate([], {
+                onSuccess: (r) => toast(t("int.bwRemoveOk", { n: r.cleanings })),
+                onError: (err) => toast(t("int.removeFail", { e: err.message })),
+              });
+            }}>
+              {t("int.removeData")}
+            </button>
+          )}
+        </div>
+        {bwTestResult && (
+          <p style={{ marginTop: 12, fontSize: 14, color: bwTestResult.startsWith("✓") ? "var(--good, #1c8a4e)" : "var(--coral, #e05263)" }}>
+            {bwTestResult}
+          </p>
+        )}
+
+        {(bw?.linkedCleanings ?? 0) > 0 && (
+          <p style={{ marginTop: 14, fontSize: 14, color: "var(--muted)" }}>
+            {t("int.bwStats", { n: bw!.linkedCleanings, r: bw!.reportsReady })}
+          </p>
+        )}
       </div>
 
       <h2 className="sec-title"><span className="em">🧩</span> {t("int.soon")}</h2>

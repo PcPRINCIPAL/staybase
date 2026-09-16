@@ -109,16 +109,22 @@ tussen drie admin-views**:
 Startpunt van de integraties — "ik ga sowieso beginnen met die Breezeway".
 Login beschikbaar (julie@linnois.be); toegang tot het platform is er.
 
-- [ ] **Breezeway-data binnentrekken** en de boekingsdata in Staybase ermee
+⚠️ **Draait in demomodus** tot er API-keys zijn (BREEZEWAY_CLIENT_ID +
+BREEZEWAY_CLIENT_SECRET in backend/.env, aan te maken onder Settings →
+Integrations → API): de sync bouwt dan realistische poetsbeurten op uit de
+boekingen, met dezelfde datastructuur — de echte API-client staat klaar en
+neemt het over zodra de keys er zijn, zonder schermwijzigingen.
+
+- [x] **Breezeway-data binnentrekken** en de boekingsdata in Staybase ermee
       **verrijken**: geplande poetsbeurten (datum/uur), status, check-in/
       check-out-inspecties.
-- [ ] **Exacte poetsmoment** tonen in de kalender (lost de vraag op: gat van
+- [x] **Exacte poetsmoment** tonen in de kalender (lost de vraag op: gat van
       tien dagen tussen boekingen → wanneer valt de poets echt).
-- [ ] **Inspectierapporten + foto's** ophalen per poetsbeurt.
-- [ ] **Rapport-PDF met Linnois-branding** per boeking voor de eigenaar:
+- [x] **Inspectierapporten + foto's** ophalen per poetsbeurt (checklist, fototeller, inspectiefoto).
+- [x] **Rapport-PDF met Linnois-branding** per boeking voor de eigenaar:
       samenvatting van de periode + foto's. **Zonder namen van de poetsploeg**
       (wel de gastperiode). Ter beschikking stellen aan de eigenaarszijde.
-- [ ] Scope: enkel voor Linnois-panden (of Staybase-klanten die
+- [x] Scope: enkel voor Linnois-panden (of Staybase-klanten die
       Linnois-schoonmaak afnemen).
 - Later/idee: AI op de inspectiefoto's (schadedetectie) en het aparte
   "Stay Clean"-poetspartnerdashboard — zie backlog.

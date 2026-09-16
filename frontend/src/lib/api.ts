@@ -415,6 +415,44 @@ export const useGuestyReset = () =>
     GUESTY_KEYS
   );
 
+/* ---------- Breezeway (fase 3) ---------- */
+
+export interface BreezewaySyncSummary {
+  at: string;
+  mode: "api" | "demo";
+  tasks: { created: number; updated: number; skipped: number };
+}
+
+export interface BreezewayStatus {
+  configured: boolean;
+  demoMode: boolean;
+  lastSync: BreezewaySyncSummary | null;
+  linkedCleanings: number;
+  reportsReady: number;
+}
+
+export const useBreezewayStatus = () =>
+  useQuery({ queryKey: ["breezeway-status"], queryFn: () => api<BreezewayStatus>("/integrations/breezeway") });
+
+export const testBreezewayConnection = () =>
+  api<{ ok: boolean; propertiesTotal: number }>("/integrations/breezeway/test", { method: "POST" });
+
+const BREEZEWAY_KEYS = [["breezeway-status"], ["overview"], ["calendar"], ["cleanings"], ["property"]];
+
+export const useBreezewaySync = () =>
+  useInvalidating(() => api<BreezewaySyncSummary>("/integrations/breezeway/sync", { method: "POST" }), BREEZEWAY_KEYS);
+
+export const useBreezewayReset = () =>
+  useInvalidating(
+    () => api<{ cleanings: number }>("/integrations/breezeway/reset", { method: "POST" }),
+    BREEZEWAY_KEYS
+  );
+
+/** Inspectierapport van een afgewerkte poetsbeurt (Linnois-branding, zonder teamnamen). */
+export function downloadCleaningReport(cleaningId: string): void {
+  window.location.assign(`/api/cleanings/${cleaningId}/report.pdf`);
+}
+
 export const useAiStatus = () =>
   useQuery({ queryKey: ["ai-status"], queryFn: () => api<{ llm: boolean }>("/ai-status"), staleTime: 60_000 });
 

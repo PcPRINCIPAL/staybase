@@ -477,6 +477,11 @@ export interface Cleaning {
   statusNote: string | null;
   photos: number | null;
   aiCheck: string | null;
+  /** Breezeway (fase 3): checklist-voortgang van de poetsbeurt. */
+  checklistDone: number | null;
+  checklistTotal: number | null;
+  /** Inspectierapport-PDF beschikbaar (afgewerkte Breezeway-beurt) — ook voor de eigenaar. */
+  reportAvailable: boolean;
 }
 
 export interface RevenueMonth {

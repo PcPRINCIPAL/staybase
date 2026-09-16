@@ -626,3 +626,114 @@ export function renderManagementInvoicePdf(input: OwnerDocInput): Promise<Buffer
   doc.end();
   return done;
 }
+
+/* =========================== Schoonmaakrapport (fase 3) =========================== */
+
+/**
+ * Inspectierapport van een poetsbeurt, met de branding van de beheerder —
+ * voor de eigenaar. Uitdrukkelijk zónder namen van de poetsploeg (meeting
+ * 16/09); wel de gastperiode, het exacte poetsmoment, de checklist en de
+ * inspectiefoto's uit Breezeway.
+ */
+export interface CleaningReportInput {
+  cleaning: {
+    date: string; time_label: string | null; finished_at: string | null;
+    checklist_done: number | null; checklist_total: number | null;
+    photos: number | null; report_photos: string[] | null;
+  };
+  property: PropertyRow;
+  booking: BookingRow | null;
+  brand: Brand;
+}
+
+async function fetchImage(url: string): Promise<Buffer | null> {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+    if (!res.ok) return null;
+    const type = res.headers.get("content-type") ?? "";
+    if (!type.includes("jpeg") && !type.includes("jpg") && !type.includes("png")) return null;
+    return Buffer.from(await res.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
+export async function renderCleaningReportPdf(input: CleaningReportInput): Promise<Buffer> {
+  const { cleaning, property, booking, brand } = input;
+  const pal = PALETTES[brand];
+
+  const doc = new PDFDocument({ size: "A4", margins: { top: 64, left: 64, right: 64, bottom: 64 } });
+  const chunks: Buffer[] = [];
+  doc.on("data", (c: Buffer) => chunks.push(c));
+  const done = new Promise<Buffer>((resolve) => doc.on("end", () => resolve(Buffer.concat(chunks))));
+  const W = doc.page.width - 128;
+  const L = 64;
+
+  drawManagerHeader(doc, "Schoonmaakrapport", brand, L, W);
+
+  // --- kerngegevens: pand, poetsmoment, verblijf — geen namen van het team ---
+  const metaY = 118;
+  const meta = (label: string, value: string, row: number) => {
+    doc.font("Helvetica").fontSize(9.5).fillColor(MUTED).text(label, L, metaY + row * 16);
+    doc.font("Helvetica-Bold").fontSize(9.5).fillColor(INK).text(value, L + 130, metaY + row * 16, { width: W - 130 });
+  };
+  meta("Pand", `${property.name}${property.code_name ? ` · ${property.code_name}` : ""}`, 0);
+  meta("Poetsbeurt", `${dateNL(cleaning.date)}${cleaning.time_label ? ` · ${cleaning.time_label}` : ""}`, 1);
+  if (booking) {
+    // De gast mag vermeld worden (meeting 16/09) — de poetsploeg niet.
+    meta("Na verblijf", `${booking.guest} · ${dateNL(booking.start_date)} – ${dateNL(booking.end_date)} · ${booking.guests} gasten`, 2);
+  }
+  meta("Uitgevoerd door", "Het schoonmaakteam, gecoördineerd door de beheerder", booking ? 3 : 2);
+
+  // --- resultaatkaarten: checklist, foto's, inspectie ---
+  let y = metaY + (booking ? 4 : 3) * 16 + 24;
+  const cardW = (W - 24) / 3;
+  const card = (idx: number, label: string, value: string, sub: string) => {
+    const x = L + idx * (cardW + 12);
+    doc.roundedRect(x, y, cardW, 64, 10).fillColor(pal.soft).fill();
+    doc.font("Helvetica-Bold").fontSize(8).fillColor(pal.deep).text(label.toUpperCase(), x + 12, y + 10, { characterSpacing: 0.5, width: cardW - 24 });
+    doc.font("Helvetica-Bold").fontSize(15).fillColor(INK).text(value, x + 12, y + 24, { width: cardW - 24 });
+    doc.font("Helvetica").fontSize(8).fillColor(MUTED).text(sub, x + 12, y + 44, { width: cardW - 24 });
+  };
+  const cd = cleaning.checklist_done ?? 0;
+  const ct = cleaning.checklist_total ?? 0;
+  card(0, "Checklist", ct ? `${cd} / ${ct}` : "—", ct && cd >= ct ? "alle taken afgerond" : "taken afgerond");
+  card(1, "Foto's", cleaning.photos ? String(cleaning.photos) : "—", "vastgelegd tijdens de inspectie");
+  // Geen ✓-glyph: standaard-Helvetica (WinAnsi) kent dat teken niet.
+  card(2, "Inspectie", cd >= ct && ct > 0 ? "In orde" : "Gepland", "check-out-inspectie van het pand");
+  y += 88;
+
+  // --- inspectiefoto ---
+  const photos = (cleaning.report_photos ?? []).slice(0, 2);
+  if (photos.length > 0) {
+    doc.font("Helvetica-Bold").fontSize(8.5).fillColor(FAINT).text("UIT DE INSPECTIE", L, y, { characterSpacing: 0.6 });
+    y += 16;
+    for (const url of photos) {
+      const img = await fetchImage(url);
+      if (!img) continue;
+      const h = 210;
+      try {
+        doc.save();
+        doc.roundedRect(L, y, W, h, 12).clip();
+        doc.image(img, L, y, { cover: [W, h], align: "center", valign: "center" });
+        doc.restore();
+        y += h + 12;
+      } catch {
+        doc.restore();
+      }
+    }
+  }
+
+  // --- voettekst ---
+  const footY = doc.page.height - 100;
+  doc.moveTo(L, footY).lineTo(L + W, footY).lineWidth(0.5).strokeColor(LINE).stroke();
+  doc.font("Helvetica").fontSize(8.5).fillColor(FAINT)
+    .text(
+      `Opgemaakt door ${MANAGER[brand].name}, als beheerder van het vakantieverblijf. ` +
+      "Gegevens en foto's komen uit het schoonmaakplatform (Breezeway).",
+      L, footY + 12, { width: W }
+    );
+
+  doc.end();
+  return done;
+}
