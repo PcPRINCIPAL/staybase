@@ -208,6 +208,48 @@ export interface BillingProfile {
   billingAddress: string | null;
   vatNumber: string | null;
   vatPeriodic: boolean;
+  iban: string | null; // rekening waarop de netto-uitbetaling gestort wordt (§9c)
+}
+
+/* ---------- Uitbetalingen (§9c) ---------- */
+
+/**
+ * Eén uitbetalingsrun: alle boekingen die in een bepaalde maand zijn
+ * uitgecheckt, per eigenaar opgeteld tot één overschrijving. Wordt op de
+ * 15e van de maand erna uitbetaald; geen bankkoppeling maar een
+ * CSV-batchbestand dat in KBC wordt ingeladen.
+ */
+export interface PayoutBookingLine {
+  bookingId: string;
+  guest: string;
+  propertyId: string;
+  propertyName: string;
+  propertyCode: string | null;
+  endDate: string;
+  guestTotal: number;
+  otaFee: number;
+  cleaningFee: number;
+  commissionIncl: number;
+  netPayout: number;
+}
+
+export interface PayoutOwner {
+  ownerId: string;
+  name: string;
+  email: string;
+  iban: string | null;      // zonder IBAN kan de lijn niet mee in het batchbestand
+  reference: string;         // mededeling op de overschrijving
+  bookings: PayoutBookingLine[];
+  amount: number;            // som van de netto-uitbetalingen
+}
+
+export interface PayoutsData {
+  months: { month: string; runDate: string; bookings: number; amount: number; running: boolean }[];
+  month: string;             // geselecteerde uitcheckmaand (YYYY-MM)
+  runDate: string;           // 15e van de maand erna
+  running: boolean;          // lopende maand: checkouts tot vandaag
+  owners: PayoutOwner[];
+  totals: { amount: number; bookings: number; owners: number; missingIban: number };
 }
 
 /**

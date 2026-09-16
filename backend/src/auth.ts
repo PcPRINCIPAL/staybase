@@ -42,6 +42,7 @@ export interface UserRow {
   billing_address: string | null;
   vat_number: string | null;
   vat_periodic: boolean;
+  iban: string | null;
 }
 
 /** Publieke weergave van een gebruiker (zonder wachtwoordhash). */
@@ -55,6 +56,7 @@ function publicUser(u: UserRow) {
       billingAddress: u.billing_address ?? null,
       vatNumber: u.vat_number ?? null,
       vatPeriodic: Boolean(u.vat_periodic),
+      iban: u.iban ?? null,
     },
   };
 }
@@ -250,9 +252,15 @@ authRoutes.patch("/me/billing", async (req, res) => {
   const billingAddress = String(req.body?.billingAddress || "").trim() || null;
   const vatNumber = isCompany ? String(req.body?.vatNumber || "").trim() || null : null;
   const vatPeriodic = isCompany ? Boolean(req.body?.vatPeriodic) : false;
+  // IBAN geldt voor elk statuut: ook een particulier krijgt uitbetaald (§9c).
+  const iban = String(req.body?.iban || "").trim().toUpperCase() || null;
+  if (iban && !/^[A-Z]{2}[0-9]{2}[A-Z0-9 ]{10,30}$/.test(iban)) {
+    res.status(400).json({ error: "dat lijkt geen geldig IBAN" });
+    return;
+  }
   await db.prepare(
-    "UPDATE users SET vat_status = ?, company_name = ?, billing_address = ?, vat_number = ?, vat_periodic = ? WHERE id = ?"
-  ).run(vatStatus, companyName, billingAddress, vatNumber, vatPeriodic, user.id);
+    "UPDATE users SET vat_status = ?, company_name = ?, billing_address = ?, vat_number = ?, vat_periodic = ?, iban = ? WHERE id = ?"
+  ).run(vatStatus, companyName, billingAddress, vatNumber, vatPeriodic, iban, user.id);
   const fresh = (await db.prepare("SELECT * FROM users WHERE id = ?").get(user.id)) as unknown as UserRow;
   res.json(publicUser(fresh));
 });

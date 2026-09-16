@@ -24,6 +24,7 @@ const PATHS = {
   search: '<circle cx="10.8" cy="10.8" r="6.8"/><path d="M15.8 15.8 21 21"/>',
   globe: '<circle cx="12" cy="12" r="9"/><path d="M3.2 9.5h17.6M3.2 14.5h17.6"/><path d="M12 3c-2.4 2.4-3.6 5.4-3.6 9s1.2 6.6 3.6 9c2.4-2.4 3.6-5.4 3.6-9S14.4 5.4 12 3Z"/>',
   translate: '<path d="M4 6h9M8.5 4v2M11 6c-.5 4-3 7-7 8.5"/><path d="M6 10.5c1.2 2.4 3.2 4 6 5"/><path d="M13 20l4-9 4 9M14.6 17h4.8"/>',
+  bank: '<path d="M3.5 9.5 12 4l8.5 5.5H3.5Z"/><path d="M5.5 9.5v7.5M10 9.5v7.5M14 9.5v7.5M18.5 9.5v7.5"/><path d="M3.5 20.5h17M3.5 17h17"/>',
 } as const;
 
 export type IconName = keyof typeof PATHS;

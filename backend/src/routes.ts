@@ -8,8 +8,9 @@ import {
 } from "./lib";
 import { COMMISSION_MAX_PCT, COMMISSION_MIN_PCT, DEMO_TODAY, isLanguage, revenueChain, viewFor } from "../../shared/types";
 import type {
-  CalendarData, CalendarDay, CalendarOverview, Cleaning, Conversation, InsightsData, Message,
-  NewPropertyInput, OwnerHomeData, Overview, PriceStripDay, PriceSuggestion, RevenueData, TimelineItem,
+  CalendarData, CalendarDay, CalendarOverview, Cleaning, Commission, Conversation, InsightsData, Message,
+  NewPropertyInput, OwnerHomeData, Overview, PayoutOwner, PayoutsData, PriceStripDay, PriceSuggestion,
+  RevenueData, TimelineItem,
 } from "../../shared/types";
 import { answer } from "./assistant";
 import { aiAvailable, llmAnswer, llmDraft, llmTranslate } from "./ai";
@@ -1236,6 +1237,143 @@ routes.get("/invoices/overview", async (req, res) => {
     }
   }
   res.json({ issued, pending });
+});
+
+/* =========================== Uitbetalingen (§9c) =========================== */
+
+/**
+ * Eén run per uitcheckmaand: alle boekingen die in die maand zijn uitgecheckt,
+ * per eigenaar opgeteld tot één overschrijving die op de 15e van de maand
+ * erna vertrekt. Geen bankkoppeling (expliciet afgevoerd in de meeting) —
+ * wel een CSV-batchbestand dat in KBC wordt ingeladen, zoals Billit doet.
+ */
+function payoutRunDate(month: string): string {
+  const [y, m] = month.split("-").map(Number);
+  return m === 12 ? `${y + 1}-01-15` : `${y}-${String(m + 1).padStart(2, "0")}-15`;
+}
+
+async function payoutRun(month: string): Promise<Omit<PayoutsData, "months">> {
+  const props = await allProperties();
+  const propById = new Map(props.map((p) => [p.id, p]));
+
+  // Enkel effectief uitgecheckte boekingen: in de lopende maand telt de run
+  // alleen wat tot vandaag is uitgecheckt (de rest schuift vanzelf bij).
+  const rows = ((await db.prepare(
+    "SELECT * FROM bookings WHERE payout > 0 AND end_date::text LIKE ? AND end_date::text <= ? ORDER BY end_date"
+  ).all(month + "%", DEMO_TODAY)) as unknown as BookingRow[])
+    .filter((b) => propById.get(b.property_id)?.owner_id);
+
+  const owners = new Map<string, PayoutOwner>();
+  for (const b of rows) {
+    const prop = propById.get(b.property_id)!;
+    const ownerId = prop.owner_id!;
+    let owner = owners.get(ownerId);
+    if (!owner) {
+      const u = (await db.prepare(
+        "SELECT name, email, iban, commission_pct, commission_basis FROM users WHERE id = ?"
+      ).get(ownerId)) as { name: string; email: string; iban: string | null; commission_pct: number; commission_basis: "bruto" | "netto" } | undefined;
+      if (!u) continue;
+      const [y, m] = month.split("-").map(Number);
+      owner = {
+        ownerId, name: u.name, email: u.email, iban: u.iban ?? null,
+        reference: `Uitbetaling verhuur ${MONTH_FULL[m - 1]} ${y}`,
+        bookings: [], amount: 0,
+      };
+      (owner as PayoutOwner & { deal: Commission }).deal = { pct: Number(u.commission_pct ?? 15), basis: u.commission_basis ?? "bruto" };
+      owners.set(ownerId, owner);
+    }
+    const deal = (owner as PayoutOwner & { deal: Commission }).deal;
+    const fig = revenueChain(
+      { guestTotal: bookingRevenue(b), otaFee: Number(b.ota_fee ?? 0), cleaningFee: Number(b.guest_cleaning ?? 0) },
+      deal
+    );
+    const net = Math.round(fig.netPayout * 100) / 100;
+    owner.bookings.push({
+      bookingId: b.id, guest: b.guest,
+      propertyId: prop.id, propertyName: prop.name, propertyCode: prop.code_name ?? null,
+      endDate: b.end_date,
+      guestTotal: fig.guestTotal, otaFee: fig.otaFee, cleaningFee: fig.cleaningFee,
+      commissionIncl: fig.commissionIncl, netPayout: net,
+    });
+    owner.amount = Math.round((owner.amount + net) * 100) / 100;
+  }
+
+  const list = [...owners.values()].sort((a, b) => a.name.localeCompare(b.name, "nl"));
+  for (const o of list) delete (o as PayoutOwner & { deal?: Commission }).deal;
+  return {
+    month,
+    runDate: payoutRunDate(month),
+    running: month === DEMO_MONTH,
+    owners: list,
+    totals: {
+      amount: Math.round(list.reduce((a, o) => a + o.amount, 0) * 100) / 100,
+      bookings: list.reduce((a, o) => a + o.bookings.length, 0),
+      owners: list.length,
+      missingIban: list.filter((o) => !o.iban).length,
+    },
+  };
+}
+
+/** Uitcheckmaanden met minstens één afgeronde boeking op een pand mét eigenaar. */
+async function payoutMonthList(): Promise<string[]> {
+  const props = await allProperties();
+  const owned = new Set(props.filter((p) => p.owner_id).map((p) => p.id));
+  const rows = (await db.prepare(
+    "SELECT DISTINCT substring(end_date::text, 1, 7) AS m, property_id FROM bookings WHERE payout > 0 AND end_date::text <= ?"
+  ).all(DEMO_TODAY)) as unknown as { m: string; property_id: string }[];
+  return [...new Set(rows.filter((r) => owned.has(r.property_id)).map((r) => r.m))].sort().reverse();
+}
+
+routes.get("/payouts", requireAdmin, async (req, res) => {
+  const monthNames = await payoutMonthList();
+  if (monthNames.length === 0) {
+    res.json({ months: [], month: DEMO_MONTH, runDate: payoutRunDate(DEMO_MONTH), running: true, owners: [], totals: { amount: 0, bookings: 0, owners: 0, missingIban: 0 } });
+    return;
+  }
+  const requested = String(req.query.month || "");
+  // Standaard de eerstvolgende run: de laatst afgesloten maand.
+  const fallback = monthNames.find((m) => m !== DEMO_MONTH) ?? monthNames[0];
+  const month = monthNames.includes(requested) ? requested : fallback;
+
+  const months = [];
+  for (const m of monthNames) {
+    const run = await payoutRun(m);
+    months.push({ month: m, runDate: run.runDate, bookings: run.totals.bookings, amount: run.totals.amount, running: run.running });
+  }
+  const data: PayoutsData = { months, ...(await payoutRun(month)) };
+  res.json(data);
+});
+
+/**
+ * KBC-batchbestand: één lijn per eigenaar, puntkomma-gescheiden met Belgisch
+ * decimaalteken, klaar om als groepsoverschrijving in te laden. Eigenaars
+ * zonder IBAN blijven eruit — die staan in het scherm met een wenk.
+ */
+routes.get("/payouts/kbc.csv", requireAdmin, async (req, res) => {
+  const monthNames = await payoutMonthList();
+  const requested = String(req.query.month || "");
+  if (!monthNames.includes(requested)) {
+    res.status(404).json({ error: "geen uitbetalingen voor die maand" });
+    return;
+  }
+  const run = await payoutRun(requested);
+  const payable = run.owners.filter((o) => o.iban && o.amount > 0);
+  if (payable.length === 0) {
+    res.status(409).json({ error: "geen enkele eigenaar met IBAN in deze run" });
+    return;
+  }
+  const [ry, rm, rd] = run.runDate.split("-");
+  const amount = (n: number) => n.toFixed(2).replace(".", ",");
+  const lines = [
+    "Naam begunstigde;IBAN;Munt;Bedrag;Uitvoeringsdatum;Mededeling",
+    ...payable.map((o) =>
+      [o.name, o.iban, "EUR", amount(o.amount), `${rd}/${rm}/${ry}`, `${o.reference} (${o.bookings.length} boekingen)`].join(";")
+    ),
+  ];
+  // BOM zodat Excel/KBC het bestand als UTF-8 leest; CRLF zoals bankimports verwachten.
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="kbc-uitbetalingen-${requested}.csv"`);
+  res.send("﻿" + lines.join("\r\n") + "\r\n");
 });
 
 /* =========================== Eigenaar-dashboard =========================== */

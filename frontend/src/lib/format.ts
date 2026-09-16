@@ -3,6 +3,10 @@ import { getActiveLanguage } from "../i18n";
 
 export const eur = (n: number) => "€ " + n.toLocaleString("nl-BE");
 
+/** Met centen — voor bedragen die effectief overgeschreven worden (§9c). */
+export const eurC = (n: number) =>
+  "€ " + n.toLocaleString("nl-BE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 export const CHANNEL_META: Record<Channel, { name: string; chip: string; cellClass: string; color: string }> = {
   airbnb: { name: "Airbnb", chip: "airbnb", cellClass: "bk-airbnb", color: "var(--airbnb)" },
   booking: { name: "Booking.com", chip: "booking", cellClass: "bk-booking", color: "var(--booking)" },

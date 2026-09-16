@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   AssistantReply, CalendarData, CalendarOverview, Cleaning, Conversation, InsightsData,
   NewPropertyInput, OwnerHomeData, Overview, PriceStripDay, PriceSuggestion, Property,
-  BillingProfile, CommissionBasis, Language, PropertyDetail, RevenueData, UserOrigin, UserPlan,
+  BillingProfile, CommissionBasis, Language, PayoutsData, PropertyDetail, RevenueData, UserOrigin, UserPlan,
 } from "@shared/types";
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
@@ -50,7 +50,7 @@ export const setMyLanguage = (language: Language) =>
 
 /** Facturatiegegevens van de ingelogde eigenaar bewaren (§9a-popup). */
 export const saveBilling = (b: {
-  vatStatus: string; companyName: string; billingAddress: string; vatNumber: string; vatPeriodic: boolean;
+  vatStatus: string; companyName: string; billingAddress: string; vatNumber: string; vatPeriodic: boolean; iban: string;
 }) => api<AuthUser>("/auth/me/billing", { method: "PATCH", body: JSON.stringify(b) });
 
 /** Vertaalt één bericht of voorstel naar de gevraagde taal. */
@@ -355,6 +355,19 @@ export function downloadManagementInvoice(bookingId: string): void {
 /** Bundel: alle facturen in scope als één PDF, optioneel voor één pand. */
 export function downloadInvoiceBundle(propertyId?: string): void {
   window.location.assign(`/api/invoices/bundle.pdf${propertyId ? `?property=${propertyId}` : ""}`);
+}
+
+/* ---------- uitbetalingen (§9c) ---------- */
+
+export const usePayouts = (month?: string) =>
+  useQuery({
+    queryKey: ["payouts", month ?? "auto"],
+    queryFn: () => api<PayoutsData>(`/payouts${month ? `?month=${month}` : ""}`),
+  });
+
+/** KBC-batchbestand (CSV) voor de geselecteerde run. */
+export function downloadPayoutsCsv(month: string): void {
+  window.location.assign(`/api/payouts/kbc.csv?month=${month}`);
 }
 
 /* ---------- Guesty-koppeling ---------- */

@@ -136,8 +136,8 @@ Vervangt de huidige Excel. Per boeking, niet per maand.
 
 ### 9c. Uitbetalingen
 
-- [ ] **Tab "Uitbetalingen"**: alles wat op de 15e uitbetaald moet worden, vooraf uitgerekend en klaar.
-- [ ] **Geen directe KBC-koppeling** — expliciet afgevoerd. In de plaats: **export van een CSV/Excel batchbestand** dat je in KBC inlaadt (zoals Billit doet).
+- [x] **Tab "Uitbetalingen"** (alleen admin): per uitcheckmaand één run die op de 15e van de maand erna vertrekt — per eigenaar één overschrijving, vooraf uitgerekend via de §8-keten (met de commissieafspraak per eigenaar), met mededeling, IBAN en uitklapbaar boekingsdetail. De lopende maand toont de stand tot vandaag. IBAN wordt in de §9a-popup gevraagd; eigenaars zonder IBAN krijgen een wenk en blijven uit het batchbestand.
+- [x] **Geen directe KBC-koppeling** — expliciet afgevoerd. In de plaats: **export van een CSV-batchbestand** dat je in KBC inlaadt (zoals Billit doet) — puntkomma-gescheiden, Belgisch decimaalteken, uitvoeringsdatum = de rundatum, één lijn per eigenaar.
 
 ---
 

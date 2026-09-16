@@ -156,6 +156,14 @@ export async function bootstrap(): Promise<void> {
     END $$;
   `);
 
+  // Uitbetalingen (§9c): de rekening waarop de netto-uitbetaling gestort
+  // wordt. Demo-eigenaars krijgen een test-IBAN mee zodat de Uitbetalingen-
+  // pagina meteen exporteerbare lijnen toont; één eigenaar blijft bewust
+  // zonder om de "IBAN ontbreekt"-wenk te tonen.
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS iban text;`);
+  await pool.query(`UPDATE users SET iban = 'BE68 5390 0754 7034' WHERE id = 'u-bram' AND iban IS NULL;`);
+  await pool.query(`UPDATE users SET iban = 'BE71 0961 2345 6769' WHERE id = 'u-maxime' AND iban IS NULL;`);
+
   // Voorkeurstaal van de gebruiker; bepaalt in welke taal het platform opent.
   await pool.query(`
     ALTER TABLE users ADD COLUMN IF NOT EXISTS language text NOT NULL DEFAULT 'nl';

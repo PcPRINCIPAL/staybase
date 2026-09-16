@@ -22,6 +22,7 @@ export function BillingModal({ onClose }: { onClose: () => void }) {
   const [billingAddress, setBillingAddress] = useState(b?.billingAddress ?? "");
   const [vatNumber, setVatNumber] = useState(b?.vatNumber ?? "");
   const [vatPeriodic, setVatPeriodic] = useState(b?.vatPeriodic ?? true);
+  const [iban, setIban] = useState(b?.iban ?? "");
   const [busy, setBusy] = useState(false);
 
   const isCompany = vatStatus !== "particulier";
@@ -29,7 +30,7 @@ export function BillingModal({ onClose }: { onClose: () => void }) {
   const save = async () => {
     setBusy(true);
     try {
-      const fresh = await saveBilling({ vatStatus, companyName, billingAddress, vatNumber, vatPeriodic });
+      const fresh = await saveBilling({ vatStatus, companyName, billingAddress, vatNumber, vatPeriodic, iban });
       setUser(fresh);
       toast(t("bill.saved"));
       onClose();
@@ -77,6 +78,12 @@ export function BillingModal({ onClose }: { onClose: () => void }) {
           <label htmlFor="bill-address">{t("bill.address")}</label>
           <input id="bill-address" type="text" placeholder={t("bill.addressPh")} value={billingAddress}
             onChange={(e) => setBillingAddress(e.target.value)} />
+        </div>
+        <div className="fld">
+          <label htmlFor="bill-iban">{t("bill.iban")}</label>
+          <input id="bill-iban" type="text" placeholder="BE68 5390 0754 7034" value={iban}
+            onChange={(e) => setIban(e.target.value)} />
+          <small className="fld-hint">{t("bill.ibanHint")}</small>
         </div>
         {isCompany && (
           <>

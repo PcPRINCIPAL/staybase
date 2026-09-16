@@ -408,6 +408,31 @@ table.mini thead tr{border-bottom:1px solid var(--line)}
 .billing-check b{display:block; font-size:13.5px}
 .billing-check small{color:var(--muted); font-size:12px}
 .billing-actions{display:flex; justify-content:flex-end; gap:10px; margin-top:22px}
+.fld-hint{display:block; margin-top:6px; color:var(--muted); font-size:12px}
+
+/* ---------- Uitbetalingen (§9c) ---------- */
+.pay-head{margin-top:22px; padding:20px 24px; display:flex; align-items:flex-start; gap:36px; flex-wrap:wrap}
+.pay-kpi{display:flex; flex-direction:column; gap:3px}
+.pay-kpi span{font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--muted)}
+.pay-kpi b{font-size:24px}
+.pay-note{flex-basis:100%; margin:2px 0 0; font-size:13px; color:var(--muted); line-height:1.5}
+.pay-warn{color:#8A5A00; font-weight:600}
+.pay-chip-warn{background:#FDF3DE; color:#8A5A00; border:1px solid #F0DDB4}
+/* Grid-lijst in plaats van tabel-in-tabel: de eigenaarsrij blijft altijd
+   binnen de kaart, en het bredere boekingsdetail scrolt binnenin. */
+.pay-card{overflow:hidden}
+.pay-row{display:grid; grid-template-columns:minmax(130px,1.3fr) minmax(150px,max-content) minmax(0,1.5fr) 44px minmax(80px,max-content) max-content;
+  gap:14px; align-items:center; padding:12px 20px; border-top:1px solid var(--line); font-size:14px}
+.pay-row .r{text-align:right; justify-self:end}
+.pay-ref{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0}
+.pay-row-head{border-top:none; padding:13px 20px 9px; font-size:11.5px; font-weight:800;
+  letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
+.pay-detail-scroll{overflow-x:auto; background:var(--bg); border-top:1px solid var(--line); padding:6px 14px 12px}
+.pay-detail{margin:0; min-width:820px}
+.pay-detail th{font-size:11px}
+.pay-detail td, .pay-detail th{padding:7px 10px}
+.pay-detail td{white-space:nowrap}
+.pay-detail td.pay-prop{white-space:normal; min-width:180px}
 .billing-nudge{margin-top:18px; padding:13px 16px; display:flex; align-items:center; gap:12px;
   border:1px solid var(--coral-line); background:var(--coral-soft)}
 .billing-nudge-ico{display:flex; color:var(--coral-deep); flex-shrink:0}
