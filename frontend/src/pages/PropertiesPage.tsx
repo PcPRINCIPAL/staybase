@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { Property } from "@shared/types";
+import { BRAND_LABEL } from "@shared/types";
 import { useClientConfig, useProperties } from "../lib/api";
 import { Icon } from "../components/Icon";
 import { PropertyCard } from "../components/PropertyCard";
 import { useUI } from "../ui";
+import { useAuth } from "../auth";
 import { useT } from "../i18n";
 import { matchesProperty } from "../lib/search";
 
@@ -71,7 +73,7 @@ function MapView({ properties, token }: { properties: Property[]; token: string 
   );
 }
 
-function ListView({ properties }: { properties: Property[] }) {
+function ListView({ properties, showBrand }: { properties: Property[]; showBrand: boolean }) {
   const nav = useNavigate();
   const t = useT();
   return (
@@ -103,7 +105,10 @@ function ListView({ properties }: { properties: Property[] }) {
               </td>
               <td className="num">€ {p.basePriceWeek} <span style={{ color: "var(--faint)" }}>/ € {p.basePriceWeekend} {t("props.wknd")}</span></td>
               <td className="num" style={{ color: "var(--muted)" }}>€ {p.cleaningPrice}</td>
-              <td><span className={`chip ${p.status === "live" ? "coral" : "warn"}`}>{p.statusLabel}</span></td>
+              <td>
+                <span className={`chip ${p.status === "live" ? "coral" : "warn"}`}>{p.statusLabel}</span>
+                {showBrand && <span className={`chip brand-${p.ownerBrand}`} style={{ marginLeft: 6 }}>{BRAND_LABEL[p.ownerBrand]}</span>}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -117,8 +122,11 @@ export function PropertiesPage() {
   const { data: properties, isLoading } = useProperties();
   const { data: config } = useClientConfig();
   const { openWizard } = useUI();
+  const { user } = useAuth();
   const [view, setView] = useState<View>("grid");
   const [query, setQuery] = useState("");
+  // Overall admin-view (fase 2): dan draagt elk pand zijn merk als badge.
+  const showBrand = user?.role === "admin" && user.adminScope === "all";
 
   if (isLoading || !properties) return <div className="loading">{t("props.loading")}</div>;
 
@@ -173,7 +181,7 @@ export function PropertiesPage() {
 
       {view === "grid" && shown.length > 0 && (
         <div className="props" style={{ marginTop: q ? 12 : 20 }}>
-          {shown.map((p) => <PropertyCard key={p.id} p={p} />)}
+          {shown.map((p) => <PropertyCard key={p.id} p={p} showBrand={showBrand} />)}
           {!q && (
             <button className="prop-add" onClick={openWizard}>
               <span className="plus"><Icon name="plus" /></span>
@@ -183,7 +191,7 @@ export function PropertiesPage() {
           )}
         </div>
       )}
-      {view === "list" && shown.length > 0 && <div style={{ marginTop: q ? 12 : 20 }}><ListView properties={shown} /></div>}
+      {view === "list" && shown.length > 0 && <div style={{ marginTop: q ? 12 : 20 }}><ListView properties={shown} showBrand={showBrand} /></div>}
       {view === "map" && shown.length > 0 && (
         <div style={{ marginTop: q ? 12 : 20 }}>
           {config?.mapboxToken

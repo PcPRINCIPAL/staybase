@@ -80,23 +80,27 @@ tussen drie admin-views**:
 | **Staybase-admin** | enkel Staybase-panden | Staybase (koraal) |
 | **Overall admin** (super) | alle panden | Staybase, met visueel onderscheid per pand |
 
-- [ ] **Switch in de admin-UI** (idee uit de meeting: knop/switch bij het
+- [x] **Switch in de admin-UI** — drie-standenswitch bovenaan de zijbalk; de keuze wordt bewaard (`users.admin_scope`). (idee uit de meeting: knop/switch bij het
       profiel of bovenaan de zijbalk) — "dat het voor je hersenen makkelijk is
       om te snappen: ik ben nu in Linnois aan het werken".
-- [ ] **Scoping**: in Linnois-view enkel Linnois-panden, in Staybase-view enkel
+- [x] **Scoping**: in Linnois-view enkel Linnois-panden, in Staybase-view enkel
       Staybase-panden, overall alles. Momenteel zijn álle panden Linnois.
-- [ ] **Color coding / branding volgt de view**, inclusief een **visueel
+- [x] **Color coding / branding volgt de view**, inclusief een **visueel
       verschil tussen Linnois- en Staybase-panden** in lijsten (badge/kleur)
       voor de overall view. (De `ownerBrand`-infrastructuur bestaat al.)
-- [ ] **Beheer-pagina per herkomst**: bij een **Staybase-gebruiker verdwijnt
+- [x] **Beheer-pagina per herkomst**: bij een **Staybase-gebruiker verdwijnt
       het commissieblok** (die werkt nooit met commissie — "die fout mag niet
       gemaakt kúnnen worden") en komt er een blok **formules/abonnement/upsells**
       voor in de plaats. Bij een **Linnois-gebruiker** blijft commissie
       (pakketten: 15% en 20%) en verdwijnen de formules.
-- [ ] **Guesty-onderverdeling**: er komt een nieuw "Staybase"-account in
+- [~] **Guesty-onderverdeling**: er komt een nieuw "Staybase"-account in
       Guesty naast Linnois (en een nieuw Airbnb-account voor Staybase).
       De sync moet de account-koppeling van elk pand meenemen zodat de
       brand-scoping automatisch klopt. Benoit komt terug op de exacte opzet.
+      *(Tussentijds: het merk van een pand volgt de eigenaar, en zonder
+      eigenaar de bron — uit Guesty = Linnois, via het platform = Staybase
+      (`propertyBrand()` in backend/src/lib.ts). Zodra het Staybase-account in
+      Guesty bestaat, vervangt de accountkoppeling die regel op één plek.)*
 
 ---
 

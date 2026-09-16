@@ -43,13 +43,15 @@ export interface UserRow {
   vat_number: string | null;
   vat_periodic: boolean;
   iban: string | null;
+  admin_scope: "all" | "linnois" | "staybase";
 }
 
 /** Publieke weergave van een gebruiker (zonder wachtwoordhash). */
-function publicUser(u: UserRow) {
+export function publicUser(u: UserRow) {
   return {
     id: u.id, email: u.email, name: u.name, role: u.role, plan: u.plan,
     origin: u.origin ?? "staybase", language: u.language ?? "nl",
+    adminScope: u.role === "admin" ? (u.admin_scope ?? "all") : null,
     billing: {
       vatStatus: u.vat_status ?? "onbekend",
       companyName: u.company_name ?? null,

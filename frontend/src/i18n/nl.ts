@@ -762,6 +762,8 @@ export const nl: Dict = {
   "adm.th.basis": "Basis",
   "adm.th.calc": "Gerekend",
   "adm.noOwners": "Nog geen eigenaars om een afspraak mee vast te leggen.",
+  "adm.viaCommission": "via commissie",
+  "adm.noCommissionOwners": "Geen Linnois-klanten in deze omgeving — commissie geldt enkel voor Linnois.",
   "adm.commToast": "{name}: {pct}% op {basis} ✓",
   "adm.commFailed": "Commissie aanpassen mislukte",
   "adm.propsTitle": "Panden per eigenaar",
@@ -980,6 +982,8 @@ export const nl: Dict = {
   // ---- facturen-tabblad ----
   "nav.invoices": "Facturen",
   "nav.payouts": "Uitbetalingen",
+  "nav.scope": "Omgeving",
+  "nav.scopeAll": "Alles",
   "invp.title": "Facturen",
   "invp.loading": "Facturen laden…",
   "invp.sub": "Alle gastfacturen per pand — opgemaakt op naam van de eigenaar, vanaf de dag van check-out.",

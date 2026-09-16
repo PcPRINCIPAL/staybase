@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { PLAN_LABEL, type PlatformView, type UserPlan } from "@shared/types";
+import { PLAN_LABEL, type AdminScope, type PlatformView, type UserPlan } from "@shared/types";
 import { Icon, Logo, type IconName } from "./Icon";
-import { logout, useOverview } from "../lib/api";
+import { logout, setAdminScope, useOverview } from "../lib/api";
 import { hasPlan } from "./PlanGate";
 import { useBrand, useView } from "./OriginGate";
 import { useUI } from "../ui";
@@ -80,6 +80,21 @@ export function Sidebar() {
     setUser(null);
   };
 
+  // Admin-view (fase 2): wisselen tussen de Linnois-, Staybase- en
+  // overall-wereld. Scoping en branding volgen meteen; alle data herladen.
+  const [scopeBusy, setScopeBusy] = useState(false);
+  const pickScope = async (scope: AdminScope) => {
+    if (scopeBusy || user?.adminScope === scope) return;
+    setScopeBusy(true);
+    try {
+      const fresh = await setAdminScope(scope);
+      setUser(fresh);
+      qc.invalidateQueries();
+    } finally {
+      setScopeBusy(false);
+    }
+  };
+
   return (
     <aside className={`sidebar${rail ? " rail" : ""}`}>
       <div className="side-top">
@@ -101,6 +116,17 @@ export function Sidebar() {
           <Icon name={rail ? "chevR" : "chevL"} />
         </button>
       </div>
+      {user?.role === "admin" && (
+        <div className="scope-seg" role="tablist" aria-label={t("nav.scope")}>
+          {([["linnois", "Linnois"], ["staybase", "Staybase"], ["all", t("nav.scopeAll")]] as const).map(([sc, label]) => (
+            <button key={sc} role="tab" aria-selected={user.adminScope === sc}
+              className={user.adminScope === sc ? "on" : ""} disabled={scopeBusy}
+              onClick={() => pickScope(sc)}>
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
       <nav className="side-nav">
         {ITEMS
           .filter((it) => !it.adminOnly || user?.role === "admin")

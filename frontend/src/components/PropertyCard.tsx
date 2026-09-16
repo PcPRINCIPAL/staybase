@@ -1,9 +1,13 @@
 import { useNavigate } from "react-router-dom";
-import type { Property } from "@shared/types";
+import { BRAND_LABEL, type Property } from "@shared/types";
 import { useT } from "../i18n";
 
-/** Pandenkaart zoals op het dashboard — ook gebruikt in de tegelweergave van /panden. */
-export function PropertyCard({ p }: { p: Property }) {
+/**
+ * Pandenkaart zoals op het dashboard — ook gebruikt in de tegelweergave van
+ * /panden. `showBrand` (overall admin-view, fase 2) toont het merk van het
+ * pand als extra chip.
+ */
+export function PropertyCard({ p, showBrand = false }: { p: Property; showBrand?: boolean }) {
   const nav = useNavigate();
   const t = useT();
   return (
@@ -21,6 +25,7 @@ export function PropertyCard({ p }: { p: Property }) {
           {p.location} · {p.bedrooms} {t("cal.bedrooms")} · {p.type === "Villa" ? t("props.card.pool") : t("props.card.bath", { n: p.bathrooms })}
         </div>
         <span className={`chip ${p.status === "live" ? "coral" : "warn"}`}>{p.statusLabel}</span>
+        {showBrand && <span className={`chip brand-${p.ownerBrand}`} style={{ marginLeft: 6 }}>{BRAND_LABEL[p.ownerBrand]}</span>}
       </div>
     </article>
   );

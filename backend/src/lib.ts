@@ -56,6 +56,17 @@ export interface PropertyRow {
   owner_origin?: "staybase" | "linnois" | null;
 }
 
+/**
+ * Merk van een pand (fase 2): de omgeving van de eigenaar wint; zonder
+ * eigenaar bepaalt de bron het merk — uit Guesty gesynct ("g-…") is Linnois
+ * (het huidige Guesty-account ís Linnois), via het platform aangemaakt is
+ * Staybase. Wordt later vervangen door de accountonderverdeling in Guesty.
+ */
+export function propertyBrand(r: Pick<PropertyRow, "id" | "owner_origin">): "staybase" | "linnois" {
+  if (r.owner_origin) return r.owner_origin === "linnois" ? "linnois" : "staybase";
+  return r.id.startsWith("g-") ? "linnois" : "staybase";
+}
+
 export function mapProperty(r: PropertyRow): Property {
   return {
     id: r.id, name: r.name, codeName: r.code_name ?? null, location: r.location, type: r.type,
@@ -67,7 +78,7 @@ export function mapProperty(r: PropertyRow): Property {
     cleaningPrice: r.cleaning_price,
     basePriceWeek: r.base_price_week, basePriceWeekend: r.base_price_weekend,
     lat: r.lat, lng: r.lng,
-    ownerBrand: r.owner_origin ? (r.owner_origin === "linnois" ? "linnois" : "staybase") : null,
+    ownerBrand: propertyBrand(r),
   };
 }
 

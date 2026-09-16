@@ -758,6 +758,8 @@ export const fr: Dict = {
   "adm.th.basis": "Base",
   "adm.th.calc": "Calculé",
   "adm.noOwners": "Pas encore de propriétaires avec qui fixer un accord.",
+  "adm.viaCommission": "via commission",
+  "adm.noCommissionOwners": "Aucun client Linnois dans cet environnement — la commission ne concerne que Linnois.",
   "adm.commToast": "{name} : {pct} % sur {basis} ✓",
   "adm.commFailed": "L'ajustement de la commission a échoué",
   "adm.propsTitle": "Biens par propriétaire",
@@ -976,6 +978,8 @@ export const fr: Dict = {
   // ---- facturen-tabblad ----
   "nav.invoices": "Factures",
   "nav.payouts": "Versements",
+  "nav.scope": "Environnement",
+  "nav.scopeAll": "Tout",
   "invp.title": "Factures",
   "invp.loading": "Chargement des factures…",
   "invp.sub": "Toutes les factures voyageurs par bien — établies au nom du propriétaire, dès le jour du départ.",

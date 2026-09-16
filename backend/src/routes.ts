@@ -2,11 +2,11 @@ import { Router } from "express";
 import { db, getSetting, setSetting } from "./db";
 import {
   DEMO_MONTH, DOW_LABELS, MONTH_FULL, MONTH_LABELS,
-  addDays, allProperties, bookingRevenue, daysInMonth, iso, mapBooking, mapProperty,
+  addDays, allProperties, bookingRevenue, daysInMonth, iso, mapBooking, mapProperty, propertyBrand,
   nightPrice, nightsBetween, pad, propertyById, shortLabel, suggestionsFor, weekdayMonday,
   type BookingRow, type PropertyRow,
 } from "./lib";
-import { COMMISSION_MAX_PCT, COMMISSION_MIN_PCT, DEMO_TODAY, isLanguage, revenueChain, viewFor } from "../../shared/types";
+import { COMMISSION_MAX_PCT, COMMISSION_MIN_PCT, DEMO_TODAY, isAdminScope, isLanguage, revenueChain, viewFor } from "../../shared/types";
 import type {
   CalendarData, CalendarDay, CalendarOverview, Cleaning, Commission, Conversation, InsightsData, Message,
   NewPropertyInput, OwnerHomeData, Overview, PayoutOwner, PayoutsData, PriceStripDay, PriceSuggestion,
@@ -15,7 +15,7 @@ import type {
 import { answer } from "./assistant";
 import { aiAvailable, llmAnswer, llmDraft, llmTranslate } from "./ai";
 import { guestyAvailable, guestyStatus, resetGuestyData, syncGuesty, testGuesty } from "./guesty";
-import { currentUser, requireAdmin, requirePlan, requireView } from "./auth";
+import { currentUser, publicUser, requireAdmin, requirePlan, requireView, type UserRow } from "./auth";
 import {
   ensureInvoice, ensureOwnerInvoice, invoiceAvailable, invoiceForBooking, invoiceLabel,
   ownerInvoiceLabel, renderInvoiceBundlePdf, renderInvoicePdf, renderManagementInvoicePdf,
@@ -57,14 +57,19 @@ routes.get("/client-config", async (_req, res) => {
 });
 
 /**
- * Multi-tenancy: admins zien alle panden, eigenaars alleen de panden die het
- * team aan hen heeft toegewezen (Beheer → Panden per eigenaar). Een eigenaar
- * zonder toewijzing ziet dus een lege omgeving — dat is bewust.
+ * Multi-tenancy: eigenaars zien alleen de panden die het team aan hen heeft
+ * toegewezen (Beheer → Panden per eigenaar) — een eigenaar zonder toewijzing
+ * ziet dus een lege omgeving, dat is bewust. Admins zien de wereld van hun
+ * gekozen view (fase 2): Linnois-panden, Staybase-panden of alles.
  */
 async function scopedProperties(req: import("express").Request): Promise<PropertyRow[]> {
   const user = currentUser(req);
   const props = await allProperties();
-  if (!user || user.role === "admin") return props;
+  if (!user) return props;
+  if (user.role === "admin") {
+    const scope = user.admin_scope ?? "all";
+    return scope === "all" ? props : props.filter((p) => propertyBrand(p) === scope);
+  }
   return props.filter((p) => p.owner_id === user.id);
 }
 
@@ -791,9 +796,10 @@ export async function revenueData(scopeIds?: Set<string>): Promise<RevenueData> 
 }
 
 routes.get("/revenue", requirePlan("premium"), async (req, res) => {
-  const user = currentUser(req);
   const scopeProps = await scopedProperties(req);
-  const scope = user?.role === "admin" ? undefined : new Set(scopeProps.map((p) => p.id));
+  // Ook voor admins expliciet op de scope: de gekozen view (fase 2) bepaalt
+  // welke panden meetellen.
+  const scope = new Set(scopeProps.map((p) => p.id));
   const data = await revenueData(scope);
 
   // §8-keten over dit jaar, in de volgorde uit de meeting: gast betaalde,
@@ -915,7 +921,23 @@ routes.get("/onboarding/stats", requireAdmin, async (_req, res) => {
   res.json({ sessionsStarted: sessions.n, sessionsCompleted: completed.n, perStep, recent });
 });
 
-routes.get("/admin/users", requireAdmin, async (_req, res) => {
+/**
+ * Admin-view wisselen (fase 2): Linnois-, Staybase- of overall-wereld. De
+ * keuze staat op de gebruiker zelf en stuurt scoping én branding overal.
+ */
+routes.patch("/admin/scope", requireAdmin, async (req, res) => {
+  const scope = String(req.body?.scope || "");
+  if (!isAdminScope(scope)) {
+    res.status(400).json({ error: "kies linnois, staybase of all" });
+    return;
+  }
+  const user = currentUser(req)!;
+  await db.prepare("UPDATE users SET admin_scope = ? WHERE id = ?").run(scope, user.id);
+  const fresh = (await db.prepare("SELECT * FROM users WHERE id = ?").get(user.id)) as UserRow;
+  res.json(publicUser(fresh));
+});
+
+routes.get("/admin/users", requireAdmin, async (req, res) => {
   const users = await db.prepare(`
     SELECT u.id, u.name, u.email, u.role, u.plan, u.origin,
            u.commission_pct AS "commissionPct", u.commission_basis AS "commissionBasis",
@@ -925,13 +947,17 @@ routes.get("/admin/users", requireAdmin, async (_req, res) => {
            (SELECT MAX(s.created_at) FROM auth_sessions s WHERE s.user_id = u.id) AS "lastLogin"
     FROM users u ORDER BY u.created_at
   `).all() as Record<string, unknown>[];
+  // In een merk-view horen alleen de eigenaars van dat merk thuis; admins
+  // blijven altijd zichtbaar (zij zijn het team zelf).
+  const scope = currentUser(req)?.admin_scope ?? "all";
+  const scoped = scope === "all" ? users : users.filter((u) => u.role === "admin" || u.origin === scope);
   const roles = await db.prepare("SELECT role, COUNT(*) AS n FROM users GROUP BY role").all();
-  res.json({ users: users.map(({ _ignore, ...u }) => u), roles });
+  res.json({ users: scoped.map(({ _ignore, ...u }) => u), roles });
 });
 
 /** Panden met hun eigenaar — voor de toewijzings-sectie op Beheer. */
-routes.get("/admin/properties", requireAdmin, async (_req, res) => {
-  const props = await allProperties();
+routes.get("/admin/properties", requireAdmin, async (req, res) => {
+  const props = await scopedProperties(req);
   res.json(props.map((p) => ({
     id: p.id, name: p.name, codeName: p.code_name ?? null, location: p.location,
     photo: p.photo, status: p.status, ownerId: p.owner_id,
@@ -1252,8 +1278,8 @@ function payoutRunDate(month: string): string {
   return m === 12 ? `${y + 1}-01-15` : `${y}-${String(m + 1).padStart(2, "0")}-15`;
 }
 
-async function payoutRun(month: string): Promise<Omit<PayoutsData, "months">> {
-  const props = await allProperties();
+async function payoutRun(month: string, scopeIds?: Set<string>): Promise<Omit<PayoutsData, "months">> {
+  const props = (await allProperties()).filter((p) => !scopeIds || scopeIds.has(p.id));
   const propById = new Map(props.map((p) => [p.id, p]));
 
   // Enkel effectief uitgecheckte boekingen: in de lopende maand telt de run
@@ -1316,8 +1342,8 @@ async function payoutRun(month: string): Promise<Omit<PayoutsData, "months">> {
 }
 
 /** Uitcheckmaanden met minstens één afgeronde boeking op een pand mét eigenaar. */
-async function payoutMonthList(): Promise<string[]> {
-  const props = await allProperties();
+async function payoutMonthList(scopeIds?: Set<string>): Promise<string[]> {
+  const props = (await allProperties()).filter((p) => !scopeIds || scopeIds.has(p.id));
   const owned = new Set(props.filter((p) => p.owner_id).map((p) => p.id));
   const rows = (await db.prepare(
     "SELECT DISTINCT substring(end_date::text, 1, 7) AS m, property_id FROM bookings WHERE payout > 0 AND end_date::text <= ?"
@@ -1326,7 +1352,8 @@ async function payoutMonthList(): Promise<string[]> {
 }
 
 routes.get("/payouts", requireAdmin, async (req, res) => {
-  const monthNames = await payoutMonthList();
+  const scopeIds = new Set((await scopedProperties(req)).map((p) => p.id));
+  const monthNames = await payoutMonthList(scopeIds);
   if (monthNames.length === 0) {
     res.json({ months: [], month: DEMO_MONTH, runDate: payoutRunDate(DEMO_MONTH), running: true, owners: [], totals: { amount: 0, bookings: 0, owners: 0, missingIban: 0 } });
     return;
@@ -1338,10 +1365,10 @@ routes.get("/payouts", requireAdmin, async (req, res) => {
 
   const months = [];
   for (const m of monthNames) {
-    const run = await payoutRun(m);
+    const run = await payoutRun(m, scopeIds);
     months.push({ month: m, runDate: run.runDate, bookings: run.totals.bookings, amount: run.totals.amount, running: run.running });
   }
-  const data: PayoutsData = { months, ...(await payoutRun(month)) };
+  const data: PayoutsData = { months, ...(await payoutRun(month, scopeIds)) };
   res.json(data);
 });
 
@@ -1351,13 +1378,14 @@ routes.get("/payouts", requireAdmin, async (req, res) => {
  * zonder IBAN blijven eruit — die staan in het scherm met een wenk.
  */
 routes.get("/payouts/kbc.csv", requireAdmin, async (req, res) => {
-  const monthNames = await payoutMonthList();
+  const scopeIds = new Set((await scopedProperties(req)).map((p) => p.id));
+  const monthNames = await payoutMonthList(scopeIds);
   const requested = String(req.query.month || "");
   if (!monthNames.includes(requested)) {
     res.status(404).json({ error: "geen uitbetalingen voor die maand" });
     return;
   }
-  const run = await payoutRun(requested);
+  const run = await payoutRun(requested, scopeIds);
   const payable = run.owners.filter((o) => o.iban && o.amount > 0);
   if (payable.length === 0) {
     res.status(409).json({ error: "geen enkele eigenaar met IBAN in deze run" });

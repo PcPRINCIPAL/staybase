@@ -35,6 +35,9 @@ export function AdminPage() {
 
   const maxAvg = Math.max(1, ...stats.perStep.map((s) => s.avgMs));
   const owners = usersData.users.filter((u) => u.role === "owner");
+  // Enkel Linnois-klanten hebben een commissieafspraak; een Staybase-gebruiker
+  // mag hier nooit per ongeluk commissie aangerekend krijgen (meeting 16/09).
+  const commissionOwners = owners.filter((u) => u.origin === "linnois");
 
   return (
     <section className="page">
@@ -129,6 +132,10 @@ export function AdminPage() {
                 <td>
                   {u.role === "admin" ? (
                     <span style={{ color: "var(--faint)", fontSize: 13 }}>{t("adm.allAccess")}</span>
+                  ) : u.origin === "linnois" ? (
+                    // Linnois-klanten werken met commissie, nooit met formules —
+                    // de keuze tonen zou die fout mogelijk maken (meeting 16/09).
+                    <span style={{ color: "var(--faint)", fontSize: 13 }}>{t("adm.viaCommission")}</span>
                   ) : (
                     <select
                       className="plan-select"
@@ -174,10 +181,10 @@ export function AdminPage() {
             </tr>
           </thead>
           <tbody>
-            {owners.length === 0 && (
-              <tr><td colSpan={5} style={{ color: "var(--muted)" }}>{t("adm.noOwners")}</td></tr>
+            {commissionOwners.length === 0 && (
+              <tr><td colSpan={5} style={{ color: "var(--muted)" }}>{t("adm.noCommissionOwners")}</td></tr>
             )}
-            {owners.map((u) => (
+            {commissionOwners.map((u) => (
               <CommissionRow
                 key={u.id}
                 user={u}

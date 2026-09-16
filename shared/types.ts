@@ -34,8 +34,13 @@ export interface Property {
   basePriceWeekend: number;
   lat: number | null;
   lng: number | null;
-  /** Omgeving van de eigenaar (Staybase of Linnois); null zolang er geen eigenaar toegewezen is. */
-  ownerBrand: Brand | null;
+  /**
+   * Merk van het pand: de omgeving van de eigenaar, of zonder eigenaar de
+   * bron — uit Guesty gesynct = Linnois (dat account is vandaag Linnois),
+   * via het platform aangemaakt = Staybase. Volgt later de
+   * Guesty-accountonderverdeling (changes 2.0, fase 2).
+   */
+  ownerBrand: Brand;
 }
 
 /** Alles wat de detailpagina van één pand toont. */
@@ -164,8 +169,22 @@ export function viewFor(user: { role?: string; origin?: UserOrigin | null } | nu
 export type Brand = "staybase" | "linnois";
 /** Naam die de gebruiker ziet staan in de app-schil (assistent, footer, …). */
 export const BRAND_LABEL: Record<Brand, string> = { staybase: "Staybase", linnois: "Linnois" };
-export function brandFor(user: { role?: string; origin?: UserOrigin | null } | null | undefined): Brand {
-  if (!user || user.role === "admin") return "staybase";
+/**
+ * Admin-view (meeting 16/09): een beheerder switcht tussen drie werelden —
+ * Linnois (enkel Linnois-panden, Linnois-branding), Staybase (enkel
+ * Staybase-panden) en alles (overall admin, met per pand een merkbadge).
+ */
+export type AdminScope = "all" | "linnois" | "staybase";
+export const ADMIN_SCOPES: AdminScope[] = ["linnois", "staybase", "all"];
+export function isAdminScope(v: unknown): v is AdminScope {
+  return v === "all" || v === "linnois" || v === "staybase";
+}
+
+export function brandFor(user: { role?: string; origin?: UserOrigin | null; adminScope?: AdminScope | null } | null | undefined): Brand {
+  if (!user) return "staybase";
+  // De omgeving van een admin volgt de gekozen view: in de Linnois-view
+  // werkt ze zichtbaar "in Linnois"; Staybase- en overall-view blijven Staybase.
+  if (user.role === "admin") return user.adminScope === "linnois" ? "linnois" : "staybase";
   return user.origin === "linnois" ? "linnois" : "staybase";
 }
 

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   AssistantReply, CalendarData, CalendarOverview, Cleaning, Conversation, InsightsData,
   NewPropertyInput, OwnerHomeData, Overview, PriceStripDay, PriceSuggestion, Property,
-  BillingProfile, CommissionBasis, Language, PayoutsData, PropertyDetail, RevenueData, UserOrigin, UserPlan,
+  AdminScope, BillingProfile, CommissionBasis, Language, PayoutsData, PropertyDetail, RevenueData, UserOrigin, UserPlan,
 } from "@shared/types";
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
@@ -33,6 +33,8 @@ export interface AuthUser {
   language: Language;
   /** Facturatiegegevens (§9a-popup) — bepaalt o.a. btw op de gastfactuur. */
   billing: BillingProfile;
+  /** Alleen voor admins: de gekozen view (fase 2) — linnois, staybase of all. */
+  adminScope: AdminScope | null;
 }
 
 export const login = (email: string, password: string) =>
@@ -40,6 +42,10 @@ export const login = (email: string, password: string) =>
 
 export const register = (name: string, email: string, password: string, language: Language) =>
   api<AuthUser>("/auth/register", { method: "POST", body: JSON.stringify({ name, email, password, language }) });
+
+/** Admin-view wisselen (fase 2): scoping en branding volgen meteen. */
+export const setAdminScope = (scope: AdminScope) =>
+  api<AuthUser>("/admin/scope", { method: "PATCH", body: JSON.stringify({ scope }) });
 
 /** "Wachtwoord vergeten": bevestigt altijd, verklapt niet of het adres bestaat. */
 export const forgotPassword = (email: string) =>

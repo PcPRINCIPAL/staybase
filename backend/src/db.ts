@@ -156,6 +156,19 @@ export async function bootstrap(): Promise<void> {
     END $$;
   `);
 
+  // Admin-view (changes 2.0, fase 2): een beheerder switcht tussen de
+  // Linnois-, de Staybase- en de overall-wereld; de keuze blijft bewaard.
+  await pool.query(`
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_scope text NOT NULL DEFAULT 'all';
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'users_admin_scope_check') THEN
+        ALTER TABLE users ADD CONSTRAINT users_admin_scope_check
+          CHECK (admin_scope IN ('all', 'linnois', 'staybase'));
+      END IF;
+    END $$;
+  `);
+
   // Uitbetalingen (§9c): de rekening waarop de netto-uitbetaling gestort
   // wordt. Demo-eigenaars krijgen een test-IBAN mee zodat de Uitbetalingen-
   // pagina meteen exporteerbare lijnen toont; één eigenaar blijft bewust
