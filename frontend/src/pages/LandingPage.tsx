@@ -209,13 +209,13 @@ export function LandingPage() {
                   <svg viewBox="0 0 160 42" preserveAspectRatio="none">
                     <defs>
                       <linearGradient id="lpSpark" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#FF385C" stopOpacity=".28" />
-                        <stop offset="100%" stopColor="#FF385C" stopOpacity="0" />
+                        <stop offset="0%" stopColor="var(--coral)" stopOpacity=".28" />
+                        <stop offset="100%" stopColor="var(--coral)" stopOpacity="0" />
                       </linearGradient>
                     </defs>
                     <path d="M0 36 L20 33 L40 34 L60 26 L80 22 L100 24 L120 14 L140 9 L160 4 L160 42 L0 42 Z" fill="url(#lpSpark)" />
                     <path d="M0 36 L20 33 L40 34 L60 26 L80 22 L100 24 L120 14 L140 9 L160 4"
-                      fill="none" stroke="#FF385C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      fill="none" stroke="var(--coral)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   <div className="axis"><span>1 jul</span><span>15 jul</span><span>31 jul</span></div>
                 </div>

@@ -45,13 +45,13 @@ function MockPricing() {
       <svg viewBox="0 0 160 56" preserveAspectRatio="none" style={{ height: 56 }}>
         <defs>
           <linearGradient id="mockPrice" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#FF385C" stopOpacity=".26" />
-            <stop offset="100%" stopColor="#FF385C" stopOpacity="0" />
+            <stop offset="0%" stopColor="var(--coral)" stopOpacity=".26" />
+            <stop offset="100%" stopColor="var(--coral)" stopOpacity="0" />
           </linearGradient>
         </defs>
         <path d="M0 48 L18 45 L34 47 L50 38 L66 40 L82 30 L98 32 L114 20 L132 14 L146 12 L160 6 L160 56 L0 56 Z" fill="url(#mockPrice)" />
         <path d="M0 48 L18 45 L34 47 L50 38 L66 40 L82 30 L98 32 L114 20 L132 14 L146 12 L160 6"
-          fill="none" stroke="#FF385C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          fill="none" stroke="var(--coral)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <div className="axis"><span>1 mei</span><span>15 mei</span><span>31 mei</span></div>
     </div>
@@ -110,7 +110,7 @@ function MockInsights() {
       <div className="big"><b className="num">78%</b><span>+18%</span></div>
       <svg viewBox="0 0 160 60" preserveAspectRatio="none" style={{ height: 60, marginTop: 8 }}>
         {bars.map((h, i) => (
-          <rect key={i} x={i * 18 + 2} y={60 - (h / 80) * 60} width={11} height={(h / 80) * 60} rx={3} fill="#FF385C"
+          <rect key={i} x={i * 18 + 2} y={60 - (h / 80) * 60} width={11} height={(h / 80) * 60} rx={3} fill="var(--coral)"
             opacity={i === 7 ? 1 : 0.78} />
         ))}
       </svg>
@@ -289,7 +289,7 @@ export function UitgelichteReview({ onCta }: { onCta: () => void }) {
           <svg viewBox="0 0 176 52" preserveAspectRatio="none" style={{ height: 52 }}>
             {[24, 34, 28, 58, 40, 48, 36, 70, 30].map((h, idx) => (
               <rect key={idx} x={idx * 19 + 3} y={52 - (h / 74) * 52} width={12} height={(h / 74) * 52} rx={3}
-                fill="#FF385C" opacity={idx === 7 ? 1 : 0.75} />
+                fill="var(--coral)" opacity={idx === 7 ? 1 : 0.75} />
             ))}
           </svg>
         </div>

@@ -41,6 +41,10 @@ export const login = (email: string, password: string) =>
 export const register = (name: string, email: string, password: string, language: Language) =>
   api<AuthUser>("/auth/register", { method: "POST", body: JSON.stringify({ name, email, password, language }) });
 
+/** "Wachtwoord vergeten": bevestigt altijd, verklapt niet of het adres bestaat. */
+export const forgotPassword = (email: string) =>
+  api<{ ok: boolean }>("/auth/forgot", { method: "POST", body: JSON.stringify({ email }) });
+
 /** Eigen voorkeurstaal bewaren. */
 export const setMyLanguage = (language: Language) =>
   api<{ ok: boolean; language: Language }>("/auth/me/language", {

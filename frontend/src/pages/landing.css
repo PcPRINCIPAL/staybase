@@ -33,10 +33,10 @@
 /* --- Hero --- */
 .lp-hero{position:relative; overflow:hidden; padding:56px 0; background:var(--card)}
 .lp-hero-bg{position:absolute; inset:0; z-index:0;
-  background:radial-gradient(ellipse 60% 60% at 82% 18%, #FFF0F3 0%, transparent 62%),
+  background:radial-gradient(ellipse 60% 60% at 82% 18%, var(--coral-soft) 0%, transparent 62%),
              radial-gradient(ellipse 45% 45% at 4% 82%, #FFF6E6 0%, transparent 60%)}
 .lp-hero-bg::after{content:""; position:absolute; inset:0; opacity:.45;
-  background-image:radial-gradient(circle, #FFD9E0 1.4px, transparent 1.4px);
+  background-image:radial-gradient(circle, var(--coral-line) 1.4px, transparent 1.4px);
   background-size:38px 38px}
 .lp-hero .lp-container{position:relative; z-index:1; width:100%}
 .lp-hero-grid{display:grid; grid-template-columns:.92fr 1.08fr; gap:40px; align-items:center}
@@ -322,7 +322,7 @@
 .lp-plans{display:grid; grid-template-columns:1fr 1fr; gap:18px; margin:42px 0 30px}
 .lp-plan{border:1.5px solid var(--line); border-radius:var(--r-lg); padding:28px; background:var(--card); box-shadow:var(--shadow); display:flex; flex-direction:column; position:relative}
 .lp-plan.top{border-color:var(--coral); box-shadow:0 0 0 1px var(--coral), var(--shadow-lift)}
-.lp-plan-badge{position:absolute; top:-13px; left:50%; transform:translateX(-50%); background:linear-gradient(95deg,#FF385C,#E31C5F); color:#fff; font-size:11px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; padding:5px 15px; border-radius:999px; white-space:nowrap}
+.lp-plan-badge{position:absolute; top:-13px; left:50%; transform:translateX(-50%); background:linear-gradient(95deg,var(--coral),var(--coral-deep)); color:#fff; font-size:11px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; padding:5px 15px; border-radius:999px; white-space:nowrap}
 .lp-plan-label{font-size:10.5px; font-weight:800; letter-spacing:.13em; text-transform:uppercase; color:var(--faint); margin-bottom:12px}
 .lp-plan-name{font-size:30px; font-weight:800; letter-spacing:-.03em}
 .lp-plan.top .lp-plan-name{color:var(--coral-deep)}

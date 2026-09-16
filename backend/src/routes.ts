@@ -1276,7 +1276,8 @@ async function payoutRun(month: string): Promise<Omit<PayoutsData, "months">> {
       const [y, m] = month.split("-").map(Number);
       owner = {
         ownerId, name: u.name, email: u.email, iban: u.iban ?? null,
-        reference: `Uitbetaling verhuur ${MONTH_FULL[m - 1]} ${y}`,
+        // "Verhuur" mag nergens in uitbetalingscontext staan (meeting 16/09).
+        reference: `Eigenaarsinkomsten ${MONTH_FULL[m - 1]} ${y}`,
         bookings: [], amount: 0,
       };
       (owner as PayoutOwner & { deal: Commission }).deal = { pct: Number(u.commission_pct ?? 15), basis: u.commission_basis ?? "bruto" };

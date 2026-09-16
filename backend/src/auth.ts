@@ -236,6 +236,22 @@ authRoutes.patch("/me/language", async (req, res) => {
  * bepaalt vanaf de volgende factuur of er 12% btw op staat of dat de factuur
  * btw-vrij is; reeds uitgereikte facturen behouden hun tarief.
  */
+/**
+ * "Wachtwoord vergeten" (meeting 16/09). Demo-gedrag: we bevestigen altijd
+ * zonder te verklappen of het adres bestaat; er vertrekt (nog) geen echte
+ * mail — dat vergt een mailprovider en volgt met de gastenportaal-mails.
+ */
+authRoutes.post("/forgot", async (req, res) => {
+  const email = String(req.body?.email || "").trim().toLowerCase();
+  if (!email || !email.includes("@")) {
+    res.status(400).json({ error: "geef een geldig e-mailadres op" });
+    return;
+  }
+  const known = await db.prepare("SELECT 1 FROM users WHERE email = ?").get(email);
+  console.log(`[auth] wachtwoord-reset gevraagd voor ${email}${known ? "" : " (onbekend adres)"}`);
+  res.json({ ok: true });
+});
+
 authRoutes.patch("/me/billing", async (req, res) => {
   const user = await sessionUser(req);
   if (!user) {

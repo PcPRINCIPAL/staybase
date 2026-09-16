@@ -384,28 +384,34 @@ export async function ensureOwnerInvoice(booking: BookingRow, property: Property
 }
 
 /** Beheerdergegevens per omgeving — voorlopig vast; later instelbaar in Beheer. */
-const MANAGER: Record<Brand, { name: string; line: string }> = {
+const MANAGER: Record<Brand, { name: string; lines: string[] }> = {
   linnois: {
     name: "Linnois",
-    line: "Linnois BV  ·  Stationsstraat 2, 9961 Boekhoute  ·  BTW BE1026 886 441  ·  IBAN BE07 7380 4892 1566",
+    // Onder elkaar (meeting 16/09): mag het logo niet raken.
+    lines: ["Linnois BV", "Stationsstraat 2, 9961 Boekhoute", "BTW BE1026 886 441", "IBAN BE07 7380 4892 1566"],
   },
   staybase: {
     name: "Staybase",
-    line: "Staybase BV  ·  vennootschapsgegevens volgen",
+    lines: ["Staybase BV", "vennootschapsgegevens volgen"],
   },
 };
 
+/**
+ * Logo 10% groter dan de eerste versie, rechtsboven met vrije ruimte errond
+ * (meeting 16/09: "niets mag het logo raken") — alle tekstblokken links
+ * blijven daarom op halve breedte.
+ */
 function drawManagerHeader(doc: PDFKit.PDFDocument, title: string, brand: Brand, L: number, W: number): void {
   const pal = PALETTES[brand];
   doc.rect(0, 0, doc.page.width, 6).fillColor(pal.accent).fill();
   if (brand === "linnois" && existsSync(LINNOIS_LOGO)) {
-    doc.image(LINNOIS_LOGO, L + W - 85, 62, { height: 26 });
+    doc.image(LINNOIS_LOGO, L + W - 94, 58, { height: 29 });
   } else {
-    drawStaybaseLogo(doc, L + W - 118, 60, 26, pal);
-    doc.font("Helvetica-Bold").fontSize(17).fillColor(pal.accent)
-      .text("staybase", L + W - 86, 65, { width: 90 });
+    drawStaybaseLogo(doc, L + W - 124, 58, 29, pal);
+    doc.font("Helvetica-Bold").fontSize(18).fillColor(pal.accent)
+      .text("staybase", L + W - 89, 64, { width: 95 });
   }
-  doc.font("Helvetica-Bold").fontSize(24).fillColor(INK).text(title, L, 60);
+  doc.font("Helvetica-Bold").fontSize(24).fillColor(INK).text(title, L, 60, { width: W - 160 });
 }
 
 export interface OwnerDocInput {
@@ -432,16 +438,9 @@ export function renderOwnerStatementPdf(input: OwnerDocInput): Promise<Buffer> {
   const L = 64;
 
   drawManagerHeader(doc, "Owner statement", brand, L, W);
-  // De rode wenk uit de klant-template: dit is géén factuur.
-  doc.font("Helvetica-BoldOblique").fontSize(9.5).fillColor("#B3261E")
-    .text(
-      "Dit is GEEN factuur — louter een administratief overzicht van bedragen ontvangen, verrekend en " +
-      "doorgestort voor rekening van de eigenaar.",
-      L, 96, { width: W }
-    );
 
   // --- kerngegevens ---
-  const metaY = 136;
+  const metaY = 118;
   const meta = (label: string, value: string, row: number) => {
     doc.font("Helvetica").fontSize(9.5).fillColor(MUTED).text(label, L, metaY + row * 16);
     doc.font("Helvetica-Bold").fontSize(9.5).fillColor(INK).text(value, L + 130, metaY + row * 16, { width: W - 130 });
@@ -452,16 +451,18 @@ export function renderOwnerStatementPdf(input: OwnerDocInput): Promise<Buffer> {
   meta("Gast", booking.guest, 3);
   meta("Verblijfsperiode", `${dateNL(booking.start_date)} – ${dateNL(booking.end_date)}`, 4);
 
-  // --- rekenlijnen ---
+  // --- rekenlijnen: kolomtitels bóven de merklijn (meeting 16/09) ---
   let y = metaY + 5 * 16 + 22;
-  doc.moveTo(L, y).lineTo(L + W, y).lineWidth(1.5).strokeColor(pal.accent).stroke();
   doc.font("Helvetica-Bold").fontSize(8.5).fillColor(FAINT)
-    .text("OMSCHRIJVING", L, y + 10, { characterSpacing: 0.6 })
-    .text("BEDRAG", L, y + 10, { width: W, align: "right", characterSpacing: 0.6 });
-  y += 30;
+    .text("OMSCHRIJVING", L, y, { characterSpacing: 0.6 })
+    .text("BEDRAG", L, y, { width: W, align: "right", characterSpacing: 0.6 });
+  y += 16;
+  doc.moveTo(L, y).lineTo(L + W, y).lineWidth(1.5).strokeColor(pal.accent).stroke();
+  y += 14;
 
+  // Afgehouden posten met een minteken ervoor, geen haakjes (meeting 16/09).
   const line = (label: string, value: number | null, opts: { bold?: boolean; sub?: boolean; negative?: boolean } = {}) => {
-    const display = value == null ? "—" : (opts.negative ? `(${eur(Math.abs(value))})` : eur(value));
+    const display = value == null ? "—" : (opts.negative ? `- ${eur(Math.abs(value))}` : eur(value));
     doc.font(opts.bold ? "Helvetica-Bold" : "Helvetica").fontSize(opts.bold ? 10.5 : 9.5)
       .fillColor(opts.bold ? INK : opts.sub ? FAINT : MUTED)
       .text(label, L + (opts.sub ? 12 : 0), y, { width: W - 140 })
@@ -469,12 +470,16 @@ export function renderOwnerStatementPdf(input: OwnerDocInput): Promise<Buffer> {
     y += opts.bold ? 22 : 18;
   };
 
+  // Structuur uit de meeting: totale gastbetaling → kosten (elk met een
+  // minnetje) → totale kosten → netto. "Dan zie je direct: pap, pap, pap."
   line("Totale gastbetaling", fig.guestTotal, { bold: true });
   line("Gastbetaling — verblijf", fig.stay, { sub: true });
   line("Gastbetaling — schoonmaak", fig.cleaning, { sub: true });
+  y += 6;
   line("OTA-commissie", fig.otaFee, { negative: true });
   line("Schoonmaakkosten", fig.cleaning, { negative: true });
   line("Eventuele extra kosten (schade, linnen)", null);
+  line("Totale kosten", fig.otaFee + fig.cleaning, { bold: true, negative: true });
   y += 4;
   doc.roundedRect(L, y, W, 32, 10).fillColor(pal.soft).fill();
   doc.font("Helvetica-Bold").fontSize(11.5).fillColor(pal.deep)
@@ -492,8 +497,14 @@ export function renderOwnerStatementPdf(input: OwnerDocInput): Promise<Buffer> {
   y += 8;
   line("Netto uitbetaling aan eigenaar", netPayout, { bold: true });
 
-  // --- voettekst ---
+  // --- voettekst, met de rode wenk helemaal onderaan (meeting 16/09) ---
   const footY = doc.page.height - 100;
+  doc.font("Helvetica-BoldOblique").fontSize(9.5).fillColor("#B3261E")
+    .text(
+      "Dit is GEEN factuur — louter een administratief overzicht van bedragen ontvangen, verrekend en " +
+      "doorgestort voor rekening van de eigenaar.",
+      L, footY - 34, { width: W }
+    );
   doc.moveTo(L, footY).lineTo(L + W, footY).lineWidth(0.5).strokeColor(LINE).stroke();
   doc.font("Helvetica").fontSize(8.5).fillColor(FAINT)
     .text(
@@ -524,19 +535,26 @@ export function renderManagementInvoicePdf(input: OwnerDocInput): Promise<Buffer
   const L = 64;
 
   drawManagerHeader(doc, "Factuur", brand, L, W);
-  doc.font("Helvetica").fontSize(8.5).fillColor(MUTED).text(MANAGER[brand].line, L, 96, { width: W });
+  // Beheerdergegevens onder elkaar, op halve breedte — raakt het logo nooit.
+  let coY = 96;
+  doc.font("Helvetica").fontSize(8.5).fillColor(MUTED);
+  for (const l of MANAGER[brand].lines) {
+    doc.text(l, L, coY, { width: W / 2 - 10 });
+    coY += 12;
+  }
 
   // --- nummerchip + data ---
+  const chipY = coY + 12;
   const label = ownerInvoiceLabel(ownerInvoice, property);
   doc.font("Helvetica-Bold").fontSize(9);
   const chipW = doc.widthOfString(label) + 20;
-  doc.roundedRect(L, 118, chipW, 20, 10).fillColor(pal.soft).fill();
-  doc.fillColor(pal.deep).text(label, L + 10, 124);
+  doc.roundedRect(L, chipY, chipW, 20, 10).fillColor(pal.soft).fill();
+  doc.fillColor(pal.deep).text(label, L + 10, chipY + 6);
   doc.font("Helvetica").fontSize(10).fillColor(MUTED)
-    .text(`Factuurdatum ${dateNL(issued)}   ·   Vervaldatum (30 dagen) ${dateNL(due)}`, L + chipW + 12, 124);
+    .text(`Factuurdatum ${dateNL(issued)}   ·   Vervaldatum (30 dagen) ${dateNL(due)}`, L + chipW + 12, chipY + 6);
 
   // --- klant (de eigenaar) ---
-  const blockY = 170;
+  const blockY = chipY + 52;
   doc.font("Helvetica-Bold").fontSize(8.5).fillColor(pal.deep).text("KLANT (EIGENAAR)", L, blockY, { characterSpacing: 0.6 });
   doc.font("Helvetica-Bold").fontSize(11).fillColor(INK)
     .text(owner?.company_name || owner?.name || "Eigenaar", L, blockY + 15);
@@ -557,13 +575,13 @@ export function renderManagementInvoicePdf(input: OwnerDocInput): Promise<Buffer
   doc.font("Helvetica").fontSize(9.5).fillColor(MUTED).text(property.name, L + W / 2, blockY + 30);
 
   // --- factuurlijn: enkel de eigen dienst (btw-advies punt 3/7) ---
-  const tableY = 260;
-  doc.moveTo(L, tableY).lineTo(L + W, tableY).lineWidth(1.5).strokeColor(pal.accent).stroke();
+  const tableY = blockY + 90;
   doc.font("Helvetica-Bold").fontSize(8.5).fillColor(FAINT)
-    .text("OMSCHRIJVING", L, tableY + 12, { characterSpacing: 0.6 })
-    .text("BEDRAG (EXCL. BTW)", L, tableY + 12, { width: W, align: "right", characterSpacing: 0.6 });
+    .text("OMSCHRIJVING", L, tableY, { characterSpacing: 0.6 })
+    .text("BEDRAG (EXCL. BTW)", L, tableY, { width: W, align: "right", characterSpacing: 0.6 });
+  doc.moveTo(L, tableY + 16).lineTo(L + W, tableY + 16).lineWidth(1.5).strokeColor(pal.accent).stroke();
 
-  let y = tableY + 34;
+  let y = tableY + 30;
   const basisLabel = ownerInvoice.commission_basis === "netto" ? "netto-beheersopbrengst" : "totale gastbetaling";
   doc.font("Helvetica-Bold").fontSize(10.5).fillColor(INK)
     .text("Beheer, coördinatie en bemiddeling", L, y, { width: W - 140 })

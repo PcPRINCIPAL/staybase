@@ -20,43 +20,43 @@ genormaliseerd naar **Linnois**. De vorige ronde staat in
 
 ### 1.1 Owner statement (§9b-document)
 
-- [ ] De rode wenk **"Dit is GEEN factuur" helemaal onderaan** het document,
+- [x] De rode wenk **"Dit is GEEN factuur" helemaal onderaan** het document,
       zodat de styling van de rest niet verstoord wordt.
-- [ ] **"Omschrijving" en "Bedrag" bóven de blauwe lijn** in plaats van eronder.
-- [ ] **Haakjes rond bedragen weg** — afgehouden posten krijgen een **minteken**
+- [x] **"Omschrijving" en "Bedrag" bóven de blauwe lijn** in plaats van eronder.
+- [x] **Haakjes rond bedragen weg** — afgehouden posten krijgen een **minteken**
       ervoor.
-- [ ] **Onderverdeling in de kosten**: structuur wordt *totale gastbetaling* →
+- [x] **Onderverdeling in de kosten**: structuur wordt *totale gastbetaling* →
       *kostenposten elk met een minnetje* → *netto*. "Dan zie je direct:
       pap, pap, pap." (Zelfde leeslogica als de §8-keten in het platform.)
 
 ### 1.2 Beheerfactuur (§9b-document)
 
-- [ ] De **Linnois-gegevens (Linnois BV, Stationsstraat 2, btw, IBAN) onder
+- [x] De **Linnois-gegevens (Linnois BV, Stationsstraat 2, btw, IBAN) onder
       elkaar** in plaats van op één lijn — mag het logo niet raken.
-- [ ] **Linnois-logo 10% groter**, met voldoende witruimte errond zodat niets
+- [x] **Linnois-logo 10% groter**, met voldoende witruimte errond zodat niets
       het logo raakt. Algemeen: "gewoon meer spatie".
 - [x] De omschrijvingsteksten zelf zijn goedgekeurd ("de teksten die erop
       staan zijn goed") — niet aankomen.
 
 ### 1.3 Facturen-tab
 
-- [ ] **"Nog te factureren" bóven** de al uitgereikte facturen, zodat meteen
+- [x] **"Nog te factureren" bóven** de al uitgereikte facturen, zodat meteen
       duidelijk is wat er nog moet gebeuren.
 
 ### 1.4 Uitbetalingen / KBC
 
-- [ ] Mededeling **"Uitbetaling verhuur …" → "Eigenaarsinkomsten …"**.
+- [x] Mededeling **"Uitbetaling verhuur …" → "Eigenaarsinkomsten …"**.
       Harde regel uit de meeting: **het woord "verhuur" mag nérgens op het
       platform in uitbetalingscontext staan** — check ook de i18n-teksten
       (pay.*-sleutels) en de referentie in de KBC-CSV.
 
 ### 1.5 Login
 
-- [ ] **"Wachtwoord vergeten"-optie** op het inlogscherm van het platform.
+- [x] **"Wachtwoord vergeten"-optie** op het inlogscherm van het platform.
 
 ### 1.6 Kleurtest landingspagina
 
-- [ ] Het rood/koraal op de **landingspagina vervangen door #1278EB** als
+- [x] Het rood/koraal op de **landingspagina vervangen door #1278EB** als
       test. Thema en layout blijven identiek — enkel de kleur. Het origineel
       blijft bewaard zodat we op de meeting van de 25e kunnen kiezen ("als we
       zeggen: nee, dan gaan we terug naar het rood"). Praktisch: als apart
@@ -64,7 +64,7 @@ genormaliseerd naar **Linnois**. De vorige ronde staat in
 
 ### 1.7 Kleine fixes
 
-- [ ] KPI "Boekingen dit jaar: 17 × 92 nachten" is onduidelijk — herformuleren
+- [x] KPI "Boekingen dit jaar: 17 × 92 nachten" is onduidelijk — herformuleren
       (bv. "17 boekingen · 92 nachten").
 
 ---

@@ -61,10 +61,12 @@ export default function App() {
   }, [user?.id, user?.language]);
 
   // Huisstijl op de document-root: zo krijgen ook schermen buiten de app-schil
-  // (de onboarding-wizard) de juiste merkkleuren mee. Uitgelogd is het altijd
-  // Staybase — de website zelf blijft Staybase-branding.
+  // (de onboarding-wizard) de juiste merkkleuren mee. Uitgelogd is het normaal
+  // Staybase — behalve tijdens de kleurtest van 16/09: rood → #1278EB op de
+  // website. Vlag terug op false = terug naar het rood (meeting van de 25e).
+  const BLUE_LANDING_TEST = true;
   useEffect(() => {
-    document.documentElement.dataset.brand = user ? brandFor(user) : "staybase";
+    document.documentElement.dataset.brand = user ? brandFor(user) : (BLUE_LANDING_TEST ? "bluetest" : "staybase");
   }, [user]);
 
   if (loading) return <div className="loading" style={{ paddingTop: 120 }}>{t("app.loading")}</div>;
