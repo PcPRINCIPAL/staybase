@@ -2,7 +2,7 @@ import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import type { NextFunction, Request, Response } from "express";
 import { Router } from "express";
 import { db } from "./db";
-import { PLAN_RANK, isLanguage, viewFor, type Language, type PlatformView, type UserOrigin, type UserPlan } from "../../shared/types";
+import { PLAN_RANK, isLanguage, viewFor, type Language, type PlatformView, type UserOrigin, type UserPlan, type VatStatus } from "../../shared/types";
 
 /**
  * Sessie-gebaseerde login met een httpOnly-cookie.
@@ -35,6 +35,13 @@ export interface UserRow {
   plan: UserPlan;
   origin: UserOrigin;
   language: Language;
+  commission_pct: number;
+  commission_basis: "bruto" | "netto";
+  vat_status: VatStatus;
+  company_name: string | null;
+  billing_address: string | null;
+  vat_number: string | null;
+  vat_periodic: boolean;
 }
 
 /** Publieke weergave van een gebruiker (zonder wachtwoordhash). */
@@ -42,6 +49,13 @@ function publicUser(u: UserRow) {
   return {
     id: u.id, email: u.email, name: u.name, role: u.role, plan: u.plan,
     origin: u.origin ?? "staybase", language: u.language ?? "nl",
+    billing: {
+      vatStatus: u.vat_status ?? "onbekend",
+      companyName: u.company_name ?? null,
+      billingAddress: u.billing_address ?? null,
+      vatNumber: u.vat_number ?? null,
+      vatPeriodic: Boolean(u.vat_periodic),
+    },
   };
 }
 
@@ -213,6 +227,34 @@ authRoutes.patch("/me/language", async (req, res) => {
   }
   await db.prepare("UPDATE users SET language = ? WHERE id = ?").run(language, user.id);
   res.json({ ok: true, language });
+});
+
+/**
+ * Facturatiegegevens van de eigenaar zelf (§9a-popup). Het btw-statuut
+ * bepaalt vanaf de volgende factuur of er 12% btw op staat of dat de factuur
+ * btw-vrij is; reeds uitgereikte facturen behouden hun tarief.
+ */
+authRoutes.patch("/me/billing", async (req, res) => {
+  const user = await sessionUser(req);
+  if (!user) {
+    res.status(401).json({ error: "niet aangemeld" });
+    return;
+  }
+  const vatStatus = String(req.body?.vatStatus || "");
+  if (!["particulier", "vennootschap_btw", "vennootschap_geen_btw"].includes(vatStatus)) {
+    res.status(400).json({ error: "kies particulier, btw-plichtige of niet-btw-plichtige vennootschap" });
+    return;
+  }
+  const isCompany = vatStatus !== "particulier";
+  const companyName = isCompany ? String(req.body?.companyName || "").trim() || null : null;
+  const billingAddress = String(req.body?.billingAddress || "").trim() || null;
+  const vatNumber = isCompany ? String(req.body?.vatNumber || "").trim() || null : null;
+  const vatPeriodic = isCompany ? Boolean(req.body?.vatPeriodic) : false;
+  await db.prepare(
+    "UPDATE users SET vat_status = ?, company_name = ?, billing_address = ?, vat_number = ?, vat_periodic = ? WHERE id = ?"
+  ).run(vatStatus, companyName, billingAddress, vatNumber, vatPeriodic, user.id);
+  const fresh = (await db.prepare("SELECT * FROM users WHERE id = ?").get(user.id)) as unknown as UserRow;
+  res.json(publicUser(fresh));
 });
 
 authRoutes.get("/me", async (req, res) => {

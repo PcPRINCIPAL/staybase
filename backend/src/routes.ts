@@ -2,11 +2,11 @@ import { Router } from "express";
 import { db, getSetting, setSetting } from "./db";
 import {
   DEMO_MONTH, DOW_LABELS, MONTH_FULL, MONTH_LABELS,
-  addDays, allProperties, daysInMonth, iso, mapBooking, mapProperty,
+  addDays, allProperties, bookingRevenue, daysInMonth, iso, mapBooking, mapProperty,
   nightPrice, nightsBetween, pad, propertyById, shortLabel, suggestionsFor, weekdayMonday,
   type BookingRow, type PropertyRow,
 } from "./lib";
-import { COMMISSION_MAX_PCT, COMMISSION_MIN_PCT, DEMO_TODAY, isLanguage, viewFor } from "../../shared/types";
+import { COMMISSION_MAX_PCT, COMMISSION_MIN_PCT, DEMO_TODAY, isLanguage, revenueChain, viewFor } from "../../shared/types";
 import type {
   CalendarData, CalendarDay, CalendarOverview, Cleaning, Conversation, InsightsData, Message,
   NewPropertyInput, OwnerHomeData, Overview, PriceStripDay, PriceSuggestion, RevenueData, TimelineItem,
@@ -106,8 +106,8 @@ routes.get("/overview", async (req, res) => {
       const from = b.start_date > monthStart ? b.start_date : monthStart;
       const to = b.end_date < monthEnd ? b.end_date : monthEnd;
       bookedNights += nightsBetween(from, to);
-      if (b.start_date >= monthStart && b.start_date < monthEnd) monthRevenue += b.payout;
-      payoutSum += b.payout;
+      if (b.start_date >= monthStart && b.start_date < monthEnd) monthRevenue += bookingRevenue(b);
+      payoutSum += bookingRevenue(b);
       paidNights += nightsBetween(b.start_date, b.end_date);
     }
   }
@@ -198,7 +198,7 @@ routes.get("/overview", async (req, res) => {
     const mm2 = monthMeta(off);
     sparkOccupancy.push(Math.round((nightsWin(mm2.from, mm2.toEx) / (mm2.dim * liveCount)) * 100));
     const started = paid.filter((b) => b.start_date >= mm2.from && b.start_date < mm2.toEx);
-    const rev = started.reduce((a, b) => a + b.payout, 0);
+    const rev = started.reduce((a, b) => a + bookingRevenue(b), 0);
     const nights = started.reduce((a, b) => a + nightsBetween(b.start_date, b.end_date), 0);
     sparkRevenue.push(rev);
     sparkAdr.push(nights ? Math.round(rev / nights) : 0);
@@ -208,7 +208,7 @@ routes.get("/overview", async (req, res) => {
   const occupancyPrevPct = Math.round((nightsWin(prev.from, prev.toEx) / (prev.dim * liveCount)) * 100);
   const prevMonthRevenue = paid
     .filter((b) => b.start_date >= prev.from && b.start_date < prev.toEx)
-    .reduce((a, b) => a + b.payout, 0);
+    .reduce((a, b) => a + bookingRevenue(b), 0);
 
   const ratings = live.map((p) => p.rating).filter((r): r is number => r != null);
   const rating = ratings.length ? Math.round((ratings.reduce((a, r) => a + r, 0) / ratings.length) * 100) / 100 : null;
@@ -295,7 +295,7 @@ routes.get("/overview", async (req, res) => {
       occupancyPct: Math.round((nightsWin(curMonth.from, curMonth.toEx, p.id) / curMonth.dim) * 100),
       monthRevenue: paid
         .filter((b) => b.property_id === p.id && b.start_date >= curMonth.from && b.start_date < curMonth.toEx)
-        .reduce((a, b) => a + b.payout, 0),
+        .reduce((a, b) => a + bookingRevenue(b), 0),
       rating: p.rating,
       todayLabel,
     };
@@ -366,7 +366,7 @@ routes.get("/properties/:id", async (req, res) => {
 
   const ditJaar = boekingen.filter((b) => b.startDate.startsWith(jaar));
   const nachten = ditJaar.reduce((n, b) => n + nightsBetween(b.startDate, b.endDate), 0);
-  const omzetBoekingen = ditJaar.reduce((n, b) => n + b.payout, 0);
+  const omzetBoekingen = ditJaar.reduce((n, b) => n + b.guestTotal, 0);
   const historisch = (await db.prepare("SELECT amount FROM property_revenue_h1 WHERE property_id = ?")
     .get(prop.id) as { amount: number } | undefined)?.amount ?? 0;
 
@@ -385,7 +385,7 @@ routes.get("/properties/:id", async (req, res) => {
   }
 
   const perKanaal = { airbnb: 0, booking: 0, vrbo: 0 };
-  for (const b of ditJaar) perKanaal[b.channel] += b.payout;
+  for (const b of ditJaar) perKanaal[b.channel] += b.guestTotal;
   const totaalKanaal = perKanaal.airbnb + perKanaal.booking + perKanaal.vrbo || 1;
 
   const view = viewFor(currentUser(req));
@@ -728,18 +728,23 @@ routes.post("/cleanings/:id/confirm", async (req, res) => {
 /* =========================== Opbrengsten =========================== */
 
 export async function revenueData(scopeIds?: Set<string>): Promise<RevenueData> {
-  const months = await db.prepare("SELECT * FROM revenue_months ORDER BY month").all() as unknown as
-    { month: string; airbnb: number; booking: number; vrbo: number }[];
-
-  // Lopende maand live uit de boekingen.
-  const cur = { month: DEMO_MONTH, airbnb: 0, booking: 0, vrbo: 0 };
-  const curBookings = ((await db.prepare(
-    "SELECT channel, payout, property_id FROM bookings WHERE start_date::text LIKE ?"
-  ).all(DEMO_MONTH + "%")) as unknown as { channel: "airbnb" | "booking" | "vrbo"; payout: number; property_id: string }[])
+  // Maandreeks live uit de boekingen: januari t/m de lopende maand, per
+  // kanaal opgeteld op de gastbetaling (maand van aankomst).
+  const year = DEMO_MONTH.slice(0, 4);
+  const yearRows = ((await db.prepare(
+    "SELECT channel, COALESCE(guest_total, payout) AS payout, property_id, start_date::text AS start_date FROM bookings WHERE start_date::text LIKE ?"
+  ).all(year + "%")) as unknown as { channel: "airbnb" | "booking" | "vrbo"; payout: number; property_id: string; start_date: string }[])
     .filter((b) => !scopeIds || scopeIds.has(b.property_id));
-  for (const b of curBookings) cur[b.channel] += b.payout;
 
-  const all = [...months, cur];
+  const all: { month: string; airbnb: number; booking: number; vrbo: number }[] = [];
+  for (let m = 1; m <= Number(DEMO_MONTH.slice(5)); m++) {
+    all.push({ month: `${year}-${String(m).padStart(2, "0")}`, airbnb: 0, booking: 0, vrbo: 0 });
+  }
+  for (const b of yearRows) {
+    const slot = all.find((mm) => mm.month === b.start_date.slice(0, 7));
+    if (slot) slot[b.channel] += b.payout;
+  }
+  const curBookings = yearRows.filter((b) => b.start_date.startsWith(DEMO_MONTH));
   const rmonths = all.map((m) => ({
     month: m.month,
     label: MONTH_LABELS[Number(m.month.slice(5)) - 1],
@@ -786,8 +791,39 @@ export async function revenueData(scopeIds?: Set<string>): Promise<RevenueData> 
 
 routes.get("/revenue", requirePlan("premium"), async (req, res) => {
   const user = currentUser(req);
-  const scope = user?.role === "admin" ? undefined : new Set((await scopedProperties(req)).map((p) => p.id));
-  res.json(await revenueData(scope));
+  const scopeProps = await scopedProperties(req);
+  const scope = user?.role === "admin" ? undefined : new Set(scopeProps.map((p) => p.id));
+  const data = await revenueData(scope);
+
+  // §8-keten over dit jaar, in de volgorde uit de meeting: gast betaalde,
+  // − OTA-commissie, − commissie beheerder, − schoonmaakkost, = netto
+  // uitbetaling. Commissie volgt de afspraak van de eigenaar van elk pand.
+  const year = DEMO_TODAY.slice(0, 4);
+  const scopeIds = new Set(scopeProps.map((p) => p.id));
+  const dealByProp = new Map<string, { pct: number; basis: "bruto" | "netto" }>();
+  for (const prop of scopeProps) {
+    if (!prop.owner_id) { dealByProp.set(prop.id, { pct: 15, basis: "bruto" }); continue; }
+    const owner = (await db.prepare("SELECT commission_pct, commission_basis FROM users WHERE id = ?").get(prop.owner_id)) as
+      { commission_pct: number; commission_basis: "bruto" | "netto" } | undefined;
+    dealByProp.set(prop.id, { pct: Number(owner?.commission_pct ?? 15), basis: owner?.commission_basis ?? "bruto" });
+  }
+  const yearBookings = ((await db.prepare("SELECT * FROM bookings WHERE payout > 0").all()) as unknown as BookingRow[])
+    .filter((b) => scopeIds.has(b.property_id) && b.start_date.startsWith(year));
+  const chain = { guestTotal: 0, otaFee: 0, commission: 0, cleaning: 0, netPayout: 0, bookings: yearBookings.length };
+  for (const b of yearBookings) {
+    const fig = revenueChain(
+      { guestTotal: bookingRevenue(b), otaFee: Number(b.ota_fee ?? 0), cleaningFee: Number(b.guest_cleaning ?? 0) },
+      dealByProp.get(b.property_id) ?? { pct: 15, basis: "bruto" }
+    );
+    chain.guestTotal += fig.guestTotal;
+    chain.otaFee += fig.otaFee;
+    chain.commission += fig.commissionIncl;
+    chain.cleaning += fig.cleaningFee;
+    chain.netPayout += fig.netPayout;
+  }
+  for (const k of ["guestTotal", "otaFee", "commission", "cleaning", "netPayout"] as const) chain[k] = Math.round(chain[k]);
+
+  res.json({ ...data, chain });
 });
 
 /* =========================== Adres-lookup =========================== */
@@ -1011,8 +1047,8 @@ routes.get("/bookings/:id/invoice.pdf", async (req, res) => {
   }
   const invoice = await ensureInvoice(booking, property);
   const owner = property.owner_id
-    ? (await db.prepare("SELECT name, email, origin FROM users WHERE id = ?").get(property.owner_id)) as
-        { name: string; email: string; origin: "staybase" | "linnois" } | undefined
+    ? (await db.prepare("SELECT name, email, origin, company_name, billing_address, vat_number FROM users WHERE id = ?").get(property.owner_id)) as
+        { name: string; email: string; origin: "staybase" | "linnois"; company_name: string | null; billing_address: string | null; vat_number: string | null } | undefined
     : undefined;
   // De huisstijl volgt de omgeving van de eigenaar (het is zíjn factuur) —
   // ook als een beheerder ze downloadt. Zonder eigenaar: de omgeving van de
@@ -1034,8 +1070,8 @@ async function invoicePageInput(inv: InvoiceRow, req: import("express").Request)
   const property = await propertyById(inv.property_id);
   if (!booking || !property) return null;
   const owner = property.owner_id
-    ? (await db.prepare("SELECT name, email, origin FROM users WHERE id = ?").get(property.owner_id)) as
-        { name: string; email: string; origin: "staybase" | "linnois" } | undefined
+    ? (await db.prepare("SELECT name, email, origin, company_name, billing_address, vat_number FROM users WHERE id = ?").get(property.owner_id)) as
+        { name: string; email: string; origin: "staybase" | "linnois"; company_name: string | null; billing_address: string | null; vat_number: string | null } | undefined
     : undefined;
   const brand = owner ? brandFor({ role: "owner", origin: owner.origin }) : brandFor(currentUser(req));
   return { invoice: inv, booking, property, owner: owner ?? null, brand };
@@ -1049,8 +1085,8 @@ async function ownerDocInput(req: import("express").Request, bookingId: string) 
   if (!invoiceAvailable(booking)) return "too-early" as const;
   const ownerInvoice = await ensureOwnerInvoice(booking, property);
   const owner = property.owner_id
-    ? (await db.prepare("SELECT name, email, origin FROM users WHERE id = ?").get(property.owner_id)) as
-        { name: string; email: string; origin: "staybase" | "linnois" } | undefined
+    ? (await db.prepare("SELECT name, email, origin, company_name, billing_address, vat_number FROM users WHERE id = ?").get(property.owner_id)) as
+        { name: string; email: string; origin: "staybase" | "linnois"; company_name: string | null; billing_address: string | null; vat_number: string | null } | undefined
     : undefined;
   const brand = owner ? brandFor({ role: "owner", origin: owner.origin }) : brandFor(currentUser(req));
   return { ownerInvoice, booking, property, owner: owner ?? null, brand };
@@ -1242,8 +1278,17 @@ routes.get("/my-property", async (req, res) => {
     }
     return Math.round((n / w.dim) * 100);
   };
+  // §1/§8: een eigenaar zonder zicht op de totale omzet (Linnois) krijgt als
+  // KPI de echte netto-uitbetaling — dezelfde keten als het owner statement.
+  const user = currentUser(req);
+  const showNet = !viewFor(user).grossRevenue;
+  const deal = { pct: Number(user?.commission_pct ?? 15), basis: (user?.commission_basis ?? "bruto") as "bruto" | "netto" };
+  const amountOf = (b: BookingRow) =>
+    showNet
+      ? revenueChain({ guestTotal: bookingRevenue(b), otaFee: Number(b.ota_fee ?? 0), cleaningFee: Number(b.guest_cleaning ?? 0) }, deal).netPayout
+      : bookingRevenue(b);
   const revenueIn = (w: { from: string; toEx: string }) =>
-    bookings.filter((b) => b.start_date >= w.from && b.start_date < w.toEx).reduce((a, b) => a + b.payout, 0);
+    Math.round(bookings.filter((b) => b.start_date >= w.from && b.start_date < w.toEx).reduce((a, b) => a + amountOf(b), 0));
 
   const cur = monthWindow(0);
   const prev = monthWindow(-1);
@@ -1369,12 +1414,12 @@ routes.get("/insights", requirePlan("super"), async (req, res) => {
   const channelMix = ([["airbnb", "Airbnb"], ["booking", "Booking.com"], ["vrbo", "VRBO"]] as const)
     .map(([ch, label]) => {
       const rows = paid.filter((b) => b.channel === ch);
-      return { channel: ch, label, bookings: rows.length, revenue: rows.reduce((a, b) => a + b.payout, 0) };
+      return { channel: ch, label, bookings: rows.length, revenue: rows.reduce((a, b) => a + bookingRevenue(b), 0) };
     })
     .filter((c) => c.bookings > 0);
 
   const totalNights = stays.reduce((a, n) => a + n, 0);
-  const totalRevenue = paid.reduce((a, b) => a + b.payout, 0);
+  const totalRevenue = paid.reduce((a, b) => a + bookingRevenue(b), 0);
   const insights: InsightsData = {
     kpis: {
       occupancyNext30: Math.round((nightsInWindow(DEMO_TODAY, addDays(DEMO_TODAY, 30)) / (30 * liveCount)) * 100),

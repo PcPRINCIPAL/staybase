@@ -139,6 +139,23 @@ export async function bootstrap(): Promise<void> {
     END $$;
   `);
 
+  // Facturatiegegevens van de eigenaar (§9a-popup): btw-statuut bepaalt of de
+  // gastfactuur 12% btw draagt of btw-vrij is; de rest vult de factuurkoppen.
+  await pool.query(`
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS vat_status text NOT NULL DEFAULT 'onbekend';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS company_name text;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS billing_address text;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS vat_number text;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS vat_periodic boolean NOT NULL DEFAULT false;
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'users_vat_status_check') THEN
+        ALTER TABLE users ADD CONSTRAINT users_vat_status_check
+          CHECK (vat_status IN ('onbekend', 'particulier', 'vennootschap_btw', 'vennootschap_geen_btw'));
+      END IF;
+    END $$;
+  `);
+
   // Voorkeurstaal van de gebruiker; bepaalt in welke taal het platform opent.
   await pool.query(`
     ALTER TABLE users ADD COLUMN IF NOT EXISTS language text NOT NULL DEFAULT 'nl';

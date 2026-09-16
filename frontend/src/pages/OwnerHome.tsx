@@ -8,6 +8,7 @@ import { useAuth } from "../auth";
 import { useUI } from "../ui";
 import { useBrand, useView } from "../components/OriginGate";
 import { useT } from "../i18n";
+import { BillingModal } from "../components/BillingModal";
 
 function addDays(iso: string, days: number): string {
   const d = new Date(iso + "T00:00:00Z");
@@ -72,8 +73,10 @@ export function OwnerHome() {
   const { openWizard } = useUI();
   const nav = useNavigate();
   const [selected, setSelected] = useState<string | undefined>(undefined);
+  const [billingOpen, setBillingOpen] = useState(false);
   const { data, isLoading } = useMyProperty(selected);
   const { data: invoices, refetch: refetchInvoices } = useInvoicesOverview();
+  const billingIncomplete = user?.role === "owner" && user.billing.vatStatus === "onbekend";
 
   if (isLoading || !data) return <div className="loading">Jouw overzicht laden…</div>;
 
@@ -127,6 +130,15 @@ export function OwnerHome() {
               {pr.name}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* §9a: facturatiegegevens nog niet ingevuld → vriendelijk aandringen. */}
+      {billingIncomplete && (
+        <div className="card billing-nudge">
+          <span className="billing-nudge-ico"><Icon name="doc" size={22} /></span>
+          <span className="billing-nudge-txt">{t("bill.nudge")}</span>
+          <button className="btn coral sm" onClick={() => setBillingOpen(true)}>{t("bill.nudgeCta")}</button>
         </div>
       )}
 
@@ -359,6 +371,8 @@ export function OwnerHome() {
           )}
         </aside>
       </div>
+
+      {billingOpen && <BillingModal onClose={() => setBillingOpen(false)} />}
 
       <div className="oh-banner">
         <div>

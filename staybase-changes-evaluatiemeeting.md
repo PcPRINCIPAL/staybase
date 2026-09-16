@@ -19,7 +19,7 @@ Er zijn twee assen die samen bepalen wat iemand ziet:
 - [x] Linnois-gebruiker krijgt de **huisstijl van Linnois**: hun logo in de zijbalk en #100551 als accentkleur in plaats van het Staybase-koraal. Kanaalkleuren (Airbnb rood, Booking blauw) blijven.
 - [x] Linnois-gebruiker: **geen inbox-tab** (Linnois doet de gastcommunicatie voor hen), enkel "Chat met Julie".
 - [x] Linnois-gebruiker: **geen prijzen, geen prijssetting, geen nachtprijzen** in kalender. Reden: ze gaan bellen over waarom een week zo geprijsd staat.
-- [~] Linnois-gebruiker ziet **netto-uitbetaling**, niet de totale omzet. *(labels en framing staan er; de berekening zelf volgt met §8)*
+- [x] Linnois-gebruiker ziet **netto-uitbetaling**, niet de totale omzet — gerekend via de §8-keten met de commissieafspraak van de eigenaar.
 - [ ] Rollen/formules nu Basic/Premium/Super → **hertekenen naar het 2-pakkettenmodel** (zie §2).
 - [ ] Eigenaar-aan-pand koppelen: nu handmatig, moet automatisch op basis van e-mailadres.
 
@@ -94,15 +94,15 @@ Guesty is onbetrouwbaar: berekent anders voor Airbnb dan voor Booking, en de bed
 
 **Regel: haal uit Guesty enkel de totale gastbetaling. Alle rest rekenen we zelf in Staybase.**
 
-- [ ] Ophalen: **totale gastbetaling** (in het voorbeeld €1015 — wat de gast effectief van haar kaart betaalde, incl. OTA-commissie en schoonmaak).
-- [ ] **Niet tonen**: het bedrag "jouw uitbetaling" van €857,67 (= 1015 − servicekost en host, dus de OTA-commissie), en niet wat er op de rekening van Linnois gestort is. Een eigenaar mag niet zien dat er €5038 bij Linnois binnenkomt terwijl er €4300 naar hem gaat.
-- [ ] Berekening in het platform, oplijsten in deze volgorde:
+- [x] Ophalen: **totale gastbetaling** (in het voorbeeld €1015 — wat de gast effectief van haar kaart betaalde, incl. OTA-commissie en schoonmaak). Zit als `guest_total` in de sync en is nu **overal de omzetbasis**: dashboard-KPI's, Opbrengsten (grafiek, kanalen, per pand), kalender en pandpagina.
+- [x] **Niet tonen**: "jouw uitbetaling" uit Guesty is uit het datamodel verdwenen — de frontend krijgt enkel nog gastbetaling, OTA-fee en schoonmaakkost; het kalenderpaneel toont "Gast betaalde". De netto-uitbetaling van de eigenaar wordt in Staybase zelf gerekend (nooit wat er bij Linnois binnenkomt).
+- [x] Berekening in het platform, oplijsten in deze volgorde — staat als ketenblok op de Opbrengsten-pagina (`revenueChain()` in shared/types.ts, zelfde formule als de §9b-documenten):
   1. Gast betaalde
   2. − OTA-commissie (Airbnb/Booking fee)
-  3. − Commissie Linnois
+  3. − Commissie beheerder (incl. btw, volgens de commissieafspraak per eigenaar)
   4. − Schoonmaakkost
   5. = **Netto uitbetaling**
-- [ ] Grafiek opbrengsten breder maken.
+- [x] Grafiek opbrengsten breder maken — kaart over de volle breedte; de maandreeks komt nu live uit de boekingen (jan t/m lopende maand, per kanaal).
 - [ ] Later: rapporten downloaden (nog niet gebouwd).
 
 ---
@@ -118,8 +118,8 @@ De eigenaar blijft juridisch de exploitant en is verplicht een factuur naar de g
 - [x] **Knop per boeking** (in kalender/boekingsdetail, naast "stuur een bericht"): **factuur downloaden** — beschikbaar vanaf de uitcheckdag; vóór check-out toont het paneel vanaf wanneer het kan. *(versturen per mail volgt)*
 - [x] **Nudge aan eigenaarszijde**: banner op het dashboard met alle uitgecheckte (of binnen 2 dagen aflopende) boekingen zonder factuur, met downloadknop per boeking.
 - [x] **White-label factuur automatisch genereren**: PDF op naam van de eigenaar (logiesverstrekker), zonder pandfoto's of betaalgegevens; nummering per eigenaar per jaar (F-2026-001), nummer en datum vast bij eerste download. Na klantfeedback 15/09 volledig white-label: **geen logo en nergens Staybase of Linnois vermeld** — brandingkleuren blijven wel. *(vennootschapsgegevens vullen aan zodra de onboarding-popup er is)*
-- [ ] Onboarding-popup die de nodige gegevens ophaalt: **particulier / btw-plichtige vennootschap / niet-btw-plichtige vennootschap** (patrimoniumvennootschap e.d.) + vennootschapsgegevens. Bepaalt of er btw op de factuur mag/moet.
-- [ ] Btw-vrije factuur mogelijk maken voor wie geen btw mag innen.
+- [x] Onboarding-popup die de nodige gegevens ophaalt: **particulier / btw-plichtige vennootschap / niet-btw-plichtige vennootschap** (patrimoniumvennootschap e.d.) + vennootschapsnaam, facturatieadres, btw-nummer en "dient periodieke btw-aangiften in" (nodig voor de verleggingsregel uit het btw-advies). Verschijnt als banner op het eigenaarsdashboard zolang het statuut onbekend is; de gegevens vullen de factuurkop.
+- [x] Btw-vrije factuur voor wie geen btw mag innen: particulier of niet-btw-plichtige vennootschap → factuur zonder btw-uitsplitsing, met de vermelding "Btw niet van toepassing op basis van het btw-statuut van de logiesverstrekker." Het tarief (12% of 0%) wordt per factuur vastgeklikt bij eerste download.
 - ✅ De juridische kant is intussen uitgeklaard in het **btw-advies van 20 juni 2026** (bouwregels in `docs/btw-advies-bouwregels.md`). Kern: eigenaar = logiesverstrekker (logies 12% mits gemeubeld-logies-voorwaarden), alle gastdocumenten op naam van de eigenaar, per eigenaar bijhouden of hij periodieke btw-aangiften indient. Harde regels pas bevriezen na het fysieke overleg dat het advies aanraadt.
 
 ### 9b. Linnois → eigenaar (adminzijde)

@@ -389,6 +389,39 @@ table.mini thead tr{border-bottom:1px solid var(--line)}
 .chip.brand-staybase{background:#FFF0F3; color:#E31C5F}
 .chip.brand-linnois{background:#EEEDF6; color:#100551}
 
+/* §9a: facturatiegegevens-popup en de banner die ernaartoe leidt. */
+.modal-scrim{position:fixed; inset:0; z-index:120; background:rgba(20,16,14,.45); display:flex;
+  align-items:center; justify-content:center; padding:20px; overflow-y:auto}
+.billing-modal{width:100%; max-width:560px; padding:24px 26px; max-height:92vh; overflow-y:auto}
+.billing-head{display:flex; align-items:center; justify-content:space-between; gap:12px}
+.billing-head h2{font-size:19px}
+.billing-lbl{display:block; font-size:13px; font-weight:800; margin:18px 0 8px}
+.billing-choices{display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px}
+.billing-choice{display:flex; flex-direction:column; gap:3px; text-align:left; padding:12px 13px;
+  border:1.5px solid var(--line); border-radius:12px; background:var(--card); cursor:pointer; font-family:inherit}
+.billing-choice .em{font-size:18px}
+.billing-choice b{font-size:13px}
+.billing-choice span:last-child{font-size:11.5px; color:var(--muted); line-height:1.35}
+.billing-choice.sel{border-color:var(--coral); background:var(--coral-soft)}
+.billing-check{display:flex; gap:10px; align-items:flex-start; margin-top:14px; cursor:pointer}
+.billing-check input{margin-top:3px; accent-color:var(--coral)}
+.billing-check b{display:block; font-size:13.5px}
+.billing-check small{color:var(--muted); font-size:12px}
+.billing-actions{display:flex; justify-content:flex-end; gap:10px; margin-top:22px}
+.billing-nudge{margin-top:18px; padding:13px 16px; display:flex; align-items:center; gap:12px;
+  border:1px solid var(--coral-line); background:var(--coral-soft)}
+.billing-nudge-ico{display:flex; color:var(--coral-deep); flex-shrink:0}
+.billing-nudge-txt{flex:1; font-size:13.5px; color:var(--ink)}
+
+/* §8-keten en de opbrengsten-indeling met brede grafiek. */
+.rev-grid.three{display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:14px; margin-top:14px}
+.chain-row{display:flex; justify-content:space-between; align-items:center; gap:12px; padding:7px 0;
+  font-size:13.5px; color:var(--muted); border-bottom:1px solid var(--line)}
+.chain-row b{color:var(--ink)}
+.chain-row.total{border-bottom:none; border-top:2px solid var(--ink); margin-top:2px; padding-top:10px;
+  color:var(--ink); font-weight:800}
+.chain-row.total b{color:var(--coral-deep); font-size:15px}
+
 /* Facturen-tabblad: groepskop per pand met bundelknop. */
 .invp-group-head{display:flex; align-items:center; gap:12px; margin-top:30px; margin-bottom:12px; flex-wrap:wrap}
 .invp-group-head .btn{margin-left:auto}

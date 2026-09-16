@@ -63,9 +63,13 @@ export interface Booking {
   startDate: string; // ISO yyyy-mm-dd (check-in)
   endDate: string;   // ISO yyyy-mm-dd (check-out)
   guests: number;
-  payout: number;    // euro — "jouw uitbetaling" uit Guesty
-  /** Totale gastbetaling (logies + kosten + taksen) — basis voor de gastfactuur. */
-  guestTotal: number | null;
+  /**
+   * Totale gastbetaling (logies + kosten + taksen). §8: dit is hét bedrag —
+   * de Guesty-uitbetaling reist bewust niet meer mee naar de client.
+   */
+  guestTotal: number;
+  otaFee: number;
+  cleaningFee: number;
   note: string | null;
   checkInTime: string | null;   // "17:00" (lokale tijd, uit Guesty)
   checkOutTime: string | null;  // "10:00"
@@ -185,6 +189,28 @@ export function isLanguage(v: unknown): v is Language {
 }
 
 /**
+ * Btw-statuut van een eigenaar (§9a + btw-advies). Bepaalt of de gastfactuur
+ * 12% btw draagt (btw-plichtige vennootschap) of btw-vrij is; "periodieke
+ * aangiften" stuurt later de verleggingsregeling bij apart doorgerekende
+ * schoonmaak. Regels blijven bewust soepel tot het overleg uit het advies.
+ */
+export type VatStatus = "onbekend" | "particulier" | "vennootschap_btw" | "vennootschap_geen_btw";
+export const VAT_STATUS_LABEL: Record<VatStatus, string> = {
+  onbekend: "Nog niet ingevuld",
+  particulier: "Particulier",
+  vennootschap_btw: "Btw-plichtige vennootschap",
+  vennootschap_geen_btw: "Vennootschap zonder btw-plicht",
+};
+
+export interface BillingProfile {
+  vatStatus: VatStatus;
+  companyName: string | null;
+  billingAddress: string | null;
+  vatNumber: string | null;
+  vatPeriodic: boolean;
+}
+
+/**
  * Commissieafspraak. Wordt per klant onderhandeld, dus twee gegevens:
  * hoeveel procent, en waarover het gerekend wordt.
  *   • bruto = de totale gastbetaling
@@ -209,6 +235,35 @@ export const COMMISSION_MAX_PCT = 40;
 export interface Commission {
   pct: number;
   basis: CommissionBasis;
+}
+
+/**
+ * De §8-keten voor één boeking, gevalideerd op de klant-templates:
+ *   gast betaalde − OTA-commissie − schoonmaakkost = Net Rental Income
+ *   commissie = pct × gastbetaling (bruto) of pct × NRI (netto), excl. btw
+ *   netto uitbetaling = NRI − commissie incl. 21% btw
+ * Front- en backend rekenen allebei met déze functie — één bron van waarheid.
+ */
+export interface BookingMoney {
+  guestTotal: number;
+  otaFee: number;
+  cleaningFee: number;
+}
+
+export function revenueChain(m: BookingMoney, deal: Commission) {
+  const netRentalIncome = m.guestTotal - m.otaFee - m.cleaningFee;
+  const base = deal.basis === "netto" ? netRentalIncome : m.guestTotal;
+  const commissionExcl = Math.round(base * deal.pct) / 100;
+  const commissionIncl = Math.round(commissionExcl * 121) / 100;
+  return {
+    guestTotal: m.guestTotal,
+    otaFee: m.otaFee,
+    cleaningFee: m.cleaningFee,
+    netRentalIncome,
+    commissionExcl,
+    commissionIncl,
+    netPayout: netRentalIncome - commissionIncl,
+  };
 }
 
 /** Formules: bepalen welke schermen een eigenaar ziet. Admins zien alles. */

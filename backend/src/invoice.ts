@@ -63,11 +63,20 @@ export async function ensureInvoice(booking: BookingRow, property: PropertyRow):
     "SELECT COALESCE(MAX(number), 0) AS n FROM invoices WHERE year = ? AND owner_id IS NOT DISTINCT FROM ?"
   ).get(year, ownerId)) as { n: number };
 
+  // Btw-tarief volgt het statuut van de eigenaar op het moment van uitreiken:
+  // btw-plichtige vennootschap → 12% (gemeubeld logies); particulier of
+  // vennootschap zonder btw-plicht → btw-vrij; onbekend → 12% als voorlopige
+  // standaard. Al uitgereikte facturen behouden hun tarief.
+  const status = ownerId
+    ? ((await db.prepare("SELECT vat_status FROM users WHERE id = ?").get(ownerId)) as { vat_status: string } | undefined)?.vat_status
+    : undefined;
+  const vatRate = status === "particulier" || status === "vennootschap_geen_btw" ? 0 : 12;
+
   const amount = booking.guest_total ?? booking.payout;
   const id = "inv-" + booking.id;
   await db.prepare(
     "INSERT INTO invoices (id, booking_id, property_id, owner_id, number, year, amount, vat_rate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-  ).run(id, booking.id, property.id, ownerId, last.n + 1, year, amount, 12);
+  ).run(id, booking.id, property.id, ownerId, last.n + 1, year, amount, vatRate);
   return (await invoiceForBooking(booking.id))!;
 }
 
@@ -119,11 +128,19 @@ const eur = (n: number) =>
  * eigenaar; meertalige templates komen later, samen met de gastgegevens
  * (adres/btw-nummer van de gast) uit de §9a-onboarding.
  */
+export interface InvoiceOwner {
+  name: string;
+  email: string;
+  company_name?: string | null;
+  billing_address?: string | null;
+  vat_number?: string | null;
+}
+
 export interface InvoicePageInput {
   invoice: InvoiceRow;
   booking: BookingRow;
   property: PropertyRow;
-  owner: Pick<UserRow, "name" | "email"> | null;
+  owner: InvoiceOwner | null;
   brand: Brand; // huisstijl van de omgeving van de eigenaar
 }
 
@@ -187,11 +204,18 @@ function drawInvoicePage(doc: PDFKit.PDFDocument, input: InvoicePageInput): void
   // --- afzender (de eigenaar = logiesverstrekker) en gast ---
   const blockY = 156;
   doc.font("Helvetica-Bold").fontSize(8.5).fillColor(pal.deep).text("LOGIESVERSTREKKER", L, blockY, { characterSpacing: 0.6 });
-  doc.font("Helvetica-Bold").fontSize(11).fillColor(INK).text(owner?.name ?? "Eigenaar", L, blockY + 15);
+  doc.font("Helvetica-Bold").fontSize(11).fillColor(INK)
+    .text(owner?.company_name || owner?.name || "Eigenaar", L, blockY + 15);
+  let issuerY = blockY + 30;
   doc.font("Helvetica").fontSize(9.5).fillColor(MUTED);
-  if (owner?.email) doc.text(owner.email, L, blockY + 30);
-  doc.fontSize(8.5).fillColor(FAINT)
-    .text("Vennootschaps- en btw-gegevens volgen uit de onboarding.", L, blockY + (owner?.email ? 45 : 30), { width: W / 2 - 10 });
+  if (owner?.company_name && owner.name) { doc.text(owner.name, L, issuerY); issuerY += 14; }
+  if (owner?.billing_address) { doc.text(owner.billing_address, L, issuerY, { width: W / 2 - 10 }); issuerY = doc.y + 2; }
+  if (owner?.vat_number) { doc.text(`BTW ${owner.vat_number}`, L, issuerY); issuerY += 14; }
+  if (owner?.email) { doc.text(owner.email, L, issuerY); issuerY += 14; }
+  if (!owner?.billing_address && !owner?.vat_number) {
+    doc.fontSize(8.5).fillColor(FAINT)
+      .text("Vennootschaps- en btw-gegevens volgen uit de onboarding.", L, issuerY, { width: W / 2 - 10 });
+  }
 
   doc.font("Helvetica-Bold").fontSize(8.5).fillColor(pal.deep).text("GAST", L + W / 2, blockY, { characterSpacing: 0.6 });
   doc.font("Helvetica-Bold").fontSize(11).fillColor(INK).text(booking.guest, L + W / 2, blockY + 15);
@@ -233,14 +257,22 @@ function drawInvoicePage(doc: PDFKit.PDFDocument, input: InvoicePageInput): void
       .text(value, sumX + 14, y, { width: sumW - 28, align: "right" });
     y += 17;
   };
-  row(`Maatstaf (excl. ${vatRate}% btw)`, eur(excl));
-  row(`Btw ${vatRate}%`, eur(vat));
+  if (vatRate > 0) {
+    row(`Maatstaf (excl. ${vatRate}% btw)`, eur(excl));
+    row(`Btw ${vatRate}%`, eur(vat));
+  }
   y += 4;
   doc.roundedRect(sumX, y, sumW, 34, 10).fillColor(pal.soft).fill();
   doc.font("Helvetica-Bold").fontSize(12).fillColor(pal.deep)
     .text("Totaal", sumX + 14, y + 10, { width: sumW - 28 })
     .text(eur(incl), sumX + 14, y + 10, { width: sumW - 28, align: "right" });
   y += 34;
+  if (vatRate === 0) {
+    // Btw-vrije factuur: verplichte vermelding in plaats van maatstaf/btw-lijnen.
+    doc.font("Helvetica").fontSize(8.5).fillColor(FAINT)
+      .text("Btw niet van toepassing op basis van het btw-statuut van de logiesverstrekker.", L, y + 2, { width: W, align: "right" });
+    y += 16;
+  }
 
   // --- betaalstatus: via het kanaal, dus geen betaalinstructies op de factuur ---
   y += 22;
@@ -380,7 +412,7 @@ export interface OwnerDocInput {
   ownerInvoice: OwnerInvoiceRow;
   booking: BookingRow;
   property: PropertyRow;
-  owner: Pick<UserRow, "name" | "email"> | null;
+  owner: InvoiceOwner | null;
   brand: Brand;
 }
 
@@ -506,11 +538,18 @@ export function renderManagementInvoicePdf(input: OwnerDocInput): Promise<Buffer
   // --- klant (de eigenaar) ---
   const blockY = 170;
   doc.font("Helvetica-Bold").fontSize(8.5).fillColor(pal.deep).text("KLANT (EIGENAAR)", L, blockY, { characterSpacing: 0.6 });
-  doc.font("Helvetica-Bold").fontSize(11).fillColor(INK).text(owner?.name ?? "Eigenaar", L, blockY + 15);
+  doc.font("Helvetica-Bold").fontSize(11).fillColor(INK)
+    .text(owner?.company_name || owner?.name || "Eigenaar", L, blockY + 15);
+  let clientY = blockY + 30;
   doc.font("Helvetica").fontSize(9.5).fillColor(MUTED);
-  if (owner?.email) doc.text(owner.email, L, blockY + 30);
-  doc.fontSize(8.5).fillColor(FAINT)
-    .text("Adres en btw-nummer volgen uit de onboarding.", L, blockY + (owner?.email ? 45 : 30), { width: W / 2 - 10 });
+  if (owner?.company_name && owner.name) { doc.text(owner.name, L, clientY); clientY += 14; }
+  if (owner?.billing_address) { doc.text(owner.billing_address, L, clientY, { width: W / 2 - 10 }); clientY = doc.y + 2; }
+  if (owner?.vat_number) { doc.text(`BTW ${owner.vat_number}`, L, clientY); clientY += 14; }
+  if (owner?.email) { doc.text(owner.email, L, clientY); clientY += 14; }
+  if (!owner?.billing_address && !owner?.vat_number) {
+    doc.fontSize(8.5).fillColor(FAINT)
+      .text("Adres en btw-nummer volgen uit de onboarding.", L, clientY, { width: W / 2 - 10 });
+  }
 
   doc.font("Helvetica-Bold").fontSize(8.5).fillColor(pal.deep).text("PAND", L + W / 2, blockY, { characterSpacing: 0.6 });
   doc.font("Helvetica-Bold").fontSize(11).fillColor(INK)

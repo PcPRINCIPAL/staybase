@@ -83,7 +83,7 @@ export function PropertyPage() {
                 </span>
                 <span className="end">
                   <span className={`chip ${CHANNEL_META[b.channel].chip}`}>{CHANNEL_META[b.channel].name}</span>
-                  <b className="num">{eur(b.payout)}</b>
+                  <b className="num">{eur(Math.round(b.guestTotal))}</b>
                 </span>
               </div>
             ))}

@@ -66,7 +66,7 @@ beheerder voor rekening van de eigenaar (punt 8).
 
 ## Wat dit betekent voor de §9-bouw (checklist)
 
-- [ ] Onboarding-popup eigenaarsgegevens: btw-statuut + btw-nummer + "dient periodieke btw-aangiften in".
+- [x] Onboarding-popup eigenaarsgegevens: btw-statuut + btw-nummer + "dient periodieke btw-aangiften in" (plus vennootschapsnaam en facturatieadres voor de factuurkop). Statuut bepaalt het tarief op de gastfactuur: btw-plichtige vennootschap → 12%, particulier of niet-btw-plichtige vennootschap → btw-vrij met vermelding.
 - [x] Gastfactuur: op naam van de eigenaar, 12%-logica (tarief per factuur opgeslagen), volledig white-label (klantfeedback 15/09: geen logo, nergens Staybase/Linnois).
 - [ ] Rekening/ontvangstbewijs bij check-out als er geen factuur wordt uitgereikt; B2B altijd factuur.
 - [x] Owner statement: administratief overzicht per boeking (gast betaalde − OTA − schoonmaak = Net Rental Income; ter info factuur + netto-uitbetaling), met expliciete "dit is GEEN factuur"-wenk.

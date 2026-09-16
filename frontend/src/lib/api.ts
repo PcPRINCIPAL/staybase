@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   AssistantReply, CalendarData, CalendarOverview, Cleaning, Conversation, InsightsData,
   NewPropertyInput, OwnerHomeData, Overview, PriceStripDay, PriceSuggestion, Property,
-  CommissionBasis, Language, PropertyDetail, RevenueData, UserOrigin, UserPlan,
+  BillingProfile, CommissionBasis, Language, PropertyDetail, RevenueData, UserOrigin, UserPlan,
 } from "@shared/types";
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
@@ -31,6 +31,8 @@ export interface AuthUser {
   origin: UserOrigin;
   /** Voorkeurstaal van de interface. */
   language: Language;
+  /** Facturatiegegevens (§9a-popup) — bepaalt o.a. btw op de gastfactuur. */
+  billing: BillingProfile;
 }
 
 export const login = (email: string, password: string) =>
@@ -45,6 +47,11 @@ export const setMyLanguage = (language: Language) =>
     method: "PATCH",
     body: JSON.stringify({ language }),
   });
+
+/** Facturatiegegevens van de ingelogde eigenaar bewaren (§9a-popup). */
+export const saveBilling = (b: {
+  vatStatus: string; companyName: string; billingAddress: string; vatNumber: string; vatPeriodic: boolean;
+}) => api<AuthUser>("/auth/me/billing", { method: "PATCH", body: JSON.stringify(b) });
 
 /** Vertaalt één bericht of voorstel naar de gevraagde taal. */
 export const translateText = (text: string, to: Language) =>
@@ -113,8 +120,20 @@ export const usePricingSettings = () =>
 export const useCleanings = () =>
   useQuery({ queryKey: ["cleanings"], queryFn: () => api<Cleaning[]>("/cleanings") });
 
+export interface RevenueChainTotals {
+  guestTotal: number;
+  otaFee: number;
+  commission: number;
+  cleaning: number;
+  netPayout: number;
+  bookings: number;
+}
+
 export const useRevenue = () =>
-  useQuery({ queryKey: ["revenue"], queryFn: () => api<RevenueData>("/revenue") });
+  useQuery({
+    queryKey: ["revenue"],
+    queryFn: () => api<RevenueData & { chain: RevenueChainTotals }>("/revenue"),
+  });
 
 /* ---------- mutaties ---------- */
 

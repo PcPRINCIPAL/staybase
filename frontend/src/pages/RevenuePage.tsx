@@ -116,18 +116,30 @@ export function RevenuePage() {
         </button>
       </div>
 
-      <div className="rev-grid">
-        <div className="card chart-card">
-          <h3>{t("rev.perMonth")}</h3>
-          <p className="hint">{t("rev.running", { m: monthName(DEMO_TODAY)[0].toUpperCase() + monthName(DEMO_TODAY).slice(1) })}</p>
-          <RevenueChart months={data.months} />
-          <div className="legend">
-            {SERIES.map((s) => (
-              <span key={s.key}><span className="dot" style={{ background: s.color }} />{s.name}</span>
-            ))}
-          </div>
+      {/* §8: grafiek over de volle breedte (was een smalle kolom naast de zijkaarten). */}
+      <div className="card chart-card" style={{ marginTop: 18 }}>
+        <h3>{t("rev.perMonth")}</h3>
+        <p className="hint">{t("rev.running", { m: monthName(DEMO_TODAY)[0].toUpperCase() + monthName(DEMO_TODAY).slice(1) })}</p>
+        <RevenueChart months={data.months} />
+        <div className="legend">
+          {SERIES.map((s) => (
+            <span key={s.key}><span className="dot" style={{ background: s.color }} />{s.name}</span>
+          ))}
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      </div>
+
+      <div className="rev-grid three">
+        {/* §8-keten, in de volgorde uit de meeting. */}
+        <div className="card" style={{ padding: "18px 20px" }}>
+          <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>{t("rev.chainTitle")}</h3>
+          <p className="hint" style={{ marginBottom: 12 }}>{t("rev.chainHint", { n: data.chain.bookings })}</p>
+          <div className="chain-row"><span>{t("rev.chainGuest")}</span><b className="num">{eur(data.chain.guestTotal)}</b></div>
+          <div className="chain-row"><span>{t("rev.chainOta")}</span><b className="num">− {eur(data.chain.otaFee)}</b></div>
+          <div className="chain-row"><span>{t("rev.chainCommission")}</span><b className="num">− {eur(data.chain.commission)}</b></div>
+          <div className="chain-row"><span>{t("rev.chainCleaning")}</span><b className="num">− {eur(data.chain.cleaning)}</b></div>
+          <div className="chain-row total"><span>{t("rev.chainNet")}</span><b className="num">{eur(data.chain.netPayout)}</b></div>
+        </div>
+        <div style={{ display: "contents" }}>
           <div className="card" style={{ padding: "18px 20px" }}>
             <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 6 }}>{t("rev.perChannel")}</h3>
             {data.channels.map((c) => (

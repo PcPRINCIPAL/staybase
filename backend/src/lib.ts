@@ -82,11 +82,19 @@ export interface BookingRow {
   booked_at: string | null;
 }
 
+/** Omzet per boeking volgens §8: de gastbetaling, met de uitbetaling als vangnet. */
+export function bookingRevenue(r: BookingRow): number {
+  return Number(r.guest_total ?? r.payout);
+}
+
 export function mapBooking(r: BookingRow): Booking {
   return {
     id: r.id, propertyId: r.property_id, guest: r.guest, avatar: r.avatar, channel: r.channel,
-    startDate: r.start_date, endDate: r.end_date, guests: r.guests, payout: r.payout,
-    guestTotal: r.guest_total ?? null, note: r.note,
+    startDate: r.start_date, endDate: r.end_date, guests: r.guests,
+    guestTotal: bookingRevenue(r),
+    otaFee: Number(r.ota_fee ?? 0),
+    cleaningFee: Number(r.guest_cleaning ?? 0),
+    note: r.note,
     checkInTime: r.checkin_time, checkOutTime: r.checkout_time,
   };
 }

@@ -87,7 +87,7 @@ function GanttView({ month, sort }: { month: string; sort: "name" | "occupancy" 
                     key={b.id}
                     className={`gantt-bar ${b.channel}`}
                     style={{ left: `${(from / dim) * 100}%`, width: `${((to - from) / dim) * 100}%` }}
-                    title={`${b.guest} · ${b.startDate} → ${b.endDate} · ${eur(b.payout)} via ${CHANNEL_META[b.channel].name}`}
+                    title={`${b.guest} · ${b.startDate} → ${b.endDate} · ${eur(Math.round(b.guestTotal))} via ${CHANNEL_META[b.channel].name}`}
                   >
                     {b.avatar} {b.guest}
                   </span>
@@ -309,7 +309,7 @@ export function CalendarPage() {
                 </dd>
                 <dt>{t("cal.nights")}</dt><dd className="num">{nightsBetween(selBooking.startDate, selBooking.endDate)}</dd>
                 <dt>{t("cal.guests")}</dt><dd className="num">{selBooking.guests}</dd>
-                <dt>{t("cal.payout")}</dt><dd className="num">{eur(selBooking.payout)}</dd>
+                <dt>{t("cal.guestPaid")}</dt><dd className="num">{eur(Math.round(selBooking.guestTotal))}</dd>
               </dl>
               {selBooking.note && (
                 <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>💡 {selBooking.note}</p>
