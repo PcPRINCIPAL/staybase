@@ -264,9 +264,9 @@
 .lp-calc-sec{background:linear-gradient(180deg, var(--coral-soft) 0%, var(--bg) 100%); padding:56px 0}
 .lp-calc-head{text-align:center; max-width:620px; margin:0 auto 26px}
 .lp-calc-head p{font-size:14.5px; color:var(--muted); margin-top:12px; line-height:1.6}
-.lp-calc{max-width:900px; margin:0 auto; background:var(--card); border:1px solid var(--line); border-radius:22px; box-shadow:0 4px 40px rgba(35,35,35,.09); padding:18px 22px}
-.lp-calc-inputs{display:grid; grid-template-columns:1fr 1fr; gap:12px 24px}
-.lp-calc-col{display:flex; flex-direction:column; gap:12px}
+.lp-calc{max-width:900px; margin:0 auto; background:var(--card); border:1px solid var(--line); border-radius:22px; box-shadow:0 4px 40px rgba(35,35,35,.09); padding:26px 28px}
+.lp-calc-inputs{display:grid; grid-template-columns:1fr 1fr; gap:18px 28px}
+.lp-calc-col{display:flex; flex-direction:column; gap:18px}
 .lp-field label{display:block; font-size:13.5px; font-weight:700}
 .lp-field .hint{display:block; font-size:12px; color:var(--faint); margin-top:2px; line-height:1.4}
 .lp-note{font-size:12px; color:var(--coral-deep); background:var(--coral-soft); border-radius:8px; padding:7px 11px; margin-top:10px; line-height:1.45}
@@ -294,11 +294,11 @@
 .lp-pills button{padding:6px 13px; border-radius:999px; font-size:13px; font-weight:600; background:var(--soft); color:var(--muted); border:1.5px solid transparent; transition:all .14s}
 .lp-pills button:hover{border-color:var(--coral-line); color:var(--coral-deep)}
 .lp-pills button.on{background:var(--ink); color:#fff; border-color:var(--ink)}
-.lp-calc-divider{display:flex; align-items:center; gap:16px; margin:12px 0 10px}
+.lp-calc-divider{display:flex; align-items:center; gap:16px; margin:20px 0 16px}
 .lp-calc-divider::before, .lp-calc-divider::after{content:""; flex:1; height:1px; background:var(--line)}
 .lp-calc-divider span{font-size:10.5px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); white-space:nowrap}
 .lp-results{display:grid; grid-template-columns:1.1fr 1fr; gap:12px}
-.lp-res-main{background:var(--navy); border-radius:16px; padding:16px 18px; display:flex; flex-direction:column; gap:8px; color:#fff}
+.lp-res-main{background:var(--navy); border-radius:16px; padding:20px 22px; display:flex; flex-direction:column; gap:10px; color:#fff}
 .lp-res-eyebrow{font-size:10.5px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,.55)}
 .lp-res-num{font-size:clamp(28px,3.6vw,34px); font-weight:800; letter-spacing:-.04em; line-height:1}
 .lp-res-cap{font-size:12.5px; color:rgba(255,255,255,.72); line-height:1.45}
@@ -307,7 +307,7 @@
 .lp-persona{font-size:12px; color:rgba(255,255,255,.82); line-height:1.5; border-top:1px solid rgba(255,255,255,.16); padding-top:8px}
 .lp-persona b{color:#fff}
 .lp-persona small{display:block; margin-top:10px; font-size:11.5px; color:rgba(255,255,255,.6); line-height:1.55}
-.lp-res-side{background:var(--soft); border-radius:16px; padding:14px 16px; display:flex; flex-direction:column; gap:8px}
+.lp-res-side{background:var(--soft); border-radius:16px; padding:18px; display:flex; flex-direction:column; justify-content:center}
 .lp-table{width:100%; border-collapse:collapse; font-size:12px}
 .lp-table th{text-align:left; padding:4px 4px; color:var(--faint); font-weight:700; font-size:11px; letter-spacing:.03em; border-bottom:1.5px solid var(--line)}
 .lp-table th:not(:first-child){text-align:right}
@@ -316,7 +316,7 @@
 .lp-table tr.tot td{border-top:2px solid var(--line); border-bottom:none; font-weight:800; color:var(--ink); padding-top:8px}
 .lp-table tr.tot td.win{color:var(--good)}
 .lp-plan-tip{background:var(--card); border:1px solid var(--coral-line); border-radius:10px; padding:9px 12px; font-size:12px; color:var(--coral-deep); line-height:1.5}
-.lp-calc-cta{margin-top:12px}
+.lp-calc-cta{margin-top:16px}
 .lp-calc-cta .btn{width:100%; justify-content:center; padding:11px; font-size:14.5px}
 .lp-calc-cta p{text-align:center; font-size:12.5px; color:var(--muted); margin-top:11px}
 .lp-disclaimer{font-size:10.5px; color:var(--faint); text-align:center; margin-top:10px; line-height:1.45}
@@ -490,7 +490,7 @@
 }
 
 /* ---------- Doorklikkaarten & paginakoppen (fase 6) ---------- */
-.lp-page-head{padding-top:56px}
+.lp-page-head{padding-top:56px; margin-bottom:38px}
 .lp-more{display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-top:34px}
 .lp-more-card{display:flex; flex-direction:column; gap:8px; padding:24px 22px; background:var(--card);
   border:1px solid var(--line); border-radius:var(--r-md); box-shadow:var(--shadow);
@@ -502,3 +502,13 @@
 .lp-more-card .go{display:inline-flex; align-items:center; gap:6px; font-size:13.5px; font-weight:700;
   color:var(--coral-deep); margin-top:6px; transition:gap .15s}
 .lp-more-card:hover .go{gap:10px}
+
+/* ---------- Calculator + sfeerbeeld naast elkaar (17/09) ---------- */
+.lp-calc-duo{display:grid; grid-template-columns:1.05fr .95fr; gap:18px; align-items:stretch}
+.lp-calc-duo .lp-calc{max-width:none; margin:0}
+.lp-calc-photo{margin:0; border-radius:22px; overflow:hidden; border:1px solid var(--line); box-shadow:0 4px 40px rgba(35,35,35,.09); min-height:100%}
+.lp-calc-photo img{display:block; width:100%; height:100%; object-fit:cover; object-position:88% 50%}
+@media (max-width:980px){
+  .lp-calc-duo{grid-template-columns:1fr}
+  .lp-calc-photo{max-height:300px}
+}

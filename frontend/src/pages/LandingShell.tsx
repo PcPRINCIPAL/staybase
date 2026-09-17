@@ -133,13 +133,13 @@ export function LpFooter() {
 }
 
 /** Paginakop van een doorklikpagina + scroll naar boven bij binnenkomen. */
-export function LpPageHead({ label, title, sub }: { label: string; title: React.ReactNode; sub: string }) {
+export function LpPageHead({ label, title, sub }: { label: string; title: React.ReactNode; sub?: string }) {
   useEffect(() => { window.scrollTo(0, 0); }, []);
   return (
     <div className="lp-container lp-page-head">
       <p className="lp-label lp-fade">{label}</p>
       <h1 className="lp-h2 lp-fade">{title}</h1>
-      <p className="lp-sub lp-fade">{sub}</p>
+      {sub && <p className="lp-sub lp-fade">{sub}</p>}
     </div>
   );
 }

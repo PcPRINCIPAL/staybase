@@ -428,6 +428,7 @@ export const en: Dict = {
   "calc.tbl.cost": "Management cost",
   "calc.tbl.net": "Net",
   "calc.recommended": "Recommended:",
+  "calc.photoAlt": "Holiday villa in Knokke, managed with Staybase",
   "calc.cta": "Try it free — no card details needed →",
   "calc.disclaimer": "Estimates based on median performance improvements for independent holiday hosts in Belgium. Actual results vary per property, market and usage. Staybase does not guarantee any specific revenue.",
 

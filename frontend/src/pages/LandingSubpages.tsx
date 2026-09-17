@@ -127,9 +127,15 @@ export function BerekenPage() {
     <div className="lp">
       <LpNav />
       <section className="lp-calc-sec">
-        <LpPageHead label={t("lp.calcSec.label")} title={t("lp.calcSec.title")} sub={t("lp.calcSec.sub")} />
+        <LpPageHead label={t("lp.calcSec.label")} title={t("lp.calcSec.title")} />
         <div className="lp-container">
-          <Calculator onCta={() => nav("/registreer")} />
+          {/* Calculator links, sfeerbeeld rechts (feedback 17/09). */}
+          <div className="lp-calc-duo">
+            <Calculator onCta={() => nav("/registreer")} />
+            <figure className="lp-calc-photo lp-fade">
+              <img src="/staybase-house.jpg" alt={t("calc.photoAlt")} loading="lazy" decoding="async" />
+            </figure>
+          </div>
         </div>
       </section>
       <LpFinalCta />

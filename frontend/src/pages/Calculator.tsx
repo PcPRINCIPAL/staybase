@@ -2,7 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useT } from "../i18n";
 
 /**
- * Waarde-calculator uit de klantschets, 1-op-1 geport.
+ * Waarde-calculator uit de klantschets — bewust uitgedund (feedback 17/09):
+ * drie invoervelden (nachtprijs, bezetting, hoe je vandaag beheert) en een
+ * compact resultaat. Aantal panden en regio rekenen mee met stille
+ * standaardwaarden (1 pand, Belgische kust); de pills, persona-tekst en
+ * formule-tip zijn geschrapt.
  *
  * Eén afwijking t.o.v. de schets: daar rekende de JS met €49/pand voor Host,
  * terwijl de prijssectie €59 toont. Beide prijzen staan hier nu in PLANNEN,
@@ -27,13 +31,6 @@ const LOCATIE_FACTOR: Record<string, number> = {
   stad: 1.15,
   andere: 1.17,
 };
-
-const LOCATIES = [
-  { id: "belgische-kust", label: "calc.loc.coast" },
-  { id: "ardennen", label: "calc.loc.ardennen" },
-  { id: "stad", label: "calc.loc.city" },
-  { id: "andere", label: "calc.loc.other" },
-];
 
 interface Invoer {
   panden: number;
@@ -105,31 +102,11 @@ function useCountUp(target: number) {
 export function Calculator({ onCta }: { onCta: () => void }) {
   const t = useT();
   const [v, setV] = useState<Invoer>({
-    panden: 2, tarief: 130, bezetting: 58, situatie: "zelf", locatie: "belgische-kust",
+    panden: 1, tarief: 130, bezetting: 58, situatie: "zelf", locatie: "belgische-kust",
   });
   const r = useMemo(() => bereken(v), [v]);
   const gap = Math.max(r.gap, 0);
   const getoond = useCountUp(gap);
-
-  const persona = (() => {
-    switch (r.persona) {
-      case "sophie":
-        return <>{t("calc.persona.sophie")}</>;
-      case "elise":
-        return <>{t("calc.persona.elise")}</>;
-      case "thomas":
-        return <>{t("calc.persona.thomas", { n: v.panden })}</>;
-      case "agentschap":
-        return (
-          <>
-            {t("calc.persona.agency1")} <b>{eur(r.commissie)}</b> {t("calc.persona.agency2")}
-            <small>{t("calc.persona.agencySmall", { a: eur(r.commissie), b: eur(r.staybaseKost), c: eur(r.commissie - r.staybaseKost) })}</small>
-          </>
-        );
-      default:
-        return <>{t("calc.persona.default")}</>;
-    }
-  })();
 
   const fill = (val: number, min: number, max: number) => ({
     "--fill": `${((val - min) / (max - min)) * 100}%`,
@@ -139,19 +116,6 @@ export function Calculator({ onCta }: { onCta: () => void }) {
     <div className="lp-calc lp-fade">
       <div className="lp-calc-inputs">
         <div className="lp-calc-col">
-          <div className="lp-field">
-            <label>{t("calc.props")}</label>
-            <span className="hint">{t("calc.propsHint")}</span>
-            <div className="lp-stepper">
-              <button onClick={() => setV((s) => ({ ...s, panden: Math.max(1, s.panden - 1) }))} aria-label={t("calc.less")}>−</button>
-              <output className="num" aria-live="polite">{v.panden}</output>
-              <button onClick={() => setV((s) => ({ ...s, panden: Math.min(20, s.panden + 1) }))} aria-label={t("calc.more")}>+</button>
-            </div>
-            {v.panden >= 8 && (
-              <p className="lp-note">{t("calc.consolidation")}</p>
-            )}
-          </div>
-
           <div className="lp-field">
             <label htmlFor="calc-tarief">{t("calc.rate")}</label>
             <span className="hint">{t("calc.rateHint")}</span>
@@ -218,23 +182,6 @@ export function Calculator({ onCta }: { onCta: () => void }) {
               </button>
             </div>
           </div>
-
-          <div className="lp-field">
-            <label>{t("calc.region")}</label>
-            <span className="hint">{t("calc.regionHint")}</span>
-            <div className="lp-pills" role="radiogroup" aria-label={t("calc.region")}>
-              {LOCATIES.map((l) => (
-                <button
-                  key={l.id}
-                  className={v.locatie === l.id ? "on" : ""}
-                  role="radio" aria-checked={v.locatie === l.id}
-                  onClick={() => setV((s) => ({ ...s, locatie: l.id }))}
-                >
-                  {t(l.label)}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
 
@@ -245,16 +192,6 @@ export function Calculator({ onCta }: { onCta: () => void }) {
           <span className="lp-res-eyebrow">{t("calc.gapLabel")}</span>
           <div className="lp-res-num">{eur(getoond)}</div>
           <p className="lp-res-cap">{t("calc.gapCap")}</p>
-          {gap > 0 && (
-            <div className="lp-res-pills">
-              <span className="lp-res-pill">{t("calc.pillRevenue", { n: eur(r.omzetStijging) })}</span>
-              {r.commissie > 0 && <span className="lp-res-pill">{t("calc.pillCommission", { n: eur(r.commissie) })}</span>}
-              <span className="lp-res-pill">{t("calc.pillHours", { n: Math.round(r.urenPerJaar).toLocaleString("nl-BE") })}</span>
-            </div>
-          )}
-          <p className="lp-persona">
-            {gap > 0 ? persona : t("calc.optimal")}
-          </p>
         </div>
 
         <div className="lp-res-side">
@@ -266,13 +203,9 @@ export function Calculator({ onCta }: { onCta: () => void }) {
               <tr><td>{t("calc.tbl.rate")}</td><td>{eur(v.tarief)}</td><td>{eur(r.optimaalTarief)}</td></tr>
               <tr><td>{t("calc.tbl.occ")}</td><td>{v.bezetting}%</td><td>{r.optimaleBezetting}%</td></tr>
               <tr><td>{t("calc.tbl.revenue")}</td><td>{eur(r.huidigeOmzet)}</td><td>{eur(r.optimaleOmzet)}</td></tr>
-              <tr><td>{t("calc.tbl.cost")}</td><td>{r.commissie > 0 ? "−" + eur(r.commissie) : "€0"}</td><td>−{eur(r.staybaseKost)}</td></tr>
               <tr className="tot"><td>{t("calc.tbl.net")}</td><td>{eur(r.nettoNu)}</td><td className="win">{eur(r.nettoStaybase)}</td></tr>
             </tbody>
           </table>
-          <div className="lp-plan-tip">
-            <b>{t("calc.recommended")}</b> {r.plan} — {eur(r.perMaand)}{t("lp.plans.perMonth")}
-          </div>
         </div>
       </div>
 

@@ -432,6 +432,7 @@ export const nl: Dict = {
   "calc.tbl.cost": "Kost beheer",
   "calc.tbl.net": "Netto",
   "calc.recommended": "Aanbevolen:",
+  "calc.photoAlt": "Vakantievilla in Knokke, beheerd via Staybase",
   "calc.cta": "Gratis proberen — geen kaartgegevens nodig →",
   "calc.disclaimer": "Schattingen op basis van mediane prestatieverbeteringen bij onafhankelijke vakantieverhuurders in België. Werkelijke resultaten verschillen per pand, markt en gebruik. Staybase garandeert geen specifieke omzet.",
 

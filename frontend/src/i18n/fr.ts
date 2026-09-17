@@ -428,6 +428,7 @@ export const fr: Dict = {
   "calc.tbl.cost": "Coût de gestion",
   "calc.tbl.net": "Net",
   "calc.recommended": "Recommandé :",
+  "calc.photoAlt": "Villa de vacances à Knokke, gérée via Staybase",
   "calc.cta": "Essai gratuit — sans carte bancaire →",
   "calc.disclaimer": "Estimations fondées sur les améliorations médianes de performance chez les loueurs de vacances indépendants en Belgique. Les résultats réels varient selon le bien, le marché et l'usage. Staybase ne garantit aucun revenu spécifique.",
 
