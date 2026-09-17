@@ -183,14 +183,19 @@ ontregeld en dat is core business.
 
 ## Fase 6 — Landingspagina 2.0
 
-- [ ] **Korter**: nooit meer dan ±3 schermen scrollen; de coole dingen blijven,
-      maar **achter doorklikpagina's** ("doorklikken is diepgaander, dat is
+- [x] **Korter**: nooit meer dan ±3 schermen scrollen; de coole dingen blijven,
+      maar **achter doorklikpagina's** — /hoe-het-werkt (features + AI + FAQ),
+      /bereken-je-waarde (calculator), /prijzen (formules) en /verhalen
+      (reviews + oprichters + kennis), elk met eigen kop en CTA; de landing
+      houdt hero, pijnpunten, "wat je krijgt" en vier doorklikkaarten ("doorklikken is diepgaander, dat is
       vertrouwelijker") — goed voor SEO (echte pagina's achter "lees meer",
       bv. verhalen).
-- [ ] Elementen kleiner, **betere subtitels**.
-- [ ] Cijferclaim aanpassen: **"15 à 25%" in plaats van "20 tot 30%"**.
-- [ ] **"Mijn dashboard"-knop** op de website (login voor bestaande klanten,
-      ook voor Linnois-eigenaars).
+- [x] Elementen kleiner, **betere subtitels** — elke doorklikpagina heeft een
+      eigen kop + subtitel; de landing is van ±10 naar ±4 schermen gegaan.
+- [x] Cijferclaim aanpassen: **"15 à 25%" in plaats van "20 tot 30%"** — in de
+      pijnkaart én de calculator, in de drie talen.
+- [x] **"Mijn dashboard"-knop** op de website (login voor bestaande klanten,
+      ook voor Linnois-eigenaars) — in de nav en de footer, i.p.v. "Log in".
 - [ ] Doelgroepcheck: is voor iemand van midden 40 meteen duidelijk wat dit
       doet? Benoit & Julie printen de pagina en duiden aan wat blijft/weggaat
       — **input afwachten**, de rest is bijzaak deze sprint.

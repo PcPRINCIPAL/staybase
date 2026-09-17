@@ -15,6 +15,7 @@ import { PropertiesPage } from "./pages/PropertiesPage";
 import { InsightsPage } from "./pages/InsightsPage";
 import { PropertyPage } from "./pages/PropertyPage";
 import { LandingPage } from "./pages/LandingPage";
+import { BerekenPage, HoeHetWerktPage, SitePrijzenPage, VerhalenPage } from "./pages/LandingSubpages";
 import { ArticlePage } from "./pages/ArticlePage";
 import { KennisPage } from "./pages/KennisPage";
 import { Login } from "./pages/Login";
@@ -98,6 +99,11 @@ export default function App() {
         ) : (
           <>
             <Route path="/" element={<LandingPage />} />
+            {/* Doorklikpagina's van de website (fase 6) — eigen URL's, goed voor SEO. */}
+            <Route path="/hoe-het-werkt" element={<HoeHetWerktPage />} />
+            <Route path="/bereken-je-waarde" element={<BerekenPage />} />
+            <Route path="/prijzen" element={<SitePrijzenPage />} />
+            <Route path="/verhalen" element={<VerhalenPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/registreer" element={<Register />} />
             <Route path="*" element={<Navigate to="/" replace />} />
