@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Icon, Logo } from "../components/Icon";
 import { LanguagePicker } from "../components/LanguagePicker";
 import { useT } from "../i18n";
@@ -46,12 +46,13 @@ export function LpNav() {
           <Logo /> staybase
         </Link>
         <nav className="lp-nav-links">
-          {SITE_NAV.map((n) => <Link key={n.to} to={n.to}>{t(n.key)}</Link>)}
+          {/* De actieve pagina staat vet aangeduid. */}
+          {SITE_NAV.map((n) => (
+            <NavLink key={n.to} to={n.to} className={({ isActive }) => (isActive ? "on" : "")}>{t(n.key)}</NavLink>
+          ))}
         </nav>
         <div className="lp-nav-cta">
-          {/* "Mijn dashboard" (meeting 16/09): de login-knop voor bestaande
-              klanten — ook Linnois-eigenaars komen zo bij hun omgeving. */}
-          <button className="btn ghost sm" onClick={() => nav("/login")}>{t("lp.myDashboard")}</button>
+          <button className="btn ghost sm" onClick={() => nav("/login")}>{t("lp.login")}</button>
           <button className="btn coral sm" onClick={() => nav("/registreer")}>{t("lp.tryFree")}</button>
           <LanguagePicker />
         </div>
@@ -61,10 +62,11 @@ export function LpNav() {
       </div>
       <div className={`lp-mobile ${menuOpen ? "open" : ""}`}>
         {SITE_NAV.map((n) => (
-          <Link key={n.to} to={n.to} onClick={() => setMenuOpen(false)}>{t(n.key)}</Link>
+          <NavLink key={n.to} to={n.to} className={({ isActive }) => (isActive ? "on" : "")}
+            onClick={() => setMenuOpen(false)}>{t(n.key)}</NavLink>
         ))}
         <button className="btn ghost" style={{ justifyContent: "center", marginTop: 8 }} onClick={() => nav("/login")}>
-          {t("lp.myDashboard")}
+          {t("lp.login")}
         </button>
         <button className="btn coral" style={{ justifyContent: "center" }} onClick={() => nav("/registreer")}>
           {t("lp.tryFree")}
@@ -118,7 +120,7 @@ export function LpFooter() {
           <div className="lp-footer-col">
             <h5>{t("lp.footer.start")}</h5>
             <button className="btn coral sm" style={{ justifyContent: "center" }} onClick={() => nav("/registreer")}>{t("lp.tryFree")}</button>
-            <a onClick={() => nav("/login")} style={{ marginTop: 12 }}>{t("lp.myDashboard")}</a>
+            <a onClick={() => nav("/login")} style={{ marginTop: 12 }}>{t("lp.footer.haveAccount")}</a>
           </div>
         </div>
         <div className="lp-footer-bottom">

@@ -303,7 +303,6 @@ export const fr: Dict = {
   "lp.footer.company": "Entreprise",
   "lp.footer.start": "Se lancer",
   "lp.footer.about": "À propos",
-  "lp.myDashboard": "Mon dashboard",
   "lp.footer.kennis": "Savoir & inspiration",
   "lp.more.label": "En savoir plus",
   "lp.more.title": "Découvrez Staybase en détail.",
@@ -430,7 +429,6 @@ export const fr: Dict = {
   "calc.tbl.net": "Net",
   "calc.recommended": "Recommandé :",
   "calc.cta": "Essai gratuit — sans carte bancaire →",
-  "calc.ctaP": "La connexion prend 8 minutes. Votre premier message IA est prêt le jour même.",
   "calc.disclaimer": "Estimations fondées sur les améliorations médianes de performance chez les loueurs de vacances indépendants en Belgique. Les résultats réels varient selon le bien, le marché et l'usage. Staybase ne garantit aucun revenu spécifique.",
 
   // ---- dashboard (team) ----

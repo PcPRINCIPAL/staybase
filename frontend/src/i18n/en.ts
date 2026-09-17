@@ -303,7 +303,6 @@ export const en: Dict = {
   "lp.footer.company": "Company",
   "lp.footer.start": "Get started",
   "lp.footer.about": "About us",
-  "lp.myDashboard": "My dashboard",
   "lp.footer.kennis": "Knowledge & inspiration",
   "lp.more.label": "Read on",
   "lp.more.title": "Discover Staybase in detail.",
@@ -430,7 +429,6 @@ export const en: Dict = {
   "calc.tbl.net": "Net",
   "calc.recommended": "Recommended:",
   "calc.cta": "Try it free — no card details needed →",
-  "calc.ctaP": "Connecting takes 8 minutes. Your first AI message is ready the same day.",
   "calc.disclaimer": "Estimates based on median performance improvements for independent holiday hosts in Belgium. Actual results vary per property, market and usage. Staybase does not guarantee any specific revenue.",
 
   // ---- dashboard (team) ----

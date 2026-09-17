@@ -278,7 +278,6 @@ export function Calculator({ onCta }: { onCta: () => void }) {
 
       <div className="lp-calc-cta">
         <button className="btn coral" onClick={onCta}>{t("calc.cta")}</button>
-        <p>{t("calc.ctaP")}</p>
       </div>
       <p className="lp-disclaimer">{t("calc.disclaimer")}</p>
     </div>

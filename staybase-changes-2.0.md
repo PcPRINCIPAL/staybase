@@ -194,8 +194,10 @@ ontregeld en dat is core business.
       eigen kop + subtitel; de landing is van ±10 naar ±4 schermen gegaan.
 - [x] Cijferclaim aanpassen: **"15 à 25%" in plaats van "20 tot 30%"** — in de
       pijnkaart én de calculator, in de drie talen.
-- [x] **"Mijn dashboard"-knop** op de website (login voor bestaande klanten,
-      ook voor Linnois-eigenaars) — in de nav en de footer, i.p.v. "Log in".
+- [x] ~~**"Mijn dashboard"-knop** op de website~~ — teruggedraaid na feedback
+      17/09: dat punt ging over de **Linnois-website**, niet over Staybase.
+      Hier staat gewoon weer "Log in"; de knop komt op de Linnois-site zodra
+      die er is. De actieve pagina staat nu wel **vet** in de navigatie.
 - [ ] Doelgroepcheck: is voor iemand van midden 40 meteen duidelijk wat dit
       doet? Benoit & Julie printen de pagina en duiden aan wat blijft/weggaat
       — **input afwachten**, de rest is bijzaak deze sprint.

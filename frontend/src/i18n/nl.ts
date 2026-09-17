@@ -307,7 +307,6 @@ export const nl: Dict = {
   "lp.footer.company": "Bedrijf",
   "lp.footer.start": "Aan de slag",
   "lp.footer.about": "Over ons",
-  "lp.myDashboard": "Mijn dashboard",
   "lp.footer.kennis": "Kennis & inspiratie",
   "lp.more.label": "Verder lezen",
   "lp.more.title": "Ontdek Staybase in detail.",
@@ -434,7 +433,6 @@ export const nl: Dict = {
   "calc.tbl.net": "Netto",
   "calc.recommended": "Aanbevolen:",
   "calc.cta": "Gratis proberen — geen kaartgegevens nodig →",
-  "calc.ctaP": "Koppelen duurt 8 minuten. Je eerste AI-bericht staat dezelfde dag klaar.",
   "calc.disclaimer": "Schattingen op basis van mediane prestatieverbeteringen bij onafhankelijke vakantieverhuurders in België. Werkelijke resultaten verschillen per pand, markt en gebruik. Staybase garandeert geen specifieke omzet.",
 
   // ---- dashboard (team) ----
