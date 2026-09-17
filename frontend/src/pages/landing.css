@@ -490,7 +490,7 @@
 }
 
 /* ---------- Doorklikkaarten & paginakoppen (fase 6) ---------- */
-.lp-page-head{padding-top:56px; margin-bottom:38px}
+.lp-page-head{padding-top:0; margin-bottom:38px}
 .lp-more{display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-top:34px}
 .lp-more-card{display:flex; flex-direction:column; gap:8px; padding:24px 22px; background:var(--card);
   border:1px solid var(--line); border-radius:var(--r-md); box-shadow:var(--shadow);
