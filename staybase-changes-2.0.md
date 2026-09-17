@@ -133,19 +133,25 @@ neemt het over zodra de keys er zijn, zonder schermwijzigingen.
 
 ## Fase 4 — Onboarding op punt (prio na de facturen)
 
-- [ ] **Onboarding-flow afwerken** — "number one nu effe dat ik die onboarding
-      flow echt op punt zet".
-- [ ] **Kanaalkeuze als checkboxes**: het "koppel account"-scherm verdwijnt
+- [~] **Onboarding-flow afwerken** — kanaalkeuze en poetscontract-flow staan (hieronder); de §10-restjes (brandveiligheidsattest als pop-up ná afronding, spraak-stap eruit, follow-up-mail een dag later) volgen apart.
+- [x] **Kanaalkeuze als checkboxes**: het "koppel account"-scherm verdwijnt
       volledig; per kanaal (Airbnb / Booking / VRBO) gewoon aanvinken waar het
       pand mag komen. Niet iedereen wil op Booking. Eventueel variant per
       formule (premium).
-- [ ] **Poetscontract-flow**: bij "Staybase regelt het" komt een balk eronder
+- [x] **Poetscontract-flow**: bij "Staybase regelt het" komt een balk eronder
       met de aangeraden partner; het contract (via Staybase, niet rechtstreeks
       met de poetsfirma) wordt **achteraf** getekend — niet in de onboarding
       zelf (frictie). Contracttekst aan te leveren door Linnois.
-- [ ] **Guesty-API nakijken: gebruikers en panden aanmaken + eigenaar aan pand
+- [x] **Guesty-API nakijken: gebruikers en panden aanmaken + eigenaar aan pand
       koppelen** vanuit Staybase, zodat er niets meer manueel in Guesty moet.
       Ook: eigenaar-aan-pand koppelen in Beheer moet doorstromen naar Guesty.
+      *(Nagekeken en gebouwd: de Open API kan het — POST /owners, POST
+      /listings, PUT /owners/{id} met listingIds. De functies staan in
+      guesty.ts en zijn aangesloten op Beheer (eigenaar-koppeling) en de
+      onboarding (nieuw pand → inactieve listing), maar schrijven staat
+      achter GUESTY_PUSH_ENABLED in backend/.env: pas aanzetten zodra het
+      aparte Staybase-account in Guesty bestaat, anders vervuilen we het
+      productie-account van Linnois.)*
 
 ---
 

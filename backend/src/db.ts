@@ -170,6 +170,10 @@ export async function bootstrap(): Promise<void> {
     ALTER TABLE cleanings ADD COLUMN IF NOT EXISTS report_photos jsonb;
   `);
 
+  // Guesty-push (fase 4): de Guesty-id van een eigenaar zodra hij daar via
+  // de Open API is aangemaakt (achter GUESTY_PUSH_ENABLED).
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS guesty_owner_id text;`);
+
   // Admin-view (changes 2.0, fase 2): een beheerder switcht tussen de
   // Linnois-, de Staybase- en de overall-wereld; de keuze blijft bewaard.
   await pool.query(`

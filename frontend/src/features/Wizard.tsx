@@ -5,7 +5,7 @@ import { useToast } from "../components/Toast";
 import { geocodeAddress, trackOnboarding, useCreateProperty, type AddressSuggestion } from "../lib/api";
 import { useT } from "../i18n";
 import { useBrand } from "../components/OriginGate";
-import { BRAND_LABEL } from "@shared/types";
+import { BRAND_LABEL, type Channel } from "@shared/types";
 
 const STEP_COUNT = 8;
 const STEP_TITLES = [
@@ -59,8 +59,8 @@ export function Wizard({ onClose }: { onClose: () => void }) {
   const [certRequested, setCertRequested] = useState(false);
   const [cleaningChoice, setCleaningChoice] = useState<"marketplace" | "own">("marketplace");
   const [cleaningEmail, setCleaningEmail] = useState("");
-  const [airbnbLinked, setAirbnbLinked] = useState(false);
-  const [vrbo, setVrbo] = useState(true);
+  // Kanaalkeuze (fase 4): checkboxes, geen accountkoppeling in de onboarding.
+  const [channels, setChannels] = useState<Set<Channel>>(new Set<Channel>(["airbnb", "booking", "vrbo"]));
   const [micState, setMicState] = useState<"idle" | "live" | "done">("idle");
   const [micQ, setMicQ] = useState<string>("wiz.micIdle");
   const create = useCreateProperty();
@@ -151,8 +151,8 @@ export function Wizard({ onClose }: { onClose: () => void }) {
         address, type, bedrooms, bathrooms, maxGuests,
         amenities: [...amenities],
         photoChoice, cleaningChoice,
-        cleaningEmail: cleaningEmail || null,
-        vrbo,
+        cleaningEmail: cleaningChoice === "own" ? cleaningEmail || null : null,
+        channels: [...channels],
       }],
       {
         onSuccess: () => {
@@ -343,52 +343,61 @@ export function Wizard({ onClose }: { onClose: () => void }) {
                 <span>{t("wiz.s4.ownSub")}</span>
               </button>
             </div>
-            <div className="fld">
-              <label htmlFor="wCleanMail">{t("wiz.s4.email")}</label>
-              <input
-                type="email" id="wCleanMail" placeholder={t("wiz.s4.emailPh")}
-                value={cleaningEmail} onChange={(e) => setCleaningEmail(e.target.value)}
-              />
-            </div>
+            {cleaningChoice === "marketplace" ? (
+              // Poetscontract-flow (fase 4): de aangeraden partner in een balk
+              // eronder; het contract zelf wordt pas achteraf digitaal
+              // ondertekend — bewust geen frictie in de onboarding.
+              <div className="banner good" style={{ marginTop: 18 }}>
+                <span style={{ fontSize: 18 }}>🤝</span>
+                <span>
+                  <b>{t("wiz.s4.partnerTitle", { brand })}</b><br />
+                  {t("wiz.s4.partnerBody")}
+                </span>
+              </div>
+            ) : (
+              <div className="fld">
+                <label htmlFor="wCleanMail">{t("wiz.s4.email")}</label>
+                <input
+                  type="email" id="wCleanMail" placeholder={t("wiz.s4.emailPh")}
+                  value={cleaningEmail} onChange={(e) => setCleaningEmail(e.target.value)}
+                />
+              </div>
+            )}
           </div>
         )}
 
         {step === 5 && (
           <div className="wiz-step">
             <h2>{t("wiz.s5.title")}</h2>
-            <p className="lead">{t("wiz.s5.lead", { brand })}</p>
+            <p className="lead">{t("wiz.s5.leadCheck", { brand })}</p>
+            {/* Fase 4 (meeting 16/09): geen accountkoppeling meer — gewoon
+                aanvinken op welke sites het pand mag komen. */}
             <div className="card" style={{ marginTop: 24 }}>
-              <div className="check-item">
-                <span className="st" style={{ background: "var(--coral-soft)", fontSize: 15 }}>🅰</span>
-                <span><b>{t("wiz.s5.airbnb")}</b><span>{t("wiz.s5.airbnbSub", { brand })}</span></span>
-                <span className="end">
-                  {airbnbLinked ? (
-                    <span className="chip good">{t("wiz.s5.linked")}</span>
-                  ) : (
-                    <button className="btn primary sm" onClick={() => { setAirbnbLinked(true); toast(t("wiz.s5.linkToast")); }}>
-                      {t("wiz.s5.link")}
-                    </button>
-                  )}
-                </span>
-              </div>
-              <div className="check-item">
-                <span className="st" style={{ background: "var(--booking-soft)", fontSize: 15 }}>🅱</span>
-                <span><b>Booking.com</b><span>{t("wiz.s5.bookingSub", { brand })}</span></span>
-                <span className="end"><span className="chip good">{t("wiz.s5.included")}</span></span>
-              </div>
-              <div className="check-item">
-                <span className="st" style={{ background: "var(--vrbo-soft)", fontSize: 15 }}>✌️</span>
-                <span><b>VRBO</b><span>{t("wiz.s5.vrboSub")}</span></span>
-                <span className="end">
-                  <button
-                    className={`switch ${vrbo ? "on" : ""}`}
-                    role="switch" aria-checked={vrbo} aria-label={t("wiz.s5.vrboAria")}
-                    style={{ transform: "scale(.85)" }}
-                    onClick={() => setVrbo((v) => !v)}
-                  />
-                </span>
-              </div>
+              {([
+                ["airbnb", "Airbnb", "🅰", "var(--coral-soft)", t("wiz.s5.airbnbCheckSub")],
+                ["booking", "Booking.com", "🅱", "var(--booking-soft)", t("wiz.s5.bookingCheckSub")],
+                ["vrbo", "VRBO", "✌️", "var(--vrbo-soft)", t("wiz.s5.vrboCheckSub")],
+              ] as [Channel, string, string, string, string][]).map(([ch, label, em, bg, sub]) => (
+                <label key={ch} className="check-item" style={{ cursor: "pointer" }}>
+                  <span className="st" style={{ background: bg, fontSize: 15 }}>{em}</span>
+                  <span><b>{label}</b><span>{sub}</span></span>
+                  <span className="end">
+                    <input
+                      type="checkbox"
+                      checked={channels.has(ch)}
+                      style={{ width: 19, height: 19, accentColor: "var(--coral)" }}
+                      onChange={() => setChannels((s) => {
+                        const n = new Set(s);
+                        n.has(ch) ? n.delete(ch) : n.add(ch);
+                        // Minstens één kanaal: anders staat het pand nergens.
+                        return n.size === 0 ? s : n;
+                      })}
+                    />
+                  </span>
+                </label>
+              ))}
             </div>
+            <div className="banner good">{t("wiz.s5.checkBanner", { brand })}</div>
           </div>
         )}
 
@@ -422,7 +431,11 @@ export function Wizard({ onClose }: { onClose: () => void }) {
               <div className="check-item"><span className="st ok">✓</span><span><b>{photoChoice === "photographer" ? t("wiz.s7.shootBooked") : t("wiz.s7.ownPhotos")}</b><span>{photoChoice === "photographer" ? t("wiz.s7.shootWhen") : t("wiz.s7.uploadAfter")}</span></span></div>
               <div className="check-item"><span className={`st ${certRequested ? "ok" : "todo"}`}>{certRequested ? "✓" : "⏳"}</span><span><b>{certRequested ? t("wiz.s7.fireRequested") : t("wiz.s7.fireTodo")}</b><span>{certRequested ? t("wiz.s7.fireReqSub") : t("wiz.s7.fireTodoSub")}</span></span></div>
               <div className="check-item"><span className="st ok">✓</span><span><b>{t("wiz.s7.cleaning")}</b><span>{cleaningChoice === "marketplace" ? t("wiz.s7.cleaningMarket", { brand }) : t("wiz.s7.cleaningOwn", { mail: cleaningEmail ? ` (${cleaningEmail})` : "" })}</span></span></div>
-              <div className="check-item"><span className={`st ${airbnbLinked ? "ok" : "todo"}`}>{airbnbLinked ? "✓" : "⏳"}</span><span><b>{airbnbLinked ? t("wiz.s7.airbnbLinked") : t("wiz.s7.airbnbLater")}</b><span>{t("wiz.s7.channels", { vrbo: vrbo ? t("wiz.s7.andVrbo") : "" })}</span></span></div>
+              <div className="check-item"><span className="st ok">✓</span><span><b>{t("wiz.s7.channelsChosen")}</b><span>{[
+                channels.has("airbnb") && "Airbnb",
+                channels.has("booking") && "Booking.com",
+                channels.has("vrbo") && "VRBO",
+              ].filter(Boolean).join(" · ")}</span></span></div>
               <div className="check-item"><span className={`st ${micState === "done" ? "ok" : "todo"}`}>{micState === "done" ? "✓" : "⏳"}</span><span><b>{micState === "done" ? t("wiz.s7.voiceDone") : t("wiz.s7.voiceLater")}</b><span>{t("wiz.s7.voiceSub")}</span></span></div>
             </div>
             <div className="banner good">{t("wiz.s7.banner", { brand })}</div>

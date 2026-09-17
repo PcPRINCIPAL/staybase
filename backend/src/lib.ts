@@ -54,6 +54,7 @@ export interface PropertyRow {
   lat: number | null; lng: number | null;
   owner_id: string | null;
   owner_origin?: "staybase" | "linnois" | null;
+  guesty_id?: string | null;
 }
 
 /**

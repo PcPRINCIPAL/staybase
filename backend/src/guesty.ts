@@ -553,3 +553,82 @@ export async function guestyStatus(): Promise<{
     linkedConversations: (await db.prepare("SELECT COUNT(*) n FROM conversations WHERE guesty_id IS NOT NULL").get() as { n: number }).n,
   };
 }
+
+/* =========================== Aanmaken & koppelen (fase 4) =========================== */
+
+/**
+ * Fase 4 (meeting 16/09): "idealiter moet je niet meer manueel in Guesty
+ * panden of gebruikers aanmaken." De Open API kan dat: POST /owners maakt een
+ * eigenaar aan, PUT /owners/{id} koppelt listings, POST /listings maakt een
+ * listing aan. Omdat de omgeving aan het échte Linnois-account hangt, staat
+ * schrijven achter een aparte vlag: zet GUESTY_PUSH_ENABLED=true in
+ * backend/.env zodra het (nieuwe) Staybase-account er is. Zonder vlag doen
+ * deze functies niets en blijft alles lokaal — geen vervuiling in productie.
+ */
+export function guestyPushEnabled(): boolean {
+  return guestyAvailable() && process.env.GUESTY_PUSH_ENABLED === "true";
+}
+
+async function guestySend<T>(method: "POST" | "PUT", path: string, body: unknown): Promise<T> {
+  let token = await getToken();
+  for (let attempt = 1; ; attempt++) {
+    const res = await fetch(BASE_URL + path, {
+      method,
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) return (await res.json().catch(() => ({}))) as T;
+    if (res.status === 401 && attempt === 1) {
+      token = await getToken(true);
+      continue;
+    }
+    const text = await res.text();
+    throw new Error(`Guesty ${method} ${path} gaf ${res.status}: ${text.slice(0, 300)}`);
+  }
+}
+
+/** Eigenaar in Guesty aanmaken (of hergebruiken) en zijn Guesty-id lokaal bewaren. */
+export async function ensureGuestyOwner(user: { id: string; name: string; email: string }): Promise<string | null> {
+  if (!guestyPushEnabled()) return null;
+  const existing = (await db.prepare("SELECT guesty_owner_id FROM users WHERE id = ?").get(user.id)) as
+    { guesty_owner_id: string | null } | undefined;
+  if (existing?.guesty_owner_id) return existing.guesty_owner_id;
+
+  const created = await guestySend<{ _id?: string; id?: string }>("POST", "/owners", {
+    fullName: user.name,
+    email: user.email,
+  });
+  const guestyId = created._id ?? created.id ?? null;
+  if (guestyId) await db.prepare("UPDATE users SET guesty_owner_id = ? WHERE id = ?").run(guestyId, user.id);
+  return guestyId;
+}
+
+/** Listings aan een Guesty-eigenaar hangen (volledige lijst, zoals de API verwacht). */
+export async function assignGuestyOwnerListings(guestyOwnerId: string, listingIds: string[]): Promise<void> {
+  if (!guestyPushEnabled()) return;
+  await guestySend("PUT", `/owners/${guestyOwnerId}`, { listingIds });
+}
+
+/**
+ * Nieuw pand uit de onboarding als listing in Guesty aanmaken. Bewust
+ * minimaal: titel, adres en capaciteit — foto's en prijzen volgen via het
+ * normale beheer. Geeft de Guesty-id terug en bewaart hem lokaal.
+ */
+export async function createGuestyListing(prop: {
+  id: string; name: string; location: string; type: string;
+  bedrooms: number; bathrooms: number; max_guests: number;
+}): Promise<string | null> {
+  if (!guestyPushEnabled()) return null;
+  const created = await guestySend<{ _id?: string; id?: string }>("POST", "/listings", {
+    title: prop.name,
+    propertyType: prop.type === "Appartement" ? "Apartment" : prop.type === "Villa" ? "Villa" : "House",
+    address: { full: `${prop.name}, ${prop.location}` },
+    accommodates: prop.max_guests,
+    bedrooms: prop.bedrooms,
+    bathrooms: prop.bathrooms,
+    active: false, // gaat pas live na foto's, attest en prijzen
+  });
+  const guestyId = created._id ?? created.id ?? null;
+  if (guestyId) await db.prepare("UPDATE properties SET guesty_id = ? WHERE id = ?").run(guestyId, prop.id);
+  return guestyId;
+}

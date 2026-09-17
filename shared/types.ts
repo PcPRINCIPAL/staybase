@@ -547,5 +547,10 @@ export interface NewPropertyInput {
   photoChoice: "photographer" | "own";
   cleaningChoice: "marketplace" | "own";
   cleaningEmail: string | null;
-  vrbo: boolean;
+  /**
+   * Kanaalkeuze (fase 4, meeting 16/09): gewoon aanvinken op welke sites het
+   * pand mag komen — geen accountkoppeling meer in de onboarding, en niet
+   * iedereen wil op Booking.
+   */
+  channels: Channel[];
 }

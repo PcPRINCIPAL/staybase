@@ -14,7 +14,7 @@ import type {
 } from "../../shared/types";
 import { answer } from "./assistant";
 import { aiAvailable, llmAnswer, llmDraft, llmTranslate } from "./ai";
-import { guestyAvailable, guestyStatus, resetGuestyData, syncGuesty, testGuesty } from "./guesty";
+import { assignGuestyOwnerListings, createGuestyListing, ensureGuestyOwner, guestyAvailable, guestyPushEnabled, guestyStatus, resetGuestyData, syncGuesty, testGuesty } from "./guesty";
 import { breezewayAvailable, breezewayStatus, resetBreezewayData, syncBreezeway, testBreezeway } from "./breezeway";
 import { currentUser, publicUser, requireAdmin, requirePlan, requireView, type UserRow } from "./auth";
 import {
@@ -456,9 +456,24 @@ routes.post("/properties", async (req, res) => {
     `${input.type || "Huis"} met ${input.bedrooms ?? 3} slaapkamers voor maximaal ${input.maxGuests ?? 8} gasten` +
       (voorzieningen.length ? `, met ${voorzieningen.slice(0, 3).join(", ")}.` : ".") +
       " Deze beschrijving is automatisch opgesteld tijdens de onboarding en kan je nog aanpassen.",
-    JSON.stringify(input.vrbo ? ["airbnb", "booking", "vrbo"] : ["airbnb", "booking"]),
+    // Kanaalkeuze uit de onboarding (fase 4): de eigenaar vinkt zelf aan
+    // waar het pand mag komen; leeg zou raar zijn → dan toch Airbnb.
+    JSON.stringify(input.channels?.length ? input.channels : ["airbnb"]),
     Math.round(area * 0.5), 225, 265
   );
+  // Fase 4: het nieuwe pand meteen als listing in Guesty aanmaken zodra
+  // GUESTY_PUSH_ENABLED aan staat — inactief tot foto's/attest/prijzen er zijn.
+  if (guestyPushEnabled()) {
+    try {
+      const row = (await propertyById(id))!;
+      await createGuestyListing({
+        id: row.id, name: row.name, location: row.location, type: row.type,
+        bedrooms: row.bedrooms, bathrooms: row.bathrooms, max_guests: row.max_guests,
+      });
+    } catch (err) {
+      console.warn("Guesty-listing aanmaken mislukte (pand blijft lokaal):", err);
+    }
+  }
   res.status(201).json(mapProperty((await propertyById(id))!));
 });
 
@@ -997,7 +1012,28 @@ routes.patch("/admin/properties/:id/owner", requireAdmin, async (req, res) => {
     return;
   }
   await db.prepare("UPDATE properties SET owner_id = ? WHERE id = ?").run(userId || null, req.params.id);
-  res.json({ ok: true, ownerId: userId || null });
+
+  // Fase 4: de koppeling eigenaar↔pand stroomt door naar Guesty zodra
+  // GUESTY_PUSH_ENABLED aan staat — best effort, lokaal blijft leidend.
+  let guesty: "pushed" | "skipped" | "failed" = "skipped";
+  if (userId && guestyPushEnabled() && prop.guesty_id) {
+    try {
+      const owner = (await db.prepare("SELECT id, name, email FROM users WHERE id = ?").get(userId)) as
+        { id: string; name: string; email: string };
+      const guestyOwnerId = await ensureGuestyOwner(owner);
+      if (guestyOwnerId) {
+        const listings = (await db.prepare(
+          "SELECT guesty_id FROM properties WHERE owner_id = ? AND guesty_id IS NOT NULL"
+        ).all(userId)) as { guesty_id: string }[];
+        await assignGuestyOwnerListings(guestyOwnerId, listings.map((l) => l.guesty_id));
+        guesty = "pushed";
+      }
+    } catch (err) {
+      console.warn("Guesty-koppeling eigenaar/pand mislukte:", err);
+      guesty = "failed";
+    }
+  }
+  res.json({ ok: true, ownerId: userId || null, guesty });
 });
 
 /** Formule van een gebruiker aanpassen (simuleert de aankoop van een formule). */
